@@ -1,0 +1,89 @@
+package com.englishvocab.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "vocab")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Vocab {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "vocab_id")
+    private Integer vocabId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dictionary_id", nullable = false)
+    private Dictionary dictionary;
+    
+    @Column(nullable = false, length = 100)
+    @NotBlank(message = "Từ vựng không được để trống")
+    @Size(max = 100, message = "Từ vựng không được vượt quá 100 ký tự")
+    private String word; // The actual word/term
+    
+    @Column(nullable = false, length = 20)
+    @NotBlank(message = "Từ loại không được để trống")
+    @Size(max = 20, message = "Từ loại không được vượt quá 20 ký tự")
+    private String pos; // Part of Speech (noun, verb, adj, etc.)
+    
+    @Column(length = 100)
+    @Size(max = 100, message = "Phiên âm không được vượt quá 100 ký tự")
+    private String ipa; // International Phonetic Alphabet
+    
+    @Column(nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Level level = Level.BEGINNER;
+    
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+    
+    // Relationships
+    @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Senses> senses;
+    
+    @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<VocabTopics> vocabTopics;
+    
+    @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserVocabProgress> userProgress;
+    
+    @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ListVocab> listVocabs;
+    
+    public enum Level {
+        BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+    }
+    
+    /**
+     * Convenience methods
+     */
+    public String getPrimaryMeaning() {
+        if (senses != null && !senses.isEmpty()) {
+            return senses.get(0).getMeaningVi();
+        }
+        return "";
+    }
+    
+    public String getDisplayWord() {
+        return word != null ? word : "";
+    }
+    
+    public String getFormattedIpa() {
+        return ipa != null ? "/" + ipa + "/" : "";
+    }
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Chỉnh sửa từ điển</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/dictionaries">Từ điển</a></li>
+            <li class="breadcrumb-item active">Chỉnh sửa</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-edit text-primary me-2"></i>
+                Chỉnh sửa từ điển
+            </h2>
+            <p class="text-muted mb-0">Cập nhật thông tin từ điển: <strong th:text="${dictionary.name}">Dictionary Name</strong></p>
+        </div>
+        <div class="btn-group">
+            <a th:href="@{'/admin/dictionaries/' + ${dictionary.dictionaryId}}" class="btn btn-outline-info">
+                <i class="fas fa-eye me-2"></i>Xem chi tiết
+            </a>
+            <a href="/admin/dictionaries" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+    
+    <!-- Edit Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Thông tin từ điển</h5>
+                    <small class="text-muted">
+                        Tạo ngày: <span th:text="${#temporals.format(dictionary.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
+                    </small>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{'/admin/dictionaries/' + ${dictionary.dictionaryId} + '/edit'}" method="POST" th:object="${dictionary}">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="name" class="form-label">
+                                    Tên từ điển <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="name" th:field="*{name}" 
+                                       placeholder="Nhập tên từ điển..." required maxlength="100">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
+                                    Name error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="code" class="form-label">Mã từ điển</label>
+                                <input type="text" class="form-control" id="code" th:field="*{code}" 
+                                       placeholder="VD: TOEIC, IELTS..." maxlength="50">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">
+                                    Code error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="publisher" class="form-label">Nhà xuất bản</label>
+                                <input type="text" class="form-control" id="publisher" th:field="*{publisher}" 
+                                       placeholder="Nhập tên nhà xuất bản..." maxlength="100">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('publisher')}" th:errors="*{publisher}">
+                                    Publisher error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="status" class="form-label">Trạng thái</label>
+                                <select class="form-select" id="status" th:field="*{status}">
+                                    <option th:each="s : ${statusOptions}" 
+                                            th:value="${s}" 
+                                            th:text="${s == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Hoạt động' : 
+                                                     s == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                                        Status
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">
+                                    Status error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="description" th:field="*{description}" rows="3" 
+                                      placeholder="Nhập mô tả về từ điển..." maxlength="150"></textarea>
+                            <div class="form-text">Tối đa 150 ký tự</div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">
+                                Description error
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="/admin/dictionaries" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Hủy
+                                </a>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Cập nhật từ điển
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dictionary Info & Actions -->
+        <div class="col-lg-4">
+            <!-- Current Info -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin hiện tại
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>ID:</strong> <code th:text="${dictionary.dictionaryId}">#1</code>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Trạng thái:</strong> 
+                        <span class="badge" 
+                              th:classappend="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'bg-success' : 
+                                             dictionary.status == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'bg-warning' : 'bg-secondary'}"
+                              th:text="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Hoạt động' : 
+                                       dictionary.status == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                            Active
+                        </span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Ngày tạo:</strong><br>
+                        <small th:text="${#temporals.format(dictionary.createdAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</small>
+                    </div>
+                    <div class="mb-2" th:if="${dictionary.updatedAt}">
+                        <strong>Cập nhật lần cuối:</strong><br>
+                        <small th:text="${#temporals.format(dictionary.updatedAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Thao tác nhanh
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Toggle Status -->
+                    <form th:action="@{'/admin/dictionaries/' + ${dictionary.dictionaryId} + '/toggle-status'}" 
+                          method="POST" class="mb-2">
+                        <button type="submit" class="btn btn-outline-warning btn-sm w-100">
+                            <i th:class="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'fas fa-pause' : 'fas fa-play'}" class="me-2"></i>
+                            <span th:text="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Vô hiệu hóa' : 'Kích hoạt'}">Toggle</span>
+                        </button>
+                    </form>
+                    
+                    <!-- View Details -->
+                    <a th:href="@{'/admin/dictionaries/' + ${dictionary.dictionaryId}}" class="btn btn-outline-info btn-sm w-100 mb-2">
+                        <i class="fas fa-eye me-2"></i>Xem chi tiết
+                    </a>
+                    
+                    <!-- Delete -->
+                    <form th:action="@{'/admin/dictionaries/' + ${dictionary.dictionaryId} + '/delete'}" 
+                          method="POST">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 btn-delete">
+                            <i class="fas fa-trash me-2"></i>Xóa từ điển
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Character counter for description
+        document.getElementById('description').addEventListener('input', function() {
+            const maxLength = 150;
+            const currentLength = this.value.length;
+            const remaining = maxLength - currentLength;
+            
+            let countElement = document.getElementById('desc-counter');
+            if (!countElement) {
+                countElement = document.createElement('div');
+                countElement.id = 'desc-counter';
+                countElement.className = 'form-text';
+                this.parentNode.appendChild(countElement);
+            }
+            
+            countElement.textContent = `${remaining} ký tự còn lại`;
+            countElement.className = remaining < 20 ? 'form-text text-warning' : 'form-text';
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

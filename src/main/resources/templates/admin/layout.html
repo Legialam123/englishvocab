@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle + ' - Admin Panel - English Vocab'}">Admin Panel - English Vocab</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .main-content {
+            min-height: 100vh;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #667eea !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .table th {
+            border-top: none;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="fas fa-shield-alt me-2 fs-4"></i>
+                        <h5 class="mb-0">Admin Panel</h5>
+                    </div>
+                    
+                    <!-- User Info -->
+                    <div class="bg-white bg-opacity-10 rounded p-3 mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-circle me-2 fs-4"></i>
+                            <div>
+                                <div class="fw-bold" sec:authentication="principal.fullname">Admin User</div>
+                                <small class="text-light">Administrator</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Menu -->
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-home me-2"></i> Dashboard
+                        </a>
+                        
+                        <div class="nav-item">
+                            <div class="text-light text-uppercase small fw-bold px-3 py-2 mt-3 mb-1">
+                                Quản lý nội dung
+                            </div>
+                            <a class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/dictionaries') ? 'active' : ''}" 
+                               href="/admin/dictionaries">
+                                <i class="fas fa-book me-2"></i> Từ điển
+                            </a>
+                            <a class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/vocabulary') ? 'active' : ''}" 
+                               href="/admin/vocabulary">
+                                <i class="fas fa-spell-check me-2"></i> Từ vựng
+                            </a>
+                            <a class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/topics') ? 'active' : ''}" 
+                               href="/admin/topics">
+                                <i class="fas fa-tags me-2"></i> Chủ đề
+                            </a>
+                        </div>
+                        
+                        <div class="nav-item">
+                            <div class="text-light text-uppercase small fw-bold px-3 py-2 mt-3 mb-1">
+                                Quiz & Test
+                            </div>
+                            <a class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/quizzes') ? 'active' : ''}" 
+                               href="/admin/quizzes">
+                                <i class="fas fa-question-circle me-2"></i> Quiz
+                            </a>
+                        </div>
+                        
+                        <div class="nav-item">
+                            <div class="text-light text-uppercase small fw-bold px-3 py-2 mt-3 mb-1">
+                                Quản lý người dùng
+                            </div>
+                            <a class="nav-link" th:classappend="${#request.requestURI.startsWith('/admin/users') ? 'active' : ''}" 
+                               href="/admin/users">
+                                <i class="fas fa-users me-2"></i> Người dùng
+                            </a>
+                        </div>
+                        
+                        <div class="nav-item">
+                            <div class="text-light text-uppercase small fw-bold px-3 py-2 mt-3 mb-1">
+                                Thống kê
+                            </div>
+                            <a class="nav-link" href="/admin/reports">
+                                <i class="fas fa-chart-bar me-2"></i> Báo cáo
+                            </a>
+                        </div>
+                    </nav>
+                </div>
+                
+                <!-- Logout -->
+                <div class="mt-auto p-4">
+                    <form th:action="@{/auth/logout}" method="POST">
+                        <button type="submit" class="btn btn-outline-light btn-sm w-100">
+                            <i class="fas fa-sign-out-alt me-2"></i> Đăng xuất
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation Bar -->
+                <nav class="navbar navbar-light bg-white shadow-sm mb-4">
+                    <div class="container-fluid">
+                        <span class="navbar-brand mb-0 h1" th:text="${pageTitle ?: 'Admin Panel'}">Admin Panel</span>
+                        
+                        <div class="d-flex">
+                            <a href="/dashboard" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-eye me-1"></i> Xem trang chủ
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+                
+                <!-- Flash Messages -->
+                <div class="container-fluid mb-4">
+                    <!-- Success Message -->
+                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    
+                    <!-- Warning Message -->
+                    <div th:if="${warningMessage}" class="alert alert-warning alert-dismissible fade show">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span th:text="${warningMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    
+                    <!-- Info Message -->
+                    <div th:if="${infoMessage}" class="alert alert-info alert-dismissible fade show">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span th:text="${infoMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+                
+                <!-- Page Content -->
+                <div class="container-fluid">
+                    <th:block th:replace="${content}">
+                        <!-- Page-specific content will be inserted here -->
+                    </th:block>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+        
+        // Confirm delete actions
+        document.querySelectorAll('.btn-delete').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                if (!confirm('Bạn có chắc chắn muốn xóa không?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+    
+    <th:block th:replace="${scripts}">
+        <!-- Page-specific scripts will be inserted here -->
+    </th:block>
+</body>
+</html>
