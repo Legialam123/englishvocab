@@ -2,7 +2,7 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" 
       th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
 <head>
-    <title>Quản lý từ điển</title>
+    <title>Quản lý chủ đề</title>
 </head>
 <body>
 
@@ -11,35 +11,35 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">
-                <i class="fas fa-book text-primary me-2"></i>
-                Quản lý từ điển
+                <i class="fas fa-tags text-primary me-2"></i>
+                Quản lý chủ đề
             </h2>
-            <p class="text-muted mb-0">Quản lý danh sách từ điển trong hệ thống</p>
+            <p class="text-muted mb-0">Quản lý danh sách chủ đề phân loại từ vựng</p>
         </div>
-        <a href="/admin/dictionaries/create" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Thêm từ điển mới
+        <a href="/admin/topics/create" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Thêm chủ đề mới
         </a>
     </div>
     
     <!-- Statistics Cards -->
     <div class="row mb-4" th:if="${stats}">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-primary mb-1" th:text="${stats.total}">0</h3>
-                    <p class="card-text text-muted mb-0">Tổng số từ điển</p>
+                    <p class="card-text text-muted mb-0">Tổng chủ đề</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-success mb-1" th:text="${stats.active}">0</h3>
-                    <p class="card-text text-muted mb-0">Đang hoạt động</p>
+                    <p class="card-text text-muted mb-0">Hoạt động</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-warning mb-1" th:text="${stats.inactive}">0</h3>
@@ -47,11 +47,26 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center">
+    </div>
+    
+    <!-- Top Topics -->
+    <div class="row mb-4" th:if="${topTopics != null and !topTopics.isEmpty()}">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-star me-2"></i>Chủ đề có nhiều từ vựng nhất
+                    </h6>
+                </div>
                 <div class="card-body">
-                    <h3 class="text-secondary mb-1" th:text="${stats.archived}">0</h3>
-                    <p class="card-text text-muted mb-0">Đã lưu trữ</p>
+                    <div class="row">
+                        <div th:each="topTopic : ${topTopics}" class="col-md-2 text-center mb-3">
+                            <div class="border rounded p-3">
+                                <h5 class="text-primary" th:text="${topTopic.vocabCount}">0</h5>
+                                <p class="small mb-0" th:text="${topTopic.topic.name}">Topic</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -61,10 +76,10 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-5">
                     <label for="search" class="form-label">Tìm kiếm</label>
                     <input type="text" class="form-control" id="search" name="search" 
-                           th:value="${searchKeyword}" placeholder="Nhập tên từ điển...">
+                           th:value="${searchKeyword}" placeholder="Nhập tên chủ đề...">
                 </div>
                 <div class="col-md-3">
                     <label for="status" class="form-label">Trạng thái</label>
@@ -72,17 +87,16 @@
                         <option value="">Tất cả trạng thái</option>
                         <option th:each="s : ${statusOptions}" 
                                 th:value="${s}" 
-                                th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' : 
-                                         s.name() == 'INACTIVE' ? 'Không hoạt động' : 'Đã lưu trữ'}"
+                                th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}"
                                 th:selected="${selectedStatus != null and selectedStatus == s.name()}">
                         </option>
                     </select>
                 </div>
-                <div class="col-md-5 d-flex align-items-end gap-2">
+                <div class="col-md-4 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-outline-primary">
                         <i class="fas fa-search me-2"></i>Tìm kiếm
                     </button>
-                    <a href="/admin/dictionaries" class="btn btn-outline-secondary">
+                    <a href="/admin/topics" class="btn btn-outline-secondary">
                         <i class="fas fa-redo me-2"></i>Đặt lại
                     </a>
                 </div>
@@ -90,88 +104,85 @@
         </div>
     </div>
     
-    <!-- Dictionary List -->
+    <!-- Topics List -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <span th:if="${isSearch}">Kết quả tìm kiếm</span>
-                <span th:unless="${isSearch}">Danh sách từ điển</span>
+                <span th:unless="${isSearch}">Danh sách chủ đề</span>
             </h5>
             <span class="badge bg-secondary" 
-                  th:text="${isSearch ? #lists.size(dictionaries) : dictionaries.totalElements} + ' từ điển'">
-                0 từ điển
+                  th:text="${isSearch ? #lists.size(topics) : topics.totalElements} + ' chủ đề'">
+                0 chủ đề
             </span>
         </div>
         <div class="card-body">
             <!-- No data message -->
-            <div th:if="${isSearch ? #lists.isEmpty(dictionaries) : dictionaries.empty}" 
+            <div th:if="${isSearch ? #lists.isEmpty(topics) : topics.empty}" 
                  class="text-center py-5">
-                <i class="fas fa-book text-muted mb-3" style="font-size: 3rem;"></i>
-                <h5 class="text-muted">Không tìm thấy từ điển nào</h5>
+                <i class="fas fa-tags text-muted mb-3" style="font-size: 3rem;"></i>
+                <h5 class="text-muted">Không tìm thấy chủ đề nào</h5>
                 <p class="text-muted mb-3">
-                    <span th:if="${isSearch}">Không tìm thấy từ điển với từ khóa "<span th:text="${searchKeyword}"></span>"</span>
-                    <span th:unless="${isSearch}">Chưa có từ điển nào trong hệ thống</span>
+                    <span th:if="${isSearch}">Không tìm thấy chủ đề với từ khóa "<span th:text="${searchKeyword}"></span>"</span>
+                    <span th:unless="${isSearch}">Chưa có chủ đề nào trong hệ thống</span>
                 </p>
-                <a href="/admin/dictionaries/create" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Thêm từ điển đầu tiên
+                <a href="/admin/topics/create" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Thêm chủ đề đầu tiên
                 </a>
             </div>
             
-            <!-- Dictionary Table -->
-            <div th:unless="${isSearch ? #lists.isEmpty(dictionaries) : dictionaries.empty}">
+            <!-- Topics Table -->
+            <div th:unless="${isSearch ? #lists.isEmpty(topics) : topics.empty}">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Tên từ điển</th>
-                                <th>Mã</th>
-                                <th>Nhà xuất bản</th>
+                                <th>Tên chủ đề</th>
+                                <th>Mô tả</th>
                                 <th>Trạng thái</th>
-                                <th>Ngày tạo</th>
+                                <th>Từ vựng</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="dict : ${isSearch ? dictionaries : dictionaries.content}">
-                                <td th:text="${dict.dictionaryId}">1</td>
+                            <tr th:each="topic : ${isSearch ? topics : topics.content}">
+                                <td th:text="${topic.topicId}">1</td>
                                 <td>
-                                    <div class="fw-bold" th:text="${dict.name}">Dictionary Name</div>
-                                    <small class="text-muted" th:text="${dict.description}" th:if="${dict.description}">Description</small>
+                                    <div class="fw-bold" th:text="${topic.name}">Topic Name</div>
                                 </td>
                                 <td>
-                                    <code th:text="${dict.code}" th:if="${dict.code}">CODE</code>
-                                    <span th:unless="${dict.code}" class="text-muted">-</span>
+                                    <span th:text="${topic.description}" th:if="${topic.description}">Description</span>
+                                    <span th:unless="${topic.description}" class="text-muted">-</span>
                                 </td>
-                                <td th:text="${dict.publisher ?: '-'}">Publisher</td>
                                 <td>
                                     <span class="badge" 
-                                          th:classappend="${dict.status.name() == 'ACTIVE' ? 'bg-success' : 
-                                                         dict.status.name() == 'INACTIVE' ? 'bg-warning' : 'bg-secondary'}"
-                                          th:text="${dict.status.name() == 'ACTIVE' ? 'Hoạt động' : 
-                                                   dict.status.name() == 'INACTIVE' ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                                          th:classappend="${topic.status.name() == 'ACTIVE' ? 'bg-success' : 'bg-warning'}"
+                                          th:text="${topic.status.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}">
                                         Active
                                     </span>
                                 </td>
-                                <td th:text="${#temporals.format(dict.createdAt, 'dd/MM/yyyy')}">01/01/2024</td>
+                                <td>
+                                    <span class="badge bg-info" th:text="${topic.vocabCount} + ' từ'">0 từ</span>
+                                </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a th:href="@{'/admin/dictionaries/' + ${dict.dictionaryId}}" 
+                                        <a th:href="@{'/admin/topics/' + ${topic.topicId}}" 
                                            class="btn btn-sm btn-outline-info" title="Xem chi tiết">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a th:href="@{'/admin/dictionaries/' + ${dict.dictionaryId} + '/edit'}" 
+                                        <a th:href="@{'/admin/topics/' + ${topic.topicId} + '/edit'}" 
                                            class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form th:action="@{'/admin/dictionaries/' + ${dict.dictionaryId} + '/toggle-status'}" 
+                                        <form th:action="@{'/admin/topics/' + ${topic.topicId} + '/toggle-status'}" 
                                               method="POST" style="display: inline;">
                                             <button type="submit" class="btn btn-sm btn-outline-warning" 
-                                                    th:title="${dict.status.name() == 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt'}">
-                                                <i th:class="${dict.status.name() == 'ACTIVE' ? 'fas fa-pause' : 'fas fa-play'}"></i>
+                                                    th:title="${topic.status.name() == 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt'}">
+                                                <i th:class="${topic.status.name() == 'ACTIVE' ? 'fas fa-pause' : 'fas fa-play'}"></i>
                                             </button>
                                         </form>
-                                        <form th:action="@{'/admin/dictionaries/' + ${dict.dictionaryId} + '/delete'}" 
+                                        <form th:action="@{'/admin/topics/' + ${topic.topicId} + '/delete'}" 
                                               method="POST" style="display: inline;">
                                             <button type="submit" class="btn btn-sm btn-outline-danger btn-delete" title="Xóa">
                                                 <i class="fas fa-trash"></i>
@@ -184,21 +195,21 @@
                     </table>
                 </div>
                 
-                <!-- Pagination (only for non-search results) -->
-                <nav th:unless="${isSearch}" th:if="${dictionaries.totalPages > 1}">
+                <!-- Pagination -->
+                <nav th:unless="${isSearch}" th:if="${topics.totalPages > 1}">
                     <ul class="pagination justify-content-center">
-                        <li class="page-item" th:classappend="${dictionaries.first ? 'disabled' : ''}">
-                            <a class="page-link" th:href="@{/admin/dictionaries(page=${dictionaries.number - 1}, size=${dictionaries.size}, status=${selectedStatus})}">
+                        <li class="page-item" th:classappend="${topics.first ? 'disabled' : ''}">
+                            <a class="page-link" th:href="@{/admin/topics(page=${topics.number - 1}, size=${topics.size}, status=${selectedStatus})}">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
-                        <li th:each="page : ${#numbers.sequence(0, dictionaries.totalPages - 1)}" 
-                            class="page-item" th:classappend="${page == dictionaries.number ? 'active' : ''}">
-                            <a class="page-link" th:href="@{/admin/dictionaries(page=${page}, size=${dictionaries.size}, status=${selectedStatus})}" 
+                        <li th:each="page : ${#numbers.sequence(0, topics.totalPages - 1)}" 
+                            class="page-item" th:classappend="${page == topics.number ? 'active' : ''}">
+                            <a class="page-link" th:href="@{/admin/topics(page=${page}, size=${topics.size}, status=${selectedStatus})}" 
                                th:text="${page + 1}">1</a>
                         </li>
-                        <li class="page-item" th:classappend="${dictionaries.last ? 'disabled' : ''}">
-                            <a class="page-link" th:href="@{/admin/dictionaries(page=${dictionaries.number + 1}, size=${dictionaries.size}, status=${selectedStatus})}">
+                        <li class="page-item" th:classappend="${topics.last ? 'disabled' : ''}">
+                            <a class="page-link" th:href="@{/admin/topics(page=${topics.number + 1}, size=${topics.size}, status=${selectedStatus})}">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>

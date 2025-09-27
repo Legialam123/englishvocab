@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Quản lý từ vựng</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-spell-check text-primary me-2"></i>
+                Quản lý từ vựng
+            </h2>
+            <p class="text-muted mb-0">Quản lý danh sách từ vựng trong hệ thống</p>
+        </div>
+        <a href="/admin/vocabulary/create" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Thêm từ vựng mới
+        </a>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4" th:if="${stats}">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary mb-1" th:text="${stats.total}">0</h3>
+                    <p class="card-text text-muted mb-0">Tổng từ vựng</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success mb-1" th:text="${stats.beginner}">0</h3>
+                    <p class="card-text text-muted mb-0">Beginner</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning mb-1" th:text="${stats.intermediate}">0</h3>
+                    <p class="card-text text-muted mb-0">Intermediate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-1" th:text="${stats.advanced}">0</h3>
+                    <p class="card-text text-muted mb-0">Advanced</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters & Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Tìm từ vựng</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           th:value="${searchKeyword}" placeholder="Nhập từ vựng...">
+                </div>
+                <div class="col-md-3">
+                    <label for="dictionaryId" class="form-label">Từ điển</label>
+                    <select class="form-select" id="dictionaryId" name="dictionaryId">
+                        <option value="">Tất cả từ điển</option>
+                        <option th:each="dict : ${dictionaries}" 
+                                th:value="${dict.dictionaryId}" 
+                                th:text="${dict.name}"
+                                th:selected="${selectedDictionary == dict.dictionaryId}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="level" class="form-label">Level</label>
+                    <select class="form-select" id="level" name="level">
+                        <option value="">Tất cả level</option>
+                        <option th:each="l : ${levelOptions}" 
+                                th:value="${l}" 
+                                th:text="${l}"
+                                th:selected="${selectedLevel == l.toString()}">
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-2"></i>Tìm kiếm
+                    </button>
+                    <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>Đặt lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Vocabulary List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <span th:if="${isSearch}">Kết quả tìm kiếm</span>
+                <span th:unless="${isSearch}">Danh sách từ vựng</span>
+            </h5>
+            <span class="badge bg-secondary" 
+                  th:text="${isSearch ? #lists.size(vocabularies) : vocabularies.totalElements} + ' từ vựng'">
+                0 từ vựng
+            </span>
+        </div>
+        <div class="card-body">
+            <!-- No data message -->
+            <div th:if="${isSearch ? #lists.isEmpty(vocabularies) : vocabularies.empty}" 
+                 class="text-center py-5">
+                <i class="fas fa-spell-check text-muted mb-3" style="font-size: 3rem;"></i>
+                <h5 class="text-muted">Không tìm thấy từ vựng nào</h5>
+                <p class="text-muted mb-3">
+                    <span th:if="${isSearch}">Không tìm thấy từ vựng với từ khóa "<span th:text="${searchKeyword}"></span>"</span>
+                    <span th:unless="${isSearch}">Chưa có từ vựng nào trong hệ thống</span>
+                </p>
+                <a href="/admin/vocabulary/create" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Thêm từ vựng đầu tiên
+                </a>
+            </div>
+            
+            <!-- Vocabulary Table -->
+            <div th:unless="${isSearch ? #lists.isEmpty(vocabularies) : vocabularies.empty}">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Từ vựng</th>
+                                <th>IPA</th>
+                                <th>Level</th>
+                                <th>Từ điển</th>
+                                <th>Nghĩa</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="vocab : ${isSearch ? vocabularies : vocabularies.content}">
+                                <td th:text="${vocab.vocabId}">1</td>
+                                <td>
+                                    <div class="fw-bold" th:text="${vocab.word}">Word</div>
+                                </td>
+                                <td>
+                                    <code th:text="${vocab.ipa}" th:if="${vocab.ipa}">IPA</code>
+                                    <span th:unless="${vocab.ipa}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${vocab.level.name() == 'BEGINNER' ? 'bg-success' : 
+                                                         vocab.level.name() == 'INTERMEDIATE' ? 'bg-warning' : 'bg-danger'}"
+                                          th:text="${vocab.level}">
+                                        Level
+                                    </span>
+                                </td>
+                                <td th:text="${vocab.dictionary.name}">Dictionary</td>
+                                <td>
+                                    <small class="text-muted">
+                                        <span th:text="${vocab.senses?.size() ?: 0}">0</span> nghĩa
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a th:href="@{'/admin/vocabulary/' + ${vocab.vocabId}}" 
+                                           class="btn btn-sm btn-outline-info" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a th:href="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/edit'}" 
+                                           class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form th:action="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/delete'}" 
+                                              method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger btn-delete" title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <nav th:unless="${isSearch}" th:if="${vocabularies.totalPages > 1}">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${vocabularies.first ? 'disabled' : ''}">
+                            <a class="page-link" th:href="@{/admin/vocabulary(page=${vocabularies.number - 1}, size=${vocabularies.size}, dictionaryId=${selectedDictionary}, level=${selectedLevel})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li th:each="page : ${#numbers.sequence(0, vocabularies.totalPages - 1)}" 
+                            class="page-item" th:classappend="${page == vocabularies.number ? 'active' : ''}">
+                            <a class="page-link" th:href="@{/admin/vocabulary(page=${page}, size=${vocabularies.size}, dictionaryId=${selectedDictionary}, level=${selectedLevel})}" 
+                               th:text="${page + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${vocabularies.last ? 'disabled' : ''}">
+                            <a class="page-link" th:href="@{/admin/vocabulary(page=${vocabularies.number + 1}, size=${vocabularies.size}, dictionaryId=${selectedDictionary}, level=${selectedLevel})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <!-- Page-specific JavaScript -->
+</th:block>
+
+</body>
+</html>

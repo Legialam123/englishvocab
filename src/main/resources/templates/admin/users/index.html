@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-users me-2"></i>Quản lý người dùng
+        </h1>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4" th:if="${stats != null}">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users text-primary mb-2" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mb-1">Tổng người dùng</h5>
+                    <h3 class="text-primary mb-0" th:text="${stats.total}">0</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check text-success mb-2" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mb-1">Hoạt động</h5>
+                    <h3 class="text-success mb-0" th:text="${stats.active}">0</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-lock text-warning mb-2" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mb-1">Bị khóa</h5>
+                    <h3 class="text-warning mb-0" th:text="${stats.locked}">0</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-cog text-info mb-2" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mb-1">Quản trị viên</h5>
+                    <h3 class="text-info mb-0" th:text="${stats.admins}">0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Users -->
+    <div class="row mb-4" th:if="${recentUsers != null and !recentUsers.isEmpty()}">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Người dùng mới đăng ký
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4 mb-2" th:each="user : ${recentUsers}">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary text-white me-2">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <small class="fw-bold" th:text="${user.fullname}">User Name</small><br>
+                                    <small class="text-muted" th:text="${user.username}">username</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Bộ lọc và tìm kiếm
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" th:action="@{/admin/users}">
+                <div class="row align-items-end">
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label small">Quyền</label>
+                        <select name="roleFilter" class="form-select form-select-sm">
+                            <option value="">Tất cả quyền</option>
+                            <option th:each="role : ${roleOptions}"
+                                    th:value="${role}"
+                                    th:text="${role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}"
+                                    th:selected="${selectedRole != null and selectedRole == role}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label small">Trạng thái</label>
+                        <select name="statusFilter" class="form-select form-select-sm">
+                            <option value="">Tất cả trạng thái</option>
+                            <option th:each="status : ${statusOptions}"
+                                    th:value="${status}"
+                                    th:text="${status.name() == 'ACTIVE' ? 'Hoạt động' :
+                                             status.name() == 'LOCKED' ? 'Bị khóa' : 'Đã xóa'}"
+                                    th:selected="${selectedStatus != null and selectedStatus == status}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label small">Từ khóa</label>
+                        <input type="text" name="keyword" class="form-control form-control-sm" 
+                               placeholder="Tìm theo username, email, tên..." th:value="${keyword}">
+                    </div>
+                    
+                    <div class="col-md-2 mb-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-search me-1"></i>Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Danh sách người dùng 
+                <span class="badge bg-secondary" th:text="${totalElements}">0</span>
+            </h6>
+            
+            <!-- Sort Options -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown">
+                    <i class="fas fa-sort me-1"></i>Sắp xếp
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" 
+                           th:href="@{/admin/users(sortBy='createdAt',sortDir='desc',
+                                     roleFilter=${selectedRole},statusFilter=${selectedStatus},keyword=${keyword})}">
+                        Mới nhất</a></li>
+                    <li><a class="dropdown-item" 
+                           th:href="@{/admin/users(sortBy='createdAt',sortDir='asc',
+                                     roleFilter=${selectedRole},statusFilter=${selectedStatus},keyword=${keyword})}">
+                        Cũ nhất</a></li>
+                    <li><a class="dropdown-item" 
+                           th:href="@{/admin/users(sortBy='username',sortDir='asc',
+                                     roleFilter=${selectedRole},statusFilter=${selectedStatus},keyword=${keyword})}">
+                        Tên A-Z</a></li>
+                    <li><a class="dropdown-item" 
+                           th:href="@{/admin/users(sortBy='fullname',sortDir='asc',
+                                     roleFilter=${selectedRole},statusFilter=${selectedStatus},keyword=${keyword})}">
+                        Họ tên A-Z</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0">Người dùng</th>
+                            <th class="border-0">Liên hệ</th>
+                            <th class="border-0">Quyền</th>
+                            <th class="border-0">Trạng thái</th>
+                            <th class="border-0">Ngày tạo</th>
+                            <th class="border-0">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${users.isEmpty()}">
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="fas fa-users-slash fa-2x mb-2"></i><br>
+                                Không có người dùng nào
+                            </td>
+                        </tr>
+                        
+                        <tr th:each="user : ${users.content}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary text-white me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold" th:text="${user.fullname}">Full Name</div>
+                                        <small class="text-muted" th:text="'@' + ${user.username}">@username</small>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div th:text="${user.email}">user@email.com</div>
+                                <small class="text-muted" 
+                                       th:text="${user.isGoogleUser()} ? 'Đăng nhập Google' : 'Đăng nhập thường'">
+                                    Login Type
+                                </small>
+                            </td>
+                            
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${user.role.name() == 'ADMIN' ? 'bg-info' : 'bg-secondary'}"
+                                      th:text="${user.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">
+                                    Role
+                                </span>
+                            </td>
+                            
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${user.status.name() == 'ACTIVE' ? 'bg-success' :
+                                                     user.status.name() == 'LOCKED' ? 'bg-warning' : 'bg-danger'}"
+                                      th:text="${user.status.name() == 'ACTIVE' ? 'Hoạt động' :
+                                               user.status.name() == 'LOCKED' ? 'Bị khóa' : 'Đã xóa'}">
+                                    Status
+                                </span>
+                            </td>
+                            
+                            <td>
+                                <div th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy')}">Date</div>
+                                <small class="text-muted" th:text="${#temporals.format(user.createdAt, 'HH:mm')}">Time</small>
+                            </td>
+                            
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a th:href="@{/admin/users/{id}(id=${user.id})}" 
+                                       class="btn btn-outline-primary" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a th:href="@{/admin/users/{id}/edit(id=${user.id})}" 
+                                       class="btn btn-outline-secondary" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger delete-user-btn" 
+                                            th:if="${user.role.name() != 'ADMIN'}"
+                                            th:attr="data-user-id=${user.id},data-username=${user.username}"
+                                            title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="card-footer bg-light" th:if="${totalPages > 1}">
+            <nav aria-label="Phân trang người dùng">
+                <ul class="pagination pagination-sm mb-0 justify-content-between">
+                    <li class="page-item">
+                        <span class="page-link text-muted">
+                            Hiển thị <span th:text="${users.number * users.size + 1}">1</span> 
+                            đến <span th:text="${users.number * users.size + users.numberOfElements}">10</span>
+                            trong tổng số <span th:text="${totalElements}">100</span> người dùng
+                        </span>
+                    </li>
+                    
+                    <li class="page-item">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Previous -->
+                            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:href="@{/admin/users(page=${currentPage - 1},roleFilter=${selectedRole},
+                                            statusFilter=${selectedStatus},keyword=${keyword})}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Page Numbers -->
+                            <li class="page-item" 
+                                th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                                th:if="${i >= currentPage - 2 and i <= currentPage + 2}"
+                                th:classappend="${i == currentPage} ? 'active'">
+                                <a class="page-link" 
+                                   th:href="@{/admin/users(page=${i},roleFilter=${selectedRole},
+                                            statusFilter=${selectedStatus},keyword=${keyword})}"
+                                   th:text="${i + 1}">1</a>
+                            </li>
+                            
+                            <!-- Next -->
+                            <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:href="@{/admin/users(page=${currentPage + 1},roleFilter=${selectedRole},
+                                            statusFilter=${selectedStatus},keyword=${keyword})}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        Xác nhận xóa
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa người dùng <strong id="deleteUserName"></strong>?</p>
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Hành động này sẽ đặt trạng thái người dùng thành "Đã xóa" và không thể hoàn tác.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <form id="deleteForm" method="post" class="d-inline">
+                        <input type="hidden" name="_method" value="post">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Xóa người dùng
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Event delegation for delete buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle delete button clicks using event delegation
+            document.addEventListener('click', function(event) {
+                if (event.target.closest('.delete-user-btn')) {
+                    const button = event.target.closest('.delete-user-btn');
+                    const userId = button.getAttribute('data-user-id');
+                    const username = button.getAttribute('data-username');
+                    confirmDelete(userId, username);
+                }
+            });
+        });
+        
+        function confirmDelete(userId, username) {
+            document.getElementById('deleteUserName').textContent = username;
+            document.getElementById('deleteForm').action = `/admin/users/${userId}/delete`;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    bootstrap.Alert.getOrCreateInstance(alert).close();
+                }
+            });
+        }, 5000);
+    </script>
+    
+    <style>
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+    </style>
+</th:block>
+
+</html>
+

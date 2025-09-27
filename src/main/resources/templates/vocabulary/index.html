@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Từ vựng của tôi - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .stats-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stats-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .section-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .word-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .word-card:hover {
+            background: white;
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        .word-main {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .word-ipa {
+            color: #64748b;
+            font-style: italic;
+            margin-left: 0.5rem;
+        }
+
+        .word-pos {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .word-meaning {
+            color: var(--text-color);
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar-container {
+            background: #e2e8f0;
+            height: 0.5rem;
+            border-radius: 0.25rem;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--primary-color));
+            transition: width 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            border-color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 768px) {
+            .stats-number {
+                font-size: 2rem;
+            }
+            
+            .word-card {
+                padding: 0.75rem;
+            }
+            
+            .section-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard" class="text-decoration-none">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Từ vựng</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-book-open me-2"></i>
+                        Từ vựng của tôi
+                    </h1>
+                    <p class="mb-0 opacity-75">Quản lý và theo dõi tiến độ học từ vựng</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="mt-3 mt-md-0">
+                        <a href="/vocabulary/add" class="btn btn-light me-2">
+                            <i class="fas fa-plus me-1"></i>Thêm từ mới
+                        </a>
+                        <a href="/vocabulary/dictionaries" class="btn btn-outline-light">
+                            <i class="fas fa-search me-1"></i>Duyệt từ điển
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number" th:text="${totalLearned}">0</div>
+                    <div class="stats-label">Từ đã học</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number text-warning" th:text="${wordsToReview}">0</div>
+                    <div class="stats-label">Cần ôn tập</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number text-success" th:text="${totalCustom}">0</div>
+                    <div class="stats-label">Từ cá nhân</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number text-info">85%</div>
+                    <div class="stats-label">Độ chính xác</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+                <div class="section-card h-100">
+                    <h3 class="section-title">
+                        <i class="fas fa-play-circle text-primary"></i>
+                        Bắt đầu học tập
+                    </h3>
+                    <p class="text-muted mb-3">Tiếp tục hành trình học từ vựng của bạn</p>
+                    <div class="d-grid gap-2">
+                        <a href="/learn" class="btn btn-primary btn-lg" th:if="${wordsToReview > 0}">
+                            <i class="fas fa-graduation-cap me-2"></i>
+                            Ôn tập (<span th:text="${wordsToReview}">5</span> từ)
+                        </a>
+                        <a href="/learn/new" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Học từ mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="section-card h-100">
+                    <h3 class="section-title">
+                        <i class="fas fa-chart-bar text-success"></i>
+                        Thống kê nhanh
+                    </h3>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="h4 text-success mb-1" th:text="${totalLearned}">24</div>
+                                <small class="text-muted">Tổng từ</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="h4 text-primary mb-1">7</div>
+                                <small class="text-muted">Streak</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 65%;"></div>
+                        </div>
+                        <small class="text-muted">Tiến độ hôm nay</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learned Words -->
+        <div class="section-card" th:if="${learnedWords != null and learnedWords.hasContent()}">
+            <h3 class="section-title">
+                <i class="fas fa-brain text-info"></i>
+                Từ đã học gần đây
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6" th:each="progress : ${learnedWords.content}">
+                    <div class="word-card" th:onclick="|window.location.href='/vocabulary/${progress.vocab.vocabId}'|">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="word-main" th:text="${progress.vocab.word}">hello</div>
+                                <div class="word-meaning" th:text="${progress.vocab.primaryMeaning}">xin chào</div>
+                                <div class="mt-2">
+                                    <span class="badge bg-primary" th:text="|Box ${progress.box}|">Box 2</span>
+                                    <span class="badge bg-success ms-1" th:text="|Streak ${progress.streak}|">Streak 3</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small" th:text="${#temporals.format(progress.lastReviewed, 'dd/MM')}">25/09</div>
+                                <div class="text-success small" th:if="${progress.status.name() == 'MASTERED'}">
+                                    <i class="fas fa-check-circle"></i> Mastered
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            <nav th:if="${learnedWords.totalPages > 1}" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${learnedWords.first} ? 'disabled'">
+                        <a class="page-link" th:href="@{/vocabulary(page=${learnedWords.number - 1})}">Trước</a>
+                    </li>
+                    <li class="page-item" th:each="page : ${#numbers.sequence(0, learnedWords.totalPages - 1)}" 
+                        th:classappend="${page == learnedWords.number} ? 'active'">
+                        <a class="page-link" th:href="@{/vocabulary(page=${page})}" th:text="${page + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${learnedWords.last} ? 'disabled'">
+                        <a class="page-link" th:href="@{/vocabulary(page=${learnedWords.number + 1})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Custom Words -->
+        <div class="section-card" th:if="${customWords != null and !customWords.isEmpty()}">
+            <h3 class="section-title">
+                <i class="fas fa-user-edit text-warning"></i>
+                Từ vựng cá nhân
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6" th:each="custom : ${customWords}">
+                    <div class="word-card" th:onclick="|window.location.href='/vocabulary/${custom.customVocabId}?type=custom'|">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="word-main" th:text="${custom.name}">awesome</div>
+                                <span class="word-ipa" th:text="${custom.formattedIpa}" th:if="${custom.ipa}">/ˈɔːsəm/</span>
+                                <span class="word-pos" th:text="${custom.pos}" th:if="${custom.pos}">adj</span>
+                                <div class="word-meaning" th:text="${custom.meaningVi}" th:if="${custom.meaningVi}">tuyệt vời</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small" th:text="${#temporals.format(custom.createdAt, 'dd/MM')}">24/09</div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" th:href="@{'/vocabulary/' + ${custom.customVocabId} + '?type=custom'}">
+                                                <i class="fas fa-eye me-2"></i>Xem chi tiết
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form th:action="@{'/vocabulary/custom/' + ${custom.customVocabId} + '/delete'}" method="post" class="d-inline"
+                                                  onsubmit="return confirm('Bạn có chắc muốn xóa từ này?')">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-trash me-2"></i>Xóa
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${(learnedWords == null or !learnedWords.hasContent()) and (customWords == null or customWords.isEmpty())}" class="section-card">
+            <div class="empty-state">
+                <i class="fas fa-book-open"></i>
+                <h3>Chưa có từ vựng nào</h3>
+                <p class="text-muted mb-4">Bắt đầu hành trình học từ vựng của bạn ngay hôm nay!</p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="/vocabulary/dictionaries" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Duyệt từ điển
+                    </a>
+                    <a href="/vocabulary/add" class="btn btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Thêm từ cá nhân
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Progress animation on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-bar-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 300);
+            });
+        });
+
+        // Word card click animation
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.word-card')) {
+                const card = e.target.closest('.word-card');
+                card.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                }, 150);
+            }
+        });
+    </script>
+</body>
+</html>

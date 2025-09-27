@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-user me-2"></i>Chi tiết người dùng
+        </h1>
+        <div>
+            <a th:href="@{/admin/users}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Quay lại
+            </a>
+            <a th:href="@{/admin/users/{id}/edit(id=${user.id})}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Chỉnh sửa
+            </a>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row">
+        <!-- User Information -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin cá nhân
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Tên đăng nhập</label>
+                            <div class="fw-bold" th:text="${user.username}">username</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Họ và tên</label>
+                            <div class="fw-bold" th:text="${user.fullname}">Full Name</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Email</label>
+                            <div class="fw-bold" th:text="${user.email}">email@example.com</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Loại đăng nhập</label>
+                            <div>
+                                <span class="badge"
+                                      th:classappend="${user.isGoogleUser()} ? 'bg-warning' : 'bg-info'"
+                                      th:text="${user.isGoogleUser()} ? 'Đăng nhập Google' : 'Đăng nhập thường'">
+                                    Login Type
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Quyền</label>
+                            <div>
+                                <span class="badge fs-6"
+                                      th:classappend="${user.role.name() == 'ADMIN' ? 'bg-info' : 'bg-secondary'}"
+                                      th:text="${user.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">
+                                    Role
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Trạng thái</label>
+                            <div>
+                                <span class="badge fs-6"
+                                      th:classappend="${user.status.name() == 'ACTIVE' ? 'bg-success' :
+                                                     user.status.name() == 'LOCKED' ? 'bg-warning' : 'bg-danger'}"
+                                      th:text="${user.status.name() == 'ACTIVE' ? 'Hoạt động' :
+                                               user.status.name() == 'LOCKED' ? 'Bị khóa' : 'Đã xóa'}">
+                                    Status
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">Ngày tạo</label>
+                            <div class="fw-bold" th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}">
+                                Date Created
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3" th:if="${user.updatedAt != null}">
+                            <label class="form-label small text-muted">Cập nhật lần cuối</label>
+                            <div class="fw-bold" th:text="${#temporals.format(user.updatedAt, 'dd/MM/yyyy HH:mm')}">
+                                Last Updated
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>Thao tác nhanh
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Change Role -->
+                    <div class="mb-3" th:if="${user.role.name() != 'ADMIN'}">
+                        <label class="form-label small">Thay đổi quyền</label>
+                        <form method="POST" th:action="@{/admin/users/{id}/change-role(id=${user.id})}">
+                            <div class="input-group input-group-sm">
+                                <select name="newRole" class="form-select">
+                                    <option value="USER" th:selected="${user.role.name() == 'USER'}">Người dùng</option>
+                                    <option value="ADMIN" th:selected="${user.role.name() == 'ADMIN'}">Quản trị viên</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Change Status -->
+                    <div class="mb-3">
+                        <label class="form-label small">Thay đổi trạng thái</label>
+                        <form method="POST" th:action="@{/admin/users/{id}/change-status(id=${user.id})}">
+                            <div class="input-group input-group-sm">
+                                <select name="newStatus" class="form-select">
+                                    <option value="ACTIVE" th:selected="${user.status.name() == 'ACTIVE'}">Hoạt động</option>
+                                    <option value="LOCKED" th:selected="${user.status.name() == 'LOCKED'}">Bị khóa</option>
+                                    <option value="DELETED" th:selected="${user.status.name() == 'DELETED'}">Đã xóa</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline-warning">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Reset Password -->
+                    <div class="mb-3" th:if="${!user.isGoogleUser()}">
+                        <label class="form-label small">Reset mật khẩu</label>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" 
+                                data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                            <i class="fas fa-key me-1"></i>Reset mật khẩu
+                        </button>
+                    </div>
+                    
+                    <!-- Delete User -->
+                    <div class="mb-3" th:if="${user.role.name() != 'ADMIN'}">
+                        <hr>
+                        <button type="button" class="btn btn-danger btn-sm w-100 delete-user-btn" 
+                                th:attr="data-user-id=${user.id},data-username=${user.username}">
+                            <i class="fas fa-trash me-1"></i>Xóa người dùng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reset Password Modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key text-warning me-2"></i>
+                        Reset mật khẩu
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" th:action="@{/admin/users/{id}/reset-password(id=${user.id})}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Mật khẩu mới cho <strong th:text="${user.username}">user</strong></label>
+                            <input type="password" name="newPassword" class="form-control" 
+                                   placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" 
+                                   minlength="6" required>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <small>Mật khẩu mới sẽ được áp dụng ngay lập tức. Người dùng cần sử dụng mật khẩu mới để đăng nhập.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-key me-1"></i>Reset mật khẩu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        Xác nhận xóa
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa người dùng <strong id="deleteUserName"></strong>?</p>
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Hành động này sẽ đặt trạng thái người dùng thành "Đã xóa" và không thể hoàn tác.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <form id="deleteForm" method="post" class="d-inline">
+                        <input type="hidden" name="_method" value="post">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Xóa người dùng
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Event delegation for delete buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle delete button clicks using event delegation
+            document.addEventListener('click', function(event) {
+                if (event.target.closest('.delete-user-btn')) {
+                    const button = event.target.closest('.delete-user-btn');
+                    const userId = button.getAttribute('data-user-id');
+                    const username = button.getAttribute('data-username');
+                    confirmDelete(userId, username);
+                }
+            });
+        });
+        
+        function confirmDelete(userId, username) {
+            document.getElementById('deleteUserName').textContent = username;
+            document.getElementById('deleteForm').action = `/admin/users/${userId}/delete`;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    bootstrap.Alert.getOrCreateInstance(alert).close();
+                }
+            });
+        }, 5000);
+    </script>
+</th:block>
+
+</html>
+

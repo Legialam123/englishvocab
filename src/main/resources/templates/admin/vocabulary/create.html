@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Thêm từ vựng mới</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/vocabulary">Từ vựng</a></li>
+            <li class="breadcrumb-item active">Thêm mới</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-plus-circle text-primary me-2"></i>
+                Thêm từ vựng mới
+            </h2>
+            <p class="text-muted mb-0">Thêm một từ vựng mới vào từ điển</p>
+        </div>
+        <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+    
+    <!-- Flash Messages -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}">Success message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <!-- Create Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin từ vựng</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/admin/vocabulary/create}" method="POST" th:object="${vocabForm}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="word" class="form-label">
+                                    Từ vựng <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="word" th:field="*{word}" 
+                                       placeholder="Nhập từ vựng..." required maxlength="100">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('word')}" th:errors="*{word}">
+                                    Word error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="ipa" class="form-label">Phiên âm IPA</label>
+                                <input type="text" class="form-control" id="ipa" th:field="*{ipa}" 
+                                       placeholder="VD: /ˈhæpɪ/" maxlength="200">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('ipa')}" th:errors="*{ipa}">
+                                    IPA error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="pos" class="form-label">
+                                    Từ loại <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="pos" th:field="*{pos}" required>
+                                    <option value="">-- Chọn từ loại --</option>
+                                    <option th:each="option : ${posOptions}" 
+                                            th:value="${option.key}" 
+                                            th:text="${option.value}">
+                                        Part of Speech
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('pos')}" th:errors="*{pos}">
+                                    Part of Speech error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                <label for="dictionaryId" class="form-label">
+                                    Từ điển <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="dictionaryId" th:field="*{dictionaryId}" required>
+                                    <option value="">-- Chọn từ điển --</option>
+                                    <option th:each="dict : ${dictionaries}" 
+                                            th:value="${dict.dictionaryId}" 
+                                            th:text="${dict.name}"
+                                            th:selected="${selectedDictionaryId == dict.dictionaryId}">
+                                        Dictionary
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('dictionaryId')}" th:errors="*{dictionaryId}">
+                                    Dictionary error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="level" class="form-label">
+                                    Level <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="level" th:field="*{level}" required>
+                                    <option value="">-- Chọn level --</option>
+                                    <option th:each="l : ${levelOptions}" 
+                                            th:value="${l}" 
+                                            th:text="${l}">
+                                        Level
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('level')}" th:errors="*{level}">
+                                    Level error
+                                </div>
+                            </div>
+                            
+                            <!-- Topics Selection -->
+                            <div class="col-md-8 mb-3" th:if="${activeTopics != null and !activeTopics.isEmpty()}">
+                                <label for="topicIds" class="form-label">
+                                    Chủ đề (tùy chọn)
+                                    <i class="fas fa-info-circle text-muted ms-1" 
+                                       title="Chọn các chủ đề liên quan đến từ vựng này"></i>
+                                </label>
+                                <select class="form-select" id="topicIds" name="topicIds" multiple size="3">
+                                    <option th:each="topic : ${activeTopics}" 
+                                            th:value="${topic.topicId}" 
+                                            th:text="${topic.name}">
+                                        Topic name
+                                    </option>
+                                </select>
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Giữ <kbd>Ctrl</kbd> (Windows) hoặc <kbd>Cmd</kbd> (Mac) và click để chọn nhiều chủ đề
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Senses Section -->
+                        <div class="row">
+                            <div class="col-md-12 mb-4">
+                                <div class="border rounded p-3 bg-light">
+                                    <h6 class="fw-bold mb-3">
+                                        <i class="fas fa-language me-2 text-primary"></i>
+                                        Nghĩa của từ <span class="text-danger">*</span>
+                                    </h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="meaningVi" class="form-label">
+                                                Nghĩa tiếng Việt <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control" id="meaningVi" th:field="*{meaningVi}" 
+                                                   placeholder="VD: ngân hàng, chạy, đẹp..." required maxlength="50">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('meaningVi')}" th:errors="*{meaningVi}">
+                                                Meaning error
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="definition" class="form-label">Định nghĩa tiếng Anh (tùy chọn)</label>
+                                            <input type="text" class="form-control" id="definition" th:field="*{definition}" 
+                                                   placeholder="English definition..." maxlength="100">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('definition')}" th:errors="*{definition}">
+                                                Definition error
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="small text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <strong>Nghĩa tiếng Việt</strong> là bắt buộc. <strong>Định nghĩa tiếng Anh</strong> giúp làm rõ nghĩa hơn.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Thêm từ vựng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Helper Info -->
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Hướng dẫn
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Từ vựng:</strong>
+                        <p class="small text-muted mb-2">
+                            Nhập từ tiếng Anh. Ví dụ: "happy", "computer", "understand"
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Phiên âm IPA:</strong>
+                        <p class="small text-muted mb-2">
+                            Phiên âm theo chuẩn quốc tế. Ví dụ: /ˈhæpɪ/, /kəmˈpjuːtər/
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Từ loại:</strong>
+                        <p class="small text-muted mb-2">
+                            Chọn từ loại phù hợp: danh từ, động từ, tính từ, trạng từ, v.v.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Level:</strong>
+                        <ul class="small text-muted mb-2">
+                            <li><strong>BEGINNER:</strong> Cơ bản, dễ</li>
+                            <li><strong>INTERMEDIATE:</strong> Trung cấp</li>
+                            <li><strong>ADVANCED:</strong> Nâng cao, khó</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Chủ đề:</strong>
+                        <p class="small text-muted mb-2">
+                            Chọn các chủ đề liên quan để phân loại từ vựng. 
+                            Một từ có thể thuộc nhiều chủ đề khác nhau.
+                        </p>
+                        <p class="small text-muted mb-2">
+                            Ví dụ: "apple" có thể thuộc cả "Food" và "Fruit".
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Nghĩa của từ:</strong>
+                        <p class="small text-muted mb-2">
+                            <strong>Nghĩa tiếng Việt</strong> là bắt buộc để học viên hiểu từ.
+                        </p>
+                        <p class="small text-muted mb-2">
+                            <strong>Định nghĩa tiếng Anh</strong> giúp học viên hiểu sâu hơn về cách sử dụng từ.
+                        </p>
+                        <p class="small text-muted mb-2">
+                            Ví dụ: "bank" → Nghĩa: "ngân hàng" + Định nghĩa: "financial institution"
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-success small">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Hoàn chỉnh:</strong> Form hiện tại đã bao gồm tất cả thông tin cần thiết để tạo một từ vựng hoàn chỉnh!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Dictionary selection change handler
+        document.getElementById('dictionary.dictionaryId').addEventListener('change', function() {
+            const selectedId = this.value;
+            if (selectedId) {
+                console.log('Selected dictionary:', selectedId);
+                // You can add logic here to load dictionary-specific data
+            }
+        });
+        
+        // Topics multi-select enhancement
+        const topicsSelect = document.getElementById('topicIds');
+        if (topicsSelect) {
+            // Add visual feedback for selected options
+            topicsSelect.addEventListener('change', function() {
+                const selectedCount = this.selectedOptions.length;
+                const helpText = this.parentNode.querySelector('.form-text');
+                
+                if (selectedCount > 0) {
+                    helpText.innerHTML = 
+                        '<i class="fas fa-check-circle text-success me-1"></i>' +
+                        'Đã chọn ' + selectedCount + ' chủ đề';
+                } else {
+                    helpText.innerHTML = 
+                        '<i class="fas fa-lightbulb me-1"></i>' +
+                        'Giữ <kbd>Ctrl</kbd> (Windows) hoặc <kbd>Cmd</kbd> (Mac) và click để chọn nhiều chủ đề';
+                }
+            });
+            
+            // Improve mobile experience
+            if (window.innerWidth < 768) {
+                topicsSelect.size = 3; // Smaller on mobile
+            }
+        }
+        
+        // Form validation enhancement
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const word = document.getElementById('word').value.trim();
+            const pos = document.getElementById('pos').value;
+            const level = document.getElementById('level').value;
+            const dictionary = document.getElementById('dictionaryId').value;
+            const meaningVi = document.getElementById('meaningVi').value.trim();
+            
+            if (!word || !pos || !level || !dictionary || !meaningVi) {
+                e.preventDefault();
+                alert('Vui lòng điền đầy đủ các trường bắt buộc (bao gồm nghĩa tiếng Việt)!');
+                return false;
+            }
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

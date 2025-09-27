@@ -124,9 +124,6 @@
                                                placeholder="Nhập mật khẩu"
                                                onkeyup="checkPasswordStrength()"
                                                required>
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', 'toggleIcon1')">
-                                            <i class="fas fa-eye" id="toggleIcon1"></i>
-                                        </button>
                                     </div>
                                     <div id="passwordStrength" class="password-strength"></div>
                                     <div class="text-danger" th:if="${#fields.hasErrors('password')}" 
@@ -146,9 +143,6 @@
                                                placeholder="Nhập lại mật khẩu"
                                                onkeyup="checkPasswordMatch()"
                                                required>
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword', 'toggleIcon2')">
-                                            <i class="fas fa-eye" id="toggleIcon2"></i>
-                                        </button>
                                     </div>
                                     <div id="passwordMatch" class="password-strength"></div>
                                     <div class="text-danger" th:if="${#fields.hasErrors('confirmPassword')}" 

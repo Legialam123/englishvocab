@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Chỉnh sửa chủ đề</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/topics">Chủ đề</a></li>
+            <li class="breadcrumb-item active" th:text="'Chỉnh sửa: ' + ${topic.name}">Chỉnh sửa</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-edit text-primary me-2"></i>
+                Chỉnh sửa chủ đề: <span th:text="${topic.name}">Topic</span>
+            </h2>
+            <p class="text-muted mb-0">Cập nhật thông tin chủ đề</p>
+        </div>
+        <div>
+            <a th:href="@{'/admin/topics/' + ${topic.topicId}}" class="btn btn-outline-info me-2">
+                <i class="fas fa-eye me-2"></i>Xem chi tiết
+            </a>
+            <a href="/admin/topics" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+    
+    <!-- Flash Messages -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}">Success message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <!-- Edit Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin chủ đề</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{'/admin/topics/' + ${topic.topicId} + '/edit'}" method="POST" th:object="${topic}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">
+                                Tên chủ đề <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="name" th:field="*{name}" 
+                                   placeholder="Nhập tên chủ đề..." required maxlength="100">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
+                                Name error
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="description" th:field="*{description}" rows="3" 
+                                      placeholder="Mô tả về chủ đề này..." maxlength="255"></textarea>
+                            <div class="form-text">
+                                <span id="descLength">0</span>/255 ký tự
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">
+                                Description error
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">
+                                Trạng thái <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="status" th:field="*{status}" required>
+                                <option value="ACTIVE" th:selected="${topic.status.name() == 'ACTIVE'}">Hoạt động</option>
+                                <option value="INACTIVE" th:selected="${topic.status.name() == 'INACTIVE'}">Không hoạt động</option>
+                            </select>
+                            <div class="form-text">
+                                Chỉ những chủ đề "Hoạt động" mới hiển thị trong danh sách chọn
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">
+                                Status error
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="/admin/topics" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Cập nhật
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Current Info -->
+            <div class="card mb-4 bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin hiện tại
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>ID chủ đề:</strong>
+                        <span th:text="${topic.topicId}" class="text-muted">1</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Trạng thái hiện tại:</strong>
+                        <span class="badge ms-2" 
+                              th:classappend="${topic.status.name() == 'ACTIVE' ? 'bg-success' : 'bg-secondary'}"
+                              th:text="${topic.status.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}">Status</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Số từ vựng:</strong>
+                        <span class="badge bg-info" th:text="${topic.vocabTopics?.size() ?: 0}">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guidelines -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Hướng dẫn
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Tên chủ đề:</strong>
+                        <p class="small text-muted mb-2">
+                            Sử dụng tên ngắn gọn, dễ hiểu. Ví dụ: "Food", "Animals", "Transportation"
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Mô tả:</strong>
+                        <p class="small text-muted mb-2">
+                            Mô tả chi tiết về chủ đề để admin và người dùng dễ hiểu
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Lưu ý:</strong> Thay đổi trạng thái sẽ ảnh hưởng đến việc hiển thị chủ đề trong form tạo từ vựng.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Character counter for description
+        const descriptionField = document.getElementById('description');
+        const descLengthSpan = document.getElementById('descLength');
+        
+        if (descriptionField && descLengthSpan) {
+            function updateDescLength() {
+                const currentLength = descriptionField.value.length;
+                descLengthSpan.textContent = currentLength;
+                
+                if (currentLength > 240) {
+                    descLengthSpan.parentElement.classList.add('text-warning');
+                } else {
+                    descLengthSpan.parentElement.classList.remove('text-warning');
+                }
+            }
+            
+            // Update on page load
+            updateDescLength();
+            
+            // Update on input
+            descriptionField.addEventListener('input', updateDescLength);
+        }
+        
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const name = document.getElementById('name').value.trim();
+            const status = document.getElementById('status').value;
+            
+            if (!name || !status) {
+                e.preventDefault();
+                alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+                return false;
+            }
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

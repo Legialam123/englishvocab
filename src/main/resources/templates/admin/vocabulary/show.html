@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Chi tiết từ vựng</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/vocabulary">Từ vựng</a></li>
+            <li class="breadcrumb-item active" th:text="${vocab.word}">Word</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-eye text-info me-2"></i>
+                <span th:text="${vocab.word}">Word</span>
+                <span th:if="${vocab.ipa}" class="text-muted fs-6" th:text="'/' + ${vocab.ipa} + '/'">/ipa/</span>
+            </h2>
+            <div>
+                <span class="badge me-2" 
+                      th:classappend="${vocab.level.name() == 'BEGINNER' ? 'bg-success' : 
+                                     vocab.level.name() == 'INTERMEDIATE' ? 'bg-warning' : 'bg-danger'}"
+                      th:text="${vocab.level}">Level</span>
+                <span class="badge bg-secondary" th:text="${vocab.pos}">POS</span>
+            </div>
+        </div>
+        <div>
+            <a th:href="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/edit'}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit me-2"></i>Chỉnh sửa
+            </a>
+            <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Basic Information -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin cơ bản
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Từ vựng:</td>
+                                    <td th:text="${vocab.word}">Word</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Phiên âm:</td>
+                                    <td>
+                                        <code th:if="${vocab.ipa}" th:text="'/' + ${vocab.ipa} + '/'">/ipa/</code>
+                                        <span th:unless="${vocab.ipa}" class="text-muted">Chưa có</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Từ loại:</td>
+                                    <td th:text="${vocab.pos}">POS</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Level:</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${vocab.level.name() == 'BEGINNER' ? 'bg-success' : 
+                                                             vocab.level.name() == 'INTERMEDIATE' ? 'bg-warning' : 'bg-danger'}"
+                                              th:text="${vocab.level}">Level</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Từ điển:</td>
+                                    <td>
+                                        <a th:href="@{'/admin/dictionaries/' + ${vocab.dictionary.dictionaryId}}" 
+                                           th:text="${vocab.dictionary.name}" class="text-decoration-none">
+                                            Dictionary
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Ngày tạo:</td>
+                                    <td class="text-muted small" th:text="${#temporals.format(vocab.createdAt, 'dd/MM/yyyy HH:mm')}">
+                                        01/01/2024 12:00
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Meanings Section -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-language me-2"></i>Nghĩa của từ
+                        <span class="badge bg-info ms-2" th:text="${vocab.senses?.size() ?: 0}">0</span>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Thêm nghĩa
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div th:if="${vocab.senses != null and !vocab.senses.isEmpty()}">
+                        <div th:each="sense, iterStat : ${vocab.senses}" class="border rounded p-3 mb-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold text-primary mb-2">
+                                        Nghĩa #<span th:text="${iterStat.count}">1</span>
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Nghĩa tiếng Việt:</strong>
+                                            <div th:text="${sense.meaningVi}">Nghĩa tiếng Việt</div>
+                                        </div>
+                                        <div class="col-md-6" th:if="${sense.definition}">
+                                            <strong>Định nghĩa tiếng Anh:</strong>
+                                            <div th:text="${sense.definition}" class="text-muted">English definition</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${vocab.senses == null or vocab.senses.isEmpty()}" class="text-center text-muted py-4">
+                        <i class="fas fa-language fa-2x mb-3"></i>
+                        <p>Chưa có nghĩa nào được thêm</p>
+                        <button class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Thêm nghĩa đầu tiên
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Topics Section -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tags me-2"></i>Chủ đề
+                        <span class="badge bg-info ms-2" th:text="${vocab.vocabTopics?.size() ?: 0}">0</span>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Thêm chủ đề
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div th:if="${vocab.vocabTopics != null and !vocab.vocabTopics.isEmpty()}">
+                        <div th:each="vocabTopic : ${vocab.vocabTopics}" class="d-inline-block me-2 mb-2">
+                            <span class="badge bg-secondary" th:text="${vocabTopic.topic.name}">Topic</span>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${vocab.vocabTopics == null or vocab.vocabTopics.isEmpty()}" class="text-center text-muted py-3">
+                        <i class="fas fa-tags fa-2x mb-3"></i>
+                        <p>Chưa thuộc chủ đề nào</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Thống kê
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <div class="fw-bold" th:text="${vocab.vocabId ?: 0}">0</div>
+                                <small class="text-muted">ID</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <div class="fw-bold" th:text="${vocab.senses?.size() ?: 0}">0</div>
+                                <small class="text-muted">Nghĩa</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <div class="fw-bold" th:text="${vocab.vocabTopics?.size() ?: 0}">0</div>
+                                <small class="text-muted">Chủ đề</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>Thao tác
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/edit'}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Chỉnh sửa từ vựng
+                        </a>
+                        <button class="btn btn-outline-success">
+                            <i class="fas fa-plus me-2"></i>Thêm nghĩa mới
+                        </button>
+                        <button class="btn btn-outline-info">
+                            <i class="fas fa-tags me-2"></i>Quản lý chủ đề
+                        </button>
+                        <hr>
+                        <form th:action="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/delete'}" method="POST" 
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa từ vựng này không?')">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-trash me-2"></i>Xóa từ vựng
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Add confirmation for delete actions
+        document.querySelectorAll('.btn-outline-danger[title="Xóa"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (!confirm('Bạn có chắc chắn muốn xóa không?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

@@ -3,6 +3,7 @@ package com.englishvocab.config;
 import com.englishvocab.security.CustomUserDetailsService;
 import com.englishvocab.security.CustomOAuth2UserService;
 import com.englishvocab.security.CustomOidcUserService;
+import com.englishvocab.security.CustomAuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomOidcUserService customOidcUserService;
+    private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
     
     /**
      * Cấu hình Password Encoder
@@ -57,6 +59,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Cho phép truy cập public endpoints
                 .requestMatchers(
+                    "/", "/home", "/about", "/features",
                     "/auth/login", 
                     "/auth/register", 
                     "/auth/api/**",
@@ -70,6 +73,9 @@ public class SecurityConfig {
                 // Yêu cầu quyền ADMIN cho admin endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 
+                // Yêu cầu authentication cho user profile endpoints
+                .requestMatchers("/user/**").authenticated()
+                
                 // Yêu cầu authentication cho các endpoints khác
                 .anyRequest().authenticated()
             )
@@ -78,7 +84,7 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/auth/login")
                 .loginProcessingUrl("/auth/login")
-                .defaultSuccessUrl("/dashboard", true)
+                .successHandler(customAuthenticationSuccessHandler)
                 .failureUrl("/auth/login?error=true")
                 .usernameParameter("usernameOrEmail")
                 .passwordParameter("password")
@@ -88,7 +94,7 @@ public class SecurityConfig {
             // Cấu hình OAuth2 login
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/auth/login")
-                .defaultSuccessUrl("/dashboard", true)
+                .successHandler(customAuthenticationSuccessHandler)
                 .failureUrl("/auth/login?error=oauth2")
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(customOAuth2UserService)

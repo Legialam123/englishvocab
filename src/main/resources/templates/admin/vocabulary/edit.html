@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Chỉnh sửa từ vựng</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/vocabulary">Từ vựng</a></li>
+            <li class="breadcrumb-item active" th:text="'Chỉnh sửa: ' + ${vocab.word}">Chỉnh sửa</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-edit text-primary me-2"></i>
+                Chỉnh sửa từ vựng: <span th:text="${vocab.word}">Word</span>
+            </h2>
+            <p class="text-muted mb-0">Cập nhật thông tin từ vựng</p>
+        </div>
+        <div>
+            <a th:href="@{'/admin/vocabulary/' + ${vocab.vocabId}}" class="btn btn-outline-info me-2">
+                <i class="fas fa-eye me-2"></i>Xem chi tiết
+            </a>
+            <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+    
+    <!-- Flash Messages -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}">Success message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <!-- Edit Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin từ vựng</h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{'/admin/vocabulary/' + ${vocab.vocabId} + '/edit'}" method="POST" th:object="${vocab}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="word" class="form-label">
+                                    Từ vựng <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="word" th:field="*{word}" 
+                                       placeholder="Nhập từ vựng..." required maxlength="100">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('word')}" th:errors="*{word}">
+                                    Word error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="ipa" class="form-label">Phiên âm IPA</label>
+                                <input type="text" class="form-control" id="ipa" th:field="*{ipa}" 
+                                       placeholder="VD: /ˈhæpɪ/" maxlength="200">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('ipa')}" th:errors="*{ipa}">
+                                    IPA error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="pos" class="form-label">
+                                    Từ loại <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="pos" th:field="*{pos}" required>
+                                    <option value="">-- Chọn từ loại --</option>
+                                    <option value="noun">Danh từ (noun)</option>
+                                    <option value="verb">Động từ (verb)</option>
+                                    <option value="adjective">Tính từ (adjective)</option>
+                                    <option value="adverb">Trạng từ (adverb)</option>
+                                    <option value="pronoun">Đại từ (pronoun)</option>
+                                    <option value="preposition">Giới từ (preposition)</option>
+                                    <option value="conjunction">Liên từ (conjunction)</option>
+                                    <option value="interjection">Thán từ (interjection)</option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('pos')}" th:errors="*{pos}">
+                                    Part of Speech error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                <label for="dictionary.dictionaryId" class="form-label">
+                                    Từ điển <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="dictionary.dictionaryId" th:field="*{dictionary.dictionaryId}" required>
+                                    <option value="">-- Chọn từ điển --</option>
+                                    <option th:each="dict : ${dictionaries}" 
+                                            th:value="${dict.dictionaryId}" 
+                                            th:text="${dict.name}"
+                                            th:selected="${dict.dictionaryId == vocab.dictionary.dictionaryId}">
+                                        Dictionary
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('dictionary')}" th:errors="*{dictionary}">
+                                    Dictionary error
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="level" class="form-label">
+                                    Level <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="level" th:field="*{level}" required>
+                                    <option value="">-- Chọn level --</option>
+                                    <option th:each="l : ${levelOptions}" 
+                                            th:value="${l}" 
+                                            th:text="${l}"
+                                            th:selected="${l == vocab.level}">
+                                        Level
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('level')}" th:errors="*{level}">
+                                    Level error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="/admin/vocabulary" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Cập nhật
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Helper Info -->
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin bổ sung
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>ID từ vựng:</strong>
+                        <span th:text="${vocab.vocabId}" class="text-muted">1</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Ngày tạo:</strong>
+                        <div class="text-muted small" th:text="${#temporals.format(vocab.createdAt, 'dd/MM/yyyy HH:mm')}">
+                            01/01/2024 12:00
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Số nghĩa hiện có:</strong>
+                        <span class="badge bg-info" th:text="${vocab.senses?.size() ?: 0}">0</span>
+                    </div>
+                    
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Lưu ý:</strong> Chỉnh sửa từ vựng có thể ảnh hưởng đến tiến độ học của người dùng.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const word = document.getElementById('word').value.trim();
+            const pos = document.getElementById('pos').value;
+            const level = document.getElementById('level').value;
+            const dictionary = document.getElementById('dictionary.dictionaryId').value;
+            
+            if (!word || !pos || !level || !dictionary) {
+                e.preventDefault();
+                alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+                return false;
+            }
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

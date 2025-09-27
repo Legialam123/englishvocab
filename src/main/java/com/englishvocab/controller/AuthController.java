@@ -65,7 +65,13 @@ public class AuthController {
             session.setAttribute("currentUser", user);
             
             redirectAttributes.addFlashAttribute("successMessage", "Đăng nhập thành công!");
-            return "redirect:/dashboard";
+            
+            // Redirect based on role
+            if (user.getRole() == User.Role.ADMIN) {
+                return "redirect:/admin/dictionaries";
+            } else {
+                return "redirect:/dashboard";
+            }
             
         } catch (RuntimeException e) {
             model.addAttribute("errorMessage", e.getMessage());

@@ -28,9 +28,25 @@ public class Topics {
     @Size(max = 100, message = "Tên chủ đề không được vượt quá 100 ký tự")
     private String name;
     
+    @Column(length = 255)
+    @Size(max = 255, message = "Mô tả không được vượt quá 255 ký tự")
+    private String description;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Status status = Status.ACTIVE;
+    
     // Relationships
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VocabTopics> vocabTopics;
+    
+    /**
+     * Status enum for topics
+     */
+    public enum Status {
+        ACTIVE, INACTIVE
+    }
     
     /**
      * Convenience methods

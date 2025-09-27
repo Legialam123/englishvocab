@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Chi tiết chủ đề</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/topics">Chủ đề</a></li>
+            <li class="breadcrumb-item active" th:text="${topic.name}">Topic</li>
+        </ol>
+    </nav>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-tag text-primary me-2"></i>
+                <span th:text="${topic.name}">Topic Name</span>
+            </h2>
+            <div>
+                <span class="badge me-2" 
+                      th:classappend="${topic.status.name() == 'ACTIVE' ? 'bg-success' : 'bg-secondary'}"
+                      th:text="${topic.status.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}">Status</span>
+            </div>
+        </div>
+        <div>
+            <a th:href="@{'/admin/topics/' + ${topic.topicId} + '/edit'}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit me-2"></i>Chỉnh sửa
+            </a>
+            <a href="/admin/topics" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Topic Information -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông tin chủ đề
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Tên chủ đề:</td>
+                                    <td th:text="${topic.name}">Topic Name</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Trạng thái:</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${topic.status.name() == 'ACTIVE' ? 'bg-success' : 'bg-secondary'}"
+                                              th:text="${topic.status.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}">Status</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">ID chủ đề:</td>
+                                    <td th:text="${topic.topicId}">1</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Số từ vựng:</td>
+                                    <td>
+                                        <span class="badge bg-info" th:text="${topic.vocabTopics?.size() ?: 0}">0</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${topic.description}" class="mt-3">
+                        <strong>Mô tả:</strong>
+                        <p class="text-muted" th:text="${topic.description}">Description</p>
+                    </div>
+                    <div th:unless="${topic.description}" class="mt-3">
+                        <span class="text-muted fst-italic">Chưa có mô tả</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vocabularies in Topic -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Từ vựng trong chủ đề
+                        <span class="badge bg-info ms-2" th:text="${topic.vocabTopics?.size() ?: 0}">0</span>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Thêm từ vựng
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div th:if="${topic.vocabTopics != null and !topic.vocabTopics.isEmpty()}">
+                        <!-- Vocabulary Statistics -->
+                        <div class="row text-center mb-4">
+                            <div class="col-3">
+                                <div class="border rounded p-3">
+                                    <div class="h5 text-primary" th:text="${topic.vocabTopics?.size() ?: 0}">0</div>
+                                    <small class="text-muted">Tổng số từ</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="border rounded p-3">
+                                    <div class="h5 text-success" id="beginnerCount">0</div>
+                                    <small class="text-muted">Beginner</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="border rounded p-3">
+                                    <div class="h5 text-warning" id="intermediateCount">0</div>
+                                    <small class="text-muted">Intermediate</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="border rounded p-3">
+                                    <div class="h5 text-danger" id="advancedCount">0</div>
+                                    <small class="text-muted">Advanced</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Vocabulary List -->
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Từ vựng</th>
+                                        <th>Phiên âm</th>
+                                        <th>Từ loại</th>
+                                        <th>Level</th>
+                                        <th>Từ điển</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="vocabTopic : ${topic.vocabTopics}">
+                                        <td>
+                                            <div class="fw-bold" th:text="${vocabTopic.vocab.word}">Word</div>
+                                            <small class="text-muted" th:text="${vocabTopic.vocab.primaryMeaning}">Meaning</small>
+                                        </td>
+                                        <td>
+                                            <code th:if="${vocabTopic.vocab.ipa}" th:text="'/' + ${vocabTopic.vocab.ipa} + '/'">/ipa/</code>
+                                            <span th:unless="${vocabTopic.vocab.ipa}" class="text-muted">-</span>
+                                        </td>
+                                        <td th:text="${vocabTopic.vocab.pos}">POS</td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:classappend="${vocabTopic.vocab.level.name() == 'BEGINNER' ? 'bg-success' : 
+                                                                 vocabTopic.vocab.level.name() == 'INTERMEDIATE' ? 'bg-warning' : 'bg-danger'}"
+                                                  th:text="${vocabTopic.vocab.level}">Level</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{'/admin/dictionaries/' + ${vocabTopic.vocab.dictionary.dictionaryId}}" 
+                                               th:text="${vocabTopic.vocab.dictionary.name}" class="text-decoration-none small">
+                                                Dictionary
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a th:href="@{'/admin/vocabulary/' + ${vocabTopic.vocab.vocabId}}" 
+                                                   class="btn btn-sm btn-outline-info" title="Xem từ vựng">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        th:onclick="'removeFromTopic(' + ${vocabTopic.vocab.vocabId} + ')'" 
+                                                        title="Xóa khỏi chủ đề">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${topic.vocabTopics == null or topic.vocabTopics.isEmpty()}" class="text-center text-muted py-4">
+                        <i class="fas fa-tags fa-2x mb-3"></i>
+                        <p>Chưa có từ vựng nào thuộc chủ đề này</p>
+                        <div>
+                            <button class="btn btn-primary me-2">
+                                <i class="fas fa-plus me-2"></i>Thêm từ vựng
+                            </button>
+                            <a href="/admin/vocabulary/create" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-2"></i>Tạo từ vựng mới
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Thống kê
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-primary" th:text="${topic.topicId}">0</div>
+                                <small class="text-muted">ID</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-info" th:text="${topic.vocabTopics?.size() ?: 0}">0</div>
+                                <small class="text-muted">Từ vựng</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>Thao tác
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{'/admin/topics/' + ${topic.topicId} + '/edit'}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Chỉnh sửa chủ đề
+                        </a>
+                        <button class="btn btn-outline-success">
+                            <i class="fas fa-plus me-2"></i>Thêm từ vựng
+                        </button>
+                        <a href="/admin/vocabulary/create" class="btn btn-outline-info">
+                            <i class="fas fa-plus me-2"></i>Tạo từ vựng mới
+                        </a>
+                        <hr>
+                        <form th:action="@{'/admin/topics/' + ${topic.topicId} + '/toggle-status'}" method="POST">
+                            <button type="submit" class="btn w-100" 
+                                    th:classappend="${topic.status.name() == 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                    th:text="${topic.status.name() == 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt'}">
+                                Toggle Status
+                            </button>
+                        </form>
+                        <form th:action="@{'/admin/topics/' + ${topic.topicId} + '/delete'}" method="POST" 
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa chủ đề này không?')">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-trash me-2"></i>Xóa chủ đề
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-external-link-alt me-2"></i>Liên kết nhanh
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/admin/topics" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-list me-2"></i>Tất cả chủ đề
+                        </a>
+                        <a href="/admin/vocabulary" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-book me-2"></i>Tất cả từ vựng
+                        </a>
+                        <a href="/admin/dictionaries" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-book-open me-2"></i>Quản lý từ điển
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Calculate vocabulary statistics by level
+        document.addEventListener('DOMContentLoaded', function() {
+            const vocabRows = document.querySelectorAll('tbody tr');
+            let beginnerCount = 0, intermediateCount = 0, advancedCount = 0;
+            
+            vocabRows.forEach(row => {
+                const levelBadge = row.querySelector('.badge');
+                if (levelBadge) {
+                    const levelText = levelBadge.textContent.trim();
+                    if (levelText === 'BEGINNER') beginnerCount++;
+                    else if (levelText === 'INTERMEDIATE') intermediateCount++;
+                    else if (levelText === 'ADVANCED') advancedCount++;
+                }
+            });
+            
+            // Update statistics
+            const beginnerEl = document.getElementById('beginnerCount');
+            const intermediateEl = document.getElementById('intermediateCount');
+            const advancedEl = document.getElementById('advancedCount');
+            
+            if (beginnerEl) beginnerEl.textContent = beginnerCount;
+            if (intermediateEl) intermediateEl.textContent = intermediateCount;
+            if (advancedEl) advancedEl.textContent = advancedCount;
+        });
+        
+        // Remove vocabulary from topic
+        function removeFromTopic(vocabId) {
+            if (confirm('Bạn có chắc chắn muốn xóa từ vựng này khỏi chủ đề không?')) {
+                // TODO: Implement AJAX call to remove vocab from topic
+                console.log('Remove vocab', vocabId, 'from topic');
+            }
+        }
+        
+        // Add confirmation for delete actions
+        document.querySelectorAll('form[onsubmit*="confirm"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const message = this.getAttribute('onsubmit').match(/confirm\('([^']+)'\)/)[1];
+                if (!confirm(message)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

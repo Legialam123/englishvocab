@@ -164,7 +164,7 @@ public class DictionaryService {
         long active = dictionaryRepository.countByStatus(Dictionary.Status.ACTIVE);
         long inactive = dictionaryRepository.countByStatus(Dictionary.Status.INACTIVE);
         long archived = dictionaryRepository.countByStatus(Dictionary.Status.ARCHIVED);
-        
+
         return DictionaryStats.builder()
                 .total(total)
                 .active(active)

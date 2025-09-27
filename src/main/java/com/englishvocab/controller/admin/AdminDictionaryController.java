@@ -1,7 +1,9 @@
 package com.englishvocab.controller.admin;
 
 import com.englishvocab.entity.Dictionary;
+import com.englishvocab.entity.Vocab;
 import com.englishvocab.service.DictionaryService;
+import com.englishvocab.service.VocabularyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import java.util.List;
 public class AdminDictionaryController {
     
     private final DictionaryService dictionaryService;
+    private final VocabularyService vocabularyService;
     
     /**
      * Trang danh sách từ điển
@@ -36,6 +39,7 @@ public class AdminDictionaryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             Model model) {
+        
         
         try {
             Pageable pageable = PageRequest.of(page, size);
@@ -67,8 +71,9 @@ public class AdminDictionaryController {
             model.addAttribute("statusOptions", Dictionary.Status.values());
             model.addAttribute("selectedStatus", status);
             
-            // Page title
+            // Page title and navigation
             model.addAttribute("pageTitle", "Quản lý từ điển");
+            model.addAttribute("activeSection", "dictionaries");
             
         } catch (Exception e) {
             log.error("Lỗi khi load danh sách từ điển", e);
@@ -87,6 +92,7 @@ public class AdminDictionaryController {
         model.addAttribute("dictionary", new Dictionary());
         model.addAttribute("pageTitle", "Tạo từ điển mới");
         model.addAttribute("statusOptions", Dictionary.Status.values());
+        model.addAttribute("activeSection", "dictionaries");
         return "admin/dictionaries/create";
     }
     
@@ -130,6 +136,7 @@ public class AdminDictionaryController {
             model.addAttribute("dictionary", dictionary);
             model.addAttribute("pageTitle", "Chỉnh sửa từ điển: " + dictionary.getName());
             model.addAttribute("statusOptions", Dictionary.Status.values());
+            model.addAttribute("activeSection", "dictionaries");
             return "admin/dictionaries/edit";
             
         } catch (RuntimeException e) {
@@ -179,13 +186,24 @@ public class AdminDictionaryController {
             Dictionary dictionary = dictionaryService.findByIdOrThrow(id);
             model.addAttribute("dictionary", dictionary);
             model.addAttribute("pageTitle", "Chi tiết từ điển: " + dictionary.getName());
+            model.addAttribute("activeSection", "dictionaries");
             
-            // TODO: Thêm thống kê số lượng từ vựng, user sử dụng, etc.
+            // Load vocabulary statistics for this dictionary
+            VocabularyService.VocabStatsByDictionary stats = 
+                vocabularyService.getStatisticsByDictionary(id);
+            model.addAttribute("stats", stats);
+            
+            // Load recent vocabularies (latest 10)
+            Pageable recentPageable = PageRequest.of(0, 10);
+            Page<Vocab> recentVocabPage = vocabularyService.findByDictionary(id, recentPageable);
+            model.addAttribute("recentVocabularies", recentVocabPage.getContent());
+            
+            log.info("Dictionary {} loaded with {} vocabularies", dictionary.getName(), stats.getTotal());
             
             return "admin/dictionaries/show";
             
         } catch (RuntimeException e) {
-            log.error("Không tìm thấy từ điển với ID: {}", id);
+            log.error("Không tìm thấy từ điển với ID: {}", id, e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/admin/dictionaries";
         }

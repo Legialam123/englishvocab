@@ -85,13 +85,20 @@
                 </ul>
                 
                 <ul class="navbar-nav">
+                    <!-- Admin Panel Link (chỉ hiện cho admin) -->
+                    <li class="nav-item" th:if="${isAdmin}">
+                        <a class="nav-link" href="/admin/dictionaries">
+                            <i class="fas fa-cogs me-1"></i>Admin Panel
+                        </a>
+                    </li>
+                    
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i>
                             <span th:text="${currentUser != null ? currentUser.fullname : 'User'}">User</span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/profile">
+                            <li><a class="dropdown-item" href="/user/profile">
                                 <i class="fas fa-user me-2"></i>Hồ sơ
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -117,40 +124,22 @@
                     <div class="col-md-8">
                         <h2><i class="fas fa-hand-wave me-2"></i>Chào mừng trở lại!</h2>
                         <p class="mb-0" th:if="${currentUser}">
-                            Xin chào <strong th:text="${currentUser.fullname}">User</strong>, 
-                            chúc bạn có một ngày học tập hiệu quả!
+                            Xin chào <strong th:text="${currentUser.fullname}">User</strong>
+                        </p>
+                        <p class="mb-0 mt-2" th:if="${isAdmin}">
+                            <small class="text-light opacity-75">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Bạn có thể truy cập <a href="/admin/dictionaries" class="text-warning">Admin Panel</a> 
+                                để quản lý hệ thống hoặc tiếp tục sử dụng trang chủ.
+                            </small>
+                        </p>
+                        <p class="mb-0" th:unless="${isAdmin}">
+                            Chúc bạn có một ngày học tập hiệu quả!
                         </p>
                     </div>
                     <div class="col-md-4 text-center">
-                        <i class="fas fa-graduation-cap" style="font-size: 4rem; opacity: 0.3;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Cards (Only for Admin) -->
-        <div th:if="${currentUser != null and currentUser.role.name() == 'ADMIN'}" class="row">
-            <div class="col-md-4">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <div class="stats-number" th:text="${totalUsers ?: 0}">0</div>
-                        <h5><i class="fas fa-users me-2"></i>Tổng người dùng</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <div class="stats-number" th:text="${activeUsers ?: 0}">0</div>
-                        <h5><i class="fas fa-user-check me-2"></i>Người dùng hoạt động</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <div class="stats-number">0</div>
-                        <h5><i class="fas fa-book me-2"></i>Tổng từ vựng</h5>
+                        <i th:class="${isAdmin ? 'fas fa-crown' : 'fas fa-graduation-cap'}" 
+                           style="font-size: 4rem; opacity: 0.3;"></i>
                     </div>
                 </div>
             </div>
@@ -173,10 +162,10 @@
                                 </a>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <a href="/practice/start" class="btn btn-outline-primary w-100 py-3">
+                                <a href="/vocabulary/dictionaries" class="btn btn-outline-primary w-100 py-3">
                                     <i class="fas fa-play me-2"></i>
                                     <div>Bắt đầu luyện tập</div>
-                                    <small>Luyện tập từ vựng đã học</small>
+                                    <small>Chọn từ điển để học</small>
                                 </a>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -187,7 +176,7 @@
                                 </a>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <a href="/profile" class="btn btn-outline-secondary w-100 py-3">
+                                <a href="/user/profile" class="btn btn-outline-secondary w-100 py-3">
                                     <i class="fas fa-user-cog me-2"></i>
                                     <div>Cài đặt tài khoản</div>
                                     <small>Quản lý thông tin cá nhân</small>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm từ vựng mới - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .form-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25);
+        }
+
+        .invalid-feedback {
+            color: var(--danger-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            border-color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-outline-secondary {
+            border-color: #cbd5e1;
+            color: #64748b;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        .help-text {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--danger-color);
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group-text {
+            background-color: #f8fafc;
+            border-color: var(--border-color);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .preview-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .preview-word {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-ipa {
+            color: #64748b;
+            font-style: italic;
+            margin-right: 0.5rem;
+        }
+
+        .preview-pos {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .preview-meaning {
+            color: var(--text-color);
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 1.5rem 1rem;
+            }
+            
+            .btn-primary, .btn-outline-secondary {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard" class="text-decoration-none">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary" class="text-decoration-none">Từ vựng</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Thêm từ mới</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Thêm từ vựng mới
+                    </h1>
+                    <p class="mb-0 opacity-75">Tạo từ vựng cá nhân cho bộ sưu tập của bạn</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="/vocabulary" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Flash Messages -->
+                <div th:if="${successMessage}" class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span th:text="${successMessage}">Success message</span>
+                </div>
+                
+                <div th:if="${errorMessage}" class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <span th:text="${errorMessage}">Error message</span>
+                </div>
+
+                <!-- Add Form -->
+                <div class="form-card">
+                    <form th:action="@{/vocabulary/add}" method="post" th:object="${customVocabForm}">
+                        <!-- Word -->
+                        <div class="mb-3">
+                            <label for="word" class="form-label required-field">Từ vựng</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-font"></i>
+                                </span>
+                                <input type="text" class="form-control" id="word" th:field="*{word}" 
+                                       placeholder="Nhập từ vựng mới" 
+                                       th:classappend="${#fields.hasErrors('word')} ? 'is-invalid' : ''"
+                                       oninput="updatePreview()">
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('word')}" th:errors="*{word}"></div>
+                            <div class="help-text">Ví dụ: awesome, beautiful, amazing...</div>
+                        </div>
+
+                        <!-- IPA Pronunciation -->
+                        <div class="mb-3">
+                            <label for="ipa" class="form-label">Phiên âm (IPA)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-volume-up"></i>
+                                </span>
+                                <input type="text" class="form-control" id="ipa" th:field="*{ipa}" 
+                                       placeholder="/ˈɔːsəm/" 
+                                       th:classappend="${#fields.hasErrors('ipa')} ? 'is-invalid' : ''"
+                                       oninput="updatePreview()">
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('ipa')}" th:errors="*{ipa}"></div>
+                            <div class="help-text">Bạn có thể tra trên Cambridge Dictionary hoặc Oxford Dictionary</div>
+                        </div>
+
+                        <!-- Part of Speech -->
+                        <div class="mb-3">
+                            <label for="pos" class="form-label">Từ loại</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-tags"></i>
+                                </span>
+                                <select class="form-select" id="pos" th:field="*{pos}" onchange="updatePreview()">
+                                    <option value="">Chọn từ loại</option>
+                                    <option value="noun">Danh từ (noun)</option>
+                                    <option value="verb">Động từ (verb)</option>
+                                    <option value="adjective">Tính từ (adjective)</option>
+                                    <option value="adverb">Trạng từ (adverb)</option>
+                                    <option value="pronoun">Đại từ (pronoun)</option>
+                                    <option value="preposition">Giới từ (preposition)</option>
+                                    <option value="conjunction">Liên từ (conjunction)</option>
+                                    <option value="interjection">Thán từ (interjection)</option>
+                                </select>
+                            </div>
+                            <div class="help-text">Từ loại giúp hiểu cách sử dụng từ trong câu</div>
+                        </div>
+
+                        <!-- Vietnamese Meaning -->
+                        <div class="mb-3">
+                            <label for="meaningVi" class="form-label">Nghĩa tiếng Việt</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-language"></i>
+                                </span>
+                                <input type="text" class="form-control" id="meaningVi" th:field="*{meaningVi}" 
+                                       placeholder="tuyệt vời, xuất sắc" 
+                                       th:classappend="${#fields.hasErrors('meaningVi')} ? 'is-invalid' : ''"
+                                       oninput="updatePreview()">
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('meaningVi')}" th:errors="*{meaningVi}"></div>
+                            <div class="help-text">Nghĩa chính của từ bằng tiếng Việt</div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div id="preview-container" class="preview-card" style="display: none;">
+                            <h6 class="mb-3">
+                                <i class="fas fa-eye me-2"></i>Xem trước:
+                            </h6>
+                            <div id="preview-content">
+                                <div class="preview-word" id="preview-word">awesome</div>
+                                <div>
+                                    <span class="preview-ipa" id="preview-ipa">/ˈɔːsəm/</span>
+                                    <span class="preview-pos" id="preview-pos">adj</span>
+                                </div>
+                                <div class="preview-meaning" id="preview-meaning">tuyệt vời</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-3 justify-content-end mt-4">
+                            <a href="/vocabulary" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Hủy bỏ
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Lưu từ vựng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="form-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        Mẹo nhỏ
+                    </h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sử dụng <strong>Cambridge Dictionary</strong> hoặc <strong>Oxford Dictionary</strong> để tra phiên âm chính xác
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Ghi nghĩa ngắn gọn, dễ nhớ nhất
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Chọn từ loại giúp hiểu cách sử dụng từ trong câu
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sau khi thêm, từ sẽ xuất hiện trong danh sách "Từ vựng cá nhân"
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update preview as user types
+        function updatePreview() {
+            const word = document.getElementById('word').value.trim();
+            const ipa = document.getElementById('ipa').value.trim();
+            const pos = document.getElementById('pos').value;
+            const meaningVi = document.getElementById('meaningVi').value.trim();
+            
+            const previewContainer = document.getElementById('preview-container');
+            
+            if (word || ipa || pos || meaningVi) {
+                // Show preview
+                previewContainer.style.display = 'block';
+                
+                // Update content
+                document.getElementById('preview-word').textContent = word || 'từ vựng';
+                document.getElementById('preview-ipa').textContent = ipa ? `/${ipa.replace(/\//g, '')}/` : '';
+                
+                const posElement = document.getElementById('preview-pos');
+                if (pos) {
+                    posElement.textContent = pos;
+                    posElement.style.display = 'inline-block';
+                } else {
+                    posElement.style.display = 'none';
+                }
+                
+                document.getElementById('preview-meaning').textContent = meaningVi || 'nghĩa tiếng việt';
+                
+                // Show IPA only if exists
+                const ipaElement = document.getElementById('preview-ipa');
+                ipaElement.style.display = ipa ? 'inline' : 'none';
+                
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        }
+
+        // Form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            
+            form.addEventListener('submit', function(e) {
+                const word = document.getElementById('word').value.trim();
+                
+                if (!word) {
+                    e.preventDefault();
+                    document.getElementById('word').focus();
+                    return;
+                }
+            });
+
+            // Auto-format IPA input
+            document.getElementById('ipa').addEventListener('input', function() {
+                let value = this.value;
+                
+                // Remove existing slashes
+                value = value.replace(/\//g, '');
+                
+                // Don't add slashes if empty
+                if (value.length > 0) {
+                    // Add slashes if not present
+                    if (!value.startsWith('/')) {
+                        value = '/' + value;
+                    }
+                    if (!value.endsWith('/') && value.length > 1) {
+                        value = value + '/';
+                    }
+                }
+                
+                this.value = value;
+                updatePreview();
+            });
+
+            // Trigger initial preview update
+            updatePreview();
+        });
+
+        // Auto-focus first input
+        document.getElementById('word').focus();
+    </script>
+</body>
+</html>

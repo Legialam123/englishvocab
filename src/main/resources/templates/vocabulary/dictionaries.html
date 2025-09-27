@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chọn từ điển - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .dictionary-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .dictionary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .dictionary-card.featured {
+            border: 2px solid var(--primary-color);
+            background: linear-gradient(135deg, #fafaff 0%, #f0f4ff 100%);
+        }
+
+        .dictionary-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), #6366f1);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .dictionary-icon i {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .dictionary-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .dictionary-description {
+            color: #64748b;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .dictionary-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .stat-item i {
+            color: var(--primary-color);
+        }
+
+        .dictionary-level {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .level-badge {
+            padding: 0.2rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .level-beginner {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .level-intermediate {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .level-advanced {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .dictionary-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: auto;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            border-color: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .search-bar {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 768px) {
+            .dictionary-stats {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .dictionary-actions {
+                flex-direction: column;
+            }
+            
+            .dictionary-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard" class="text-decoration-none">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary" class="text-decoration-none">Từ vựng</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Chọn từ điển</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-book-open me-2"></i>
+                        Chọn từ điển để học
+                    </h1>
+                    <p class="mb-0 opacity-75">Khám phá và học từ vựng từ các bộ từ điển phong phú</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="/vocabulary" class="btn btn-outline-light me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                    <a href="/vocabulary/add" class="btn btn-light">
+                        <i class="fas fa-plus me-1"></i>Thêm từ mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-search text-muted me-3"></i>
+                <input type="text" class="search-input" placeholder="Tìm kiếm từ điển..." id="searchInput">
+                <button class="btn btn-primary ms-3">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dictionaries Grid -->
+        <div class="row" th:if="${dictionaries != null and !dictionaries.isEmpty()}">
+            <div class="col-lg-6 mb-4" th:each="dictionary, iterStat : ${dictionaries}">
+                <div class="dictionary-card" th:classappend="${iterStat.index < 2} ? 'featured' : ''" 
+                     onclick="location.href='/vocabulary/dictionary/' + [[${dictionary.dictionaryId}]]">
+                     
+                    <!-- Featured Badge -->
+                    <div th:if="${iterStat.index < 2}" class="featured-badge">
+                        <i class="fas fa-star me-1"></i>Phổ biến
+                    </div>
+                    
+                    <div class="dictionary-icon">
+                        <i class="fas fa-book" th:if="${dictionary.name.toLowerCase().contains('basic')}"></i>
+                        <i class="fas fa-graduation-cap" th:if="${dictionary.name.toLowerCase().contains('advanced')}"></i>
+                        <i class="fas fa-briefcase" th:if="${dictionary.name.toLowerCase().contains('business')}"></i>
+                        <i class="fas fa-comments" th:if="${dictionary.name.toLowerCase().contains('conversation')}"></i>
+                        <i class="fas fa-book-open" th:unless="${dictionary.name.toLowerCase().contains('basic') or dictionary.name.toLowerCase().contains('advanced') or dictionary.name.toLowerCase().contains('business') or dictionary.name.toLowerCase().contains('conversation')}"></i>
+                    </div>
+                    
+                    <div class="dictionary-title" th:text="${dictionary.name}">Basic English Vocabulary</div>
+                    <div class="dictionary-description" th:text="${dictionary.description}">
+                        Tập hợp từ vựng cơ bản cho người mới bắt đầu học tiếng Anh
+                    </div>
+                    
+                    <!-- Statistics -->
+                    <div class="dictionary-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-list-ul"></i>
+                            <span>1,200 từ</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-users"></i>
+                            <span>2,500 học viên</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-star"></i>
+                            <span>4.8/5</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Level Badges -->
+                    <div class="dictionary-level">
+                        <span class="level-badge level-beginner" th:if="${dictionary.name.toLowerCase().contains('basic') or dictionary.name.toLowerCase().contains('beginner')}">
+                            <i class="fas fa-seedling me-1"></i>Cơ bản
+                        </span>
+                        <span class="level-badge level-intermediate" th:if="${dictionary.name.toLowerCase().contains('intermediate')}">
+                            <i class="fas fa-mountain me-1"></i>Trung cấp  
+                        </span>
+                        <span class="level-badge level-advanced" th:if="${dictionary.name.toLowerCase().contains('advanced') or dictionary.name.toLowerCase().contains('expert')}">
+                            <i class="fas fa-rocket me-1"></i>Nâng cao
+                        </span>
+                        <span class="level-badge level-beginner" th:unless="${dictionary.name.toLowerCase().contains('basic') or dictionary.name.toLowerCase().contains('beginner') or dictionary.name.toLowerCase().contains('intermediate') or dictionary.name.toLowerCase().contains('advanced') or dictionary.name.toLowerCase().contains('expert')}">
+                            <i class="fas fa-book me-1"></i>Tổng hợp
+                        </span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="dictionary-actions">
+                        <a th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}" class="btn btn-primary flex-grow-1"
+                           onclick="event.stopPropagation()">
+                            <i class="fas fa-play me-2"></i>Bắt đầu học
+                        </a>
+                        <a th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}" class="btn btn-outline-primary"
+                           onclick="event.stopPropagation()">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${dictionaries == null or dictionaries.isEmpty()}" class="empty-state">
+            <i class="fas fa-books"></i>
+            <h3>Chưa có từ điển nào</h3>
+            <p class="text-muted mb-4">Hiện tại chưa có từ điển nào có sẵn. Vui lòng quay lại sau!</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="/vocabulary" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Quay về trang từ vựng
+                </a>
+                <a href="/vocabulary/add" class="btn btn-outline-primary">
+                    <i class="fas fa-plus me-2"></i>Thêm từ cá nhân
+                </a>
+            </div>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="row mt-5" th:if="${dictionaries != null and !dictionaries.isEmpty()}">
+            <div class="col-12">
+                <div class="dictionary-card">
+                    <h4 class="mb-3">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        Mẹo học hiệu quả
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Bắt đầu với từ điển <strong>cơ bản</strong> trước khi chuyển sang nâng cao
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Học <strong>10-15 từ mới</strong> mỗi ngày để duy trì tiến độ ổn định
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Thường xuyên <strong>ôn tập</strong> từ cũ để ghi nhớ lâu dài
+                                </li>
+                                <li class="mb-0">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Kết hợp <strong>nhiều từ điển</strong> để mở rộng vốn từ đa dạng
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const dictionaryCards = document.querySelectorAll('.dictionary-card');
+            
+            dictionaryCards.forEach(card => {
+                if (card.closest('.row')) { // Skip the tips card
+                    const title = card.querySelector('.dictionary-title').textContent.toLowerCase();
+                    const description = card.querySelector('.dictionary-description').textContent.toLowerCase();
+                    
+                    if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                        card.closest('.col-lg-6').style.display = 'block';
+                    } else {
+                        card.closest('.col-lg-6').style.display = 'none';
+                    }
+                }
+            });
+        });
+
+        // Card hover effects
+        document.querySelectorAll('.dictionary-card').forEach(card => {
+            if (!card.querySelector('.fas.fa-lightbulb')) { // Skip tips card
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(-4px)';
+                });
+            }
+        });
+
+        // Animate cards on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.dictionary-card');
+            cards.forEach((card, index) => {
+                if (!card.querySelector('.fas.fa-lightbulb')) { // Skip tips card
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        card.style.transition = 'all 0.5s ease';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 100);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

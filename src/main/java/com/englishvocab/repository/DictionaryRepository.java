@@ -60,4 +60,8 @@ public interface DictionaryRepository extends JpaRepository<Dictionary, Integer>
      * Kiểm tra tồn tại theo name
      */
     boolean existsByName(String name);
+    
+    // Find dictionaries that have vocabulary
+    @Query("SELECT DISTINCT d FROM Dictionary d WHERE EXISTS (SELECT 1 FROM Vocab v WHERE v.dictionary = d)")
+    List<Dictionary> findDictionariesWithVocabulary();
 }

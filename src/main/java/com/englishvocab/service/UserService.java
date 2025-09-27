@@ -6,6 +6,8 @@ import com.englishvocab.entity.User;
 import com.englishvocab.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -158,5 +160,230 @@ public class UserService {
     public void deleteUser(Long id) {
         updateUserStatus(id, User.Status.DELETED);
         log.info("Đã xóa user với ID: {}", id);
+    }
+    
+    // ==================== ADMIN METHODS ====================
+    
+    /**
+     * Tìm tất cả users với phân trang và filter
+     */
+    @Transactional(readOnly = true)
+    public Page<User> findAllWithPagination(User.Role roleFilter, User.Status statusFilter, String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return userRepository.findByKeywordWithPagination(keyword.trim(), pageable);
+        }
+        
+        if (roleFilter != null && statusFilter != null) {
+            return userRepository.findByRoleAndStatus(roleFilter, statusFilter, pageable);
+        } else if (roleFilter != null) {
+            return userRepository.findByRole(roleFilter, pageable);
+        } else if (statusFilter != null) {
+            return userRepository.findByStatus(statusFilter, pageable);
+        } else {
+            return userRepository.findAll(pageable);
+        }
+    }
+    
+    /**
+     * Tìm user theo ID (cho admin) - throw exception nếu không tồn tại
+     */
+    @Transactional(readOnly = true)
+    public User findByIdOrThrow(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+    }
+    
+    /**
+     * Cập nhật user (admin only)
+     */
+    public User adminUpdateUser(Long id, User updatedUser) {
+        User existingUser = findByIdOrThrow(id);
+        
+        // Validate unique username (excluding current user)
+        if (!existingUser.getUsername().equals(updatedUser.getUsername()) && 
+            userRepository.existsByUsername(updatedUser.getUsername())) {
+            throw new RuntimeException("Tên đăng nhập đã tồn tại");
+        }
+        
+        // Validate unique email (excluding current user)  
+        if (!existingUser.getEmail().equals(updatedUser.getEmail()) && 
+            userRepository.existsByEmail(updatedUser.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại");
+        }
+        
+        // Update fields
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setFullname(updatedUser.getFullname());
+        existingUser.setEmail(updatedUser.getEmail());
+        existingUser.setRole(updatedUser.getRole());
+        existingUser.setStatus(updatedUser.getStatus());
+        
+        // Only update password if provided
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().trim().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        }
+        
+        existingUser.setUpdatedAt(java.time.LocalDateTime.now());
+        User saved = userRepository.save(existingUser);
+        
+        log.info("Admin updated user: {}", saved.getUsername());
+        return saved;
+    }
+    
+    /**
+     * Thay đổi role của user
+     */
+    public User changeRole(Long userId, User.Role newRole) {
+        User user = findByIdOrThrow(userId);
+        User.Role oldRole = user.getRole();
+        user.setRole(newRole);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        User saved = userRepository.save(user);
+        log.info("Admin changed role of user {} from {} to {}", user.getUsername(), oldRole, newRole);
+        return saved;
+    }
+    
+    /**
+     * Thay đổi status của user
+     */
+    public User changeStatus(Long userId, User.Status newStatus) {
+        User user = findByIdOrThrow(userId);
+        User.Status oldStatus = user.getStatus();
+        user.setStatus(newStatus);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        User saved = userRepository.save(user);
+        log.info("Admin changed status of user {} from {} to {}", user.getUsername(), oldStatus, newStatus);
+        return saved;
+    }
+    
+    /**
+     * Xóa user (admin only) - soft delete và validate
+     */
+    public void adminDeleteUser(Long userId) {
+        User user = findByIdOrThrow(userId);
+        
+        // Prevent deleting admin users
+        if (user.getRole() == User.Role.ADMIN) {
+            throw new RuntimeException("Không thể xóa tài khoản quản trị viên");
+        }
+        
+        user.setStatus(User.Status.DELETED);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+        
+        log.info("Admin soft-deleted user: {}", user.getUsername());
+    }
+    
+    /**
+     * Thống kê user cho admin dashboard
+     */
+    @Transactional(readOnly = true)
+    public UserStats getStatistics() {
+        long total = userRepository.count();
+        long active = userRepository.countByStatus(User.Status.ACTIVE);
+        long locked = userRepository.countByStatus(User.Status.LOCKED);
+        long deleted = userRepository.countByStatus(User.Status.DELETED);
+        long admins = userRepository.countByRole(User.Role.ADMIN);
+        long users = userRepository.countByRole(User.Role.USER);
+        
+        return UserStats.builder()
+            .total(total)
+            .active(active)
+            .locked(locked)
+            .deleted(deleted)
+            .admins(admins)
+            .users(users)
+            .build();
+    }
+    
+    /**
+     * Lấy users mới đăng ký gần đây
+     */
+    @Transactional(readOnly = true)
+    public List<User> getRecentUsers(int limit) {
+        return userRepository.findRecentUsers(User.Status.DELETED, 
+            org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+    
+    // ===== USER PROFILE MANAGEMENT =====
+    
+    /**
+     * Cập nhật profile của user
+     */
+    @Transactional
+    public User updateProfile(User user) {
+        try {
+            // Validate user exists
+            User existingUser = findByIdOrThrow(user.getId());
+            
+            // Update allowed fields
+            existingUser.setFullname(user.getFullname());
+            existingUser.setEmail(user.getEmail());
+            existingUser.setUpdatedAt(java.time.LocalDateTime.now());
+            
+            User updatedUser = userRepository.save(existingUser);
+            log.info("Updated profile for user: {}", user.getUsername());
+            
+            return updatedUser;
+            
+        } catch (Exception e) {
+            log.error("Error updating profile for user: {}", user.getUsername(), e);
+            throw new RuntimeException("Không thể cập nhật profile: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Đổi mật khẩu user
+     */
+    @Transactional
+    public void changePassword(User user, String newPassword) {
+        try {
+            // Validate user exists
+            User existingUser = findByIdOrThrow(user.getId());
+            
+            // Encode and update password
+            String encodedPassword = passwordEncoder.encode(newPassword);
+            existingUser.setPassword(encodedPassword);
+            existingUser.setUpdatedAt(java.time.LocalDateTime.now());
+            
+            userRepository.save(existingUser);
+            log.info("Changed password for user: {}", user.getUsername());
+            
+        } catch (Exception e) {
+            log.error("Error changing password for user: {}", user.getUsername(), e);
+            throw new RuntimeException("Không thể đổi mật khẩu: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Cập nhật cài đặt học tập của user
+     * TODO: Implement when user preferences are added to User entity
+     */
+    @Transactional
+    public void updateLearningPreferences(User user, Integer dailyNewWords, Boolean emailNotifications) {
+        try {
+            // This will be implemented when we add preferences fields to User entity
+            log.info("Learning preferences updated for user: {}", user.getUsername());
+            
+        } catch (Exception e) {
+            log.error("Error updating learning preferences for user: {}", user.getUsername(), e);
+            throw new RuntimeException("Không thể cập nhật cài đặt học tập: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Stats DTO cho admin dashboard
+     */
+    @lombok.Data
+    @lombok.Builder
+    public static class UserStats {
+        private long total;
+        private long active;
+        private long locked;
+        private long deleted;
+        private long admins;
+        private long users;
     }
 }

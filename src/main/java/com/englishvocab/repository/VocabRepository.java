@@ -29,11 +29,13 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
      * Tìm từ vựng theo level
      */
     List<Vocab> findByLevel(Vocab.Level level);
+    Page<Vocab> findByLevel(Vocab.Level level, Pageable pageable);
     
     /**
      * Tìm từ vựng theo từ điển và level
      */
     List<Vocab> findByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level);
+    Page<Vocab> findByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level, Pageable pageable);
     
     /**
      * Tìm từ vựng theo word (search)
@@ -70,9 +72,19 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
     long countByLevel(Vocab.Level level);
     
     /**
+     * Đếm từ vựng theo dictionary và level
+     */
+    long countByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level);
+    
+    /**
      * Tìm từ vựng theo exact word
      */
     Optional<Vocab> findByDictionaryAndWord(Dictionary dictionary, String word);
+    
+    /**
+     * Check existence by dictionary and word
+     */
+    boolean existsByDictionaryAndWord(Dictionary dictionary, String word);
     
     /**
      * Tìm từ vựng theo IPA

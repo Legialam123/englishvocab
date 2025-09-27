@@ -2,7 +2,7 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" 
       th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
 <head>
-    <title>Tạo từ điển mới</title>
+    <title>Tạo chủ đề mới</title>
 </head>
 <body>
 
@@ -10,7 +10,7 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/admin/dictionaries">Từ điển</a></li>
+            <li class="breadcrumb-item"><a href="/admin/topics">Chủ đề</a></li>
             <li class="breadcrumb-item active">Tạo mới</li>
         </ol>
     </nav>
@@ -20,11 +20,11 @@
         <div>
             <h2 class="mb-1">
                 <i class="fas fa-plus-circle text-primary me-2"></i>
-                Tạo từ điển mới
+                Tạo chủ đề mới
             </h2>
-            <p class="text-muted mb-0">Thêm một từ điển mới vào hệ thống</p>
+            <p class="text-muted mb-0">Thêm một chủ đề mới để phân loại từ vựng</p>
         </div>
-        <a href="/admin/dictionaries" class="btn btn-outline-secondary">
+        <a href="/admin/topics" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Quay lại
         </a>
     </div>
@@ -34,39 +34,19 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Thông tin từ điển</h5>
+                    <h5 class="mb-0">Thông tin chủ đề</h5>
                 </div>
                 <div class="card-body">
-                    <form th:action="@{/admin/dictionaries/create}" method="POST" th:object="${dictionary}">
+                    <form th:action="@{/admin/topics/create}" method="POST" th:object="${topic}">
                         <div class="row">
                             <div class="col-md-8 mb-3">
                                 <label for="name" class="form-label">
-                                    Tên từ điển <span class="text-danger">*</span>
+                                    Tên chủ đề <span class="text-danger">*</span>
                                 </label>
                                 <input type="text" class="form-control" id="name" th:field="*{name}" 
-                                       placeholder="Nhập tên từ điển..." required maxlength="100">
+                                       placeholder="VD: Động vật, Thức ăn, Giao thông..." required maxlength="100">
                                 <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
                                     Name error
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 mb-3">
-                                <label for="code" class="form-label">Mã từ điển</label>
-                                <input type="text" class="form-control" id="code" th:field="*{code}" 
-                                       placeholder="VD: TOEIC, IELTS..." maxlength="50">
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">
-                                    Code error
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label for="publisher" class="form-label">Nhà xuất bản</label>
-                                <input type="text" class="form-control" id="publisher" th:field="*{publisher}" 
-                                       placeholder="Nhập tên nhà xuất bản..." maxlength="100">
-                                <div class="invalid-feedback" th:if="${#fields.hasErrors('publisher')}" th:errors="*{publisher}">
-                                    Publisher error
                                 </div>
                             </div>
                             
@@ -75,8 +55,7 @@
                                 <select class="form-select" id="status" th:field="*{status}">
                                     <option th:each="s : ${statusOptions}" 
                                             th:value="${s}" 
-                                            th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' : 
-                                                     s.name() == 'INACTIVE' ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                                            th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}">
                                         Status
                                     </option>
                                 </select>
@@ -89,8 +68,8 @@
                         <div class="mb-3">
                             <label for="description" class="form-label">Mô tả</label>
                             <textarea class="form-control" id="description" th:field="*{description}" rows="3" 
-                                      placeholder="Nhập mô tả về từ điển..." maxlength="150"></textarea>
-                            <div class="form-text">Tối đa 150 ký tự</div>
+                                      placeholder="Nhập mô tả về chủ đề này..." maxlength="255"></textarea>
+                            <div class="form-text">Tối đa 255 ký tự</div>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">
                                 Description error
                             </div>
@@ -99,11 +78,11 @@
                         <hr class="my-4">
                         
                         <div class="d-flex justify-content-between">
-                            <a href="/admin/dictionaries" class="btn btn-outline-secondary">
+                            <a href="/admin/topics" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-2"></i>Hủy
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Tạo từ điển
+                                <i class="fas fa-save me-2"></i>Tạo chủ đề
                             </button>
                         </div>
                     </form>
@@ -121,17 +100,22 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <strong>Tên từ điển:</strong>
+                        <strong>Tên chủ đề:</strong>
                         <p class="small text-muted mb-2">
-                            Tên hiển thị của từ điển. Ví dụ: "Từ vựng TOEIC cơ bản", "Essential English Vocabulary"
+                            Tên gọi của chủ đề để phân loại từ vựng. Nên chọn tên ngắn gọn, dễ hiểu.
                         </p>
                     </div>
                     
                     <div class="mb-3">
-                        <strong>Mã từ điển:</strong>
-                        <p class="small text-muted mb-2">
-                            Mã ngắn gọn để dễ nhận biết. Ví dụ: "TOEIC", "IELTS", "BASIC"
-                        </p>
+                        <strong>Ví dụ chủ đề:</strong>
+                        <ul class="small text-muted mb-2">
+                            <li>Động vật (Animals)</li>
+                            <li>Thức ăn (Food & Drink)</li>
+                            <li>Giao thông (Transportation)</li>
+                            <li>Gia đình (Family)</li>
+                            <li>Công việc (Jobs & Career)</li>
+                            <li>Thời tiết (Weather)</li>
+                        </ul>
                     </div>
                     
                     <div class="mb-3">
@@ -139,13 +123,12 @@
                         <ul class="small text-muted mb-2">
                             <li><strong>Hoạt động:</strong> Có thể sử dụng và hiển thị</li>
                             <li><strong>Không hoạt động:</strong> Tạm ẩn, không hiển thị</li>
-                            <li><strong>Đã lưu trữ:</strong> Lưu trữ, không thể sử dụng</li>
                         </ul>
                     </div>
                     
                     <div class="alert alert-info small">
                         <i class="fas fa-lightbulb me-2"></i>
-                        <strong>Lưu ý:</strong> Sau khi tạo từ điển, bạn có thể thêm từ vựng và phân loại theo chủ đề.
+                        <strong>Lưu ý:</strong> Sau khi tạo chủ đề, bạn có thể gán từ vựng vào chủ đề này.
                     </div>
                 </div>
             </div>
@@ -157,7 +140,7 @@
     <script>
         // Character counter for description
         document.getElementById('description').addEventListener('input', function() {
-            const maxLength = 150;
+            const maxLength = 255;
             const currentLength = this.value.length;
             const remaining = maxLength - currentLength;
             
@@ -170,20 +153,7 @@
             }
             
             countElement.textContent = `${remaining} ký tự còn lại`;
-            countElement.className = remaining < 20 ? 'form-text text-warning' : 'form-text';
-        });
-        
-        // Auto-generate code from name
-        document.getElementById('name').addEventListener('input', function() {
-            const codeField = document.getElementById('code');
-            if (!codeField.value) {
-                const code = this.value
-                    .toUpperCase()
-                    .replace(/[^A-Z0-9\s]/g, '')
-                    .replace(/\s+/g, '_')
-                    .substring(0, 10);
-                codeField.value = code;
-            }
+            countElement.className = remaining < 50 ? 'form-text text-warning' : 'form-text';
         });
     </script>
 </th:block>

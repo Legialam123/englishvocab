@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-user-edit me-2"></i>Chỉnh sửa người dùng
+        </h1>
+        <div>
+            <a th:href="@{/admin/users/{id}(id=${user.id})}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Quay lại
+            </a>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Thông tin người dùng
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" th:action="@{/admin/users/{id}/edit(id=${user.id})}" th:object="${user}">
+                        <div class="row">
+                            <!-- Username -->
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">
+                                    Tên đăng nhập <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       id="username" 
+                                       th:field="*{username}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('username')} ? 'is-invalid'"
+                                       required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">
+                                    Username error
+                                </div>
+                            </div>
+                            
+                            <!-- Full Name -->
+                            <div class="col-md-6 mb-3">
+                                <label for="fullname" class="form-label">
+                                    Họ và tên <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       id="fullname" 
+                                       th:field="*{fullname}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('fullname')} ? 'is-invalid'"
+                                       required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('fullname')}" th:errors="*{fullname}">
+                                    Fullname error
+                                </div>
+                            </div>
+                            
+                            <!-- Email -->
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" 
+                                       id="email" 
+                                       th:field="*{email}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'"
+                                       required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">
+                                    Email error
+                                </div>
+                            </div>
+                            
+                            <!-- Password -->
+                            <div class="col-md-6 mb-3" th:if="${!user.isGoogleUser()}">
+                                <label for="password" class="form-label">
+                                    Mật khẩu mới
+                                </label>
+                                <input type="password" 
+                                       id="password" 
+                                       th:field="*{password}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
+                                       placeholder="Để trống nếu không thay đổi">
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Để trống nếu không muốn thay đổi mật khẩu
+                                </div>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">
+                                    Password error
+                                </div>
+                            </div>
+                            
+                            <!-- Google User Notice -->
+                            <div class="col-md-6 mb-3" th:if="${user.isGoogleUser()}">
+                                <label class="form-label">Mật khẩu</label>
+                                <div class="form-control bg-light text-muted">
+                                    <i class="fab fa-google me-1"></i>
+                                    Đăng nhập bằng Google (không có mật khẩu)
+                                </div>
+                            </div>
+                            
+                            <!-- Role -->
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">
+                                    Quyền <span class="text-danger">*</span>
+                                </label>
+                                <select id="role" 
+                                        th:field="*{role}"
+                                        class="form-select"
+                                        th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'"
+                                        required>
+                                    <option value="">-- Chọn quyền --</option>
+                                    <option th:each="r : ${roleOptions}"
+                                            th:value="${r}"
+                                            th:text="${r.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}"
+                                            th:selected="*{role} == ${r}">
+                                        Role Option
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('role')}" th:errors="*{role}">
+                                    Role error
+                                </div>
+                            </div>
+                            
+                            <!-- Status -->
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">
+                                    Trạng thái <span class="text-danger">*</span>
+                                </label>
+                                <select id="status" 
+                                        th:field="*{status}"
+                                        class="form-select"
+                                        th:classappend="${#fields.hasErrors('status')} ? 'is-invalid'"
+                                        required>
+                                    <option value="">-- Chọn trạng thái --</option>
+                                    <option th:each="s : ${statusOptions}"
+                                            th:value="${s}"
+                                            th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' :
+                                                     s.name() == 'LOCKED' ? 'Bị khóa' : 'Đã xóa'}"
+                                            th:selected="*{status} == ${s}">
+                                        Status Option
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">
+                                    Status error
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div class="row">
+                            <div class="col-12">
+                                <hr>
+                                <div class="bg-light p-3 rounded">
+                                    <h6 class="mb-2">
+                                        <i class="fas fa-info-circle me-2"></i>Thông tin bổ sung
+                                    </h6>
+                                    <div class="row text-sm">
+                                        <div class="col-md-4">
+                                            <strong>Loại đăng nhập:</strong>
+                                            <span th:text="${user.isGoogleUser()} ? 'Google' : 'Thường'">Type</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Ngày tạo:</strong>
+                                            <span th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy')}">Date</span>
+                                        </div>
+                                        <div class="col-md-4" th:if="${user.updatedAt != null}">
+                                            <strong>Cập nhật lần cuối:</strong>
+                                            <span th:text="${#temporals.format(user.updatedAt, 'dd/MM/yyyy')}">Updated</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a th:href="@{/admin/users/{id}(id=${user.id})}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Hủy
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>Cập nhật người dùng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    bootstrap.Alert.getOrCreateInstance(alert).close();
+                }
+            });
+        }, 5000);
+        
+        // Form validation
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByTagName('form');
+                Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+    </script>
+</th:block>
+
+</html>
+

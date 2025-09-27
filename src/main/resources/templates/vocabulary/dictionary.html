@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${dictionary.name + ' - English Vocab'}">Dictionary - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .dictionary-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .dictionary-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .learning-options {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .learning-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .learning-card:hover {
+            background: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .learning-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), #6366f1);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .learning-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .learning-desc {
+            font-size: 0.875rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .word-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .word-card:hover {
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
+        }
+
+        .word-main {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .word-ipa {
+            color: #64748b;
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .word-pos {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+        }
+
+        .word-level {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .word-meaning {
+            color: var(--text-color);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .search-filters {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            border-color: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .stats-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+        }
+
+        .section-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 768px) {
+            .dictionary-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .learning-options {
+                padding: 1rem;
+            }
+            
+            .learning-card {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .word-card {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard" class="text-decoration-none">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary" class="text-decoration-none">Từ vựng</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary/dictionaries" class="text-decoration-none">Từ điển</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${dictionary.name}">Dictionary Name</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Dictionary Header -->
+    <div class="dictionary-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <div class="dictionary-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <h1 class="mb-2" th:text="${dictionary.name}">English Vocabulary Dictionary</h1>
+                    <p class="mb-3 opacity-75" th:text="${dictionary.description}">
+                        Comprehensive collection of essential English vocabulary for beginners and intermediate learners.
+                    </p>
+                    <div class="d-flex flex-wrap">
+                        <span class="stats-badge">
+                            <i class="fas fa-list-ul me-1"></i>
+                            <span th:text="${vocabularies != null ? (isSearch ? vocabularies.size() : vocabularies.totalElements) : 0}">1,200</span> từ
+                        </span>
+                        <span class="stats-badge">
+                            <i class="fas fa-layer-group me-1"></i>
+                            <span th:text="${dictionary.status}">ACTIVE</span>
+                        </span>
+                        <span class="stats-badge">
+                            <i class="fas fa-star me-1"></i>4.8/5
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-3 text-md-end">
+                    <a href="/vocabulary/dictionaries" class="btn btn-outline-light me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                    <a href="/vocabulary/add" class="btn btn-light">
+                        <i class="fas fa-plus me-1"></i>Thêm từ mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Learning Options -->
+        <div class="learning-options">
+            <h3 class="section-title">
+                <i class="fas fa-graduation-cap text-primary"></i>
+                Chọn cách học
+            </h3>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="learning-card" onclick="startLearning('alphabetical')">
+                        <div class="learning-icon">
+                            <i class="fas fa-sort-alpha-down"></i>
+                        </div>
+                        <div class="learning-title">Học theo A-Z</div>
+                        <div class="learning-desc">Học từ vựng theo thứ tự bảng chữ cái từ A đến Z</div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="learning-card" onclick="startLearning('topics')">
+                        <div class="learning-icon">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="learning-title">Học theo chủ đề</div>
+                        <div class="learning-desc">Học từ vựng được nhóm theo các chủ đề cụ thể</div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="learning-card" onclick="startLearning('custom')">
+                        <div class="learning-icon">
+                            <i class="fas fa-hand-pointer"></i>
+                        </div>
+                        <div class="learning-title">Tự chọn từ</div>
+                        <div class="learning-desc">Chọn những từ vựng cụ thể mà bạn muốn học</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="search-filters">
+            <form method="GET" th:action="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Tìm kiếm từ vựng</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               th:value="${searchKeyword}" placeholder="Nhập từ cần tìm...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="level" class="form-label">Mức độ</label>
+                        <select class="form-select" id="level" name="level">
+                            <option value="">Tất cả mức độ</option>
+                            <option th:each="levelOption : ${levels}" 
+                                    th:value="${levelOption.name()}"
+                                    th:text="${levelOption.name()}"
+                                    th:selected="${selectedLevel != null and selectedLevel == levelOption.name()}">BEGINNER</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="size" class="form-label">Số từ hiển thị</label>
+                        <select class="form-select" id="size" name="size">
+                            <option value="20">20 từ</option>
+                            <option value="50">50 từ</option>
+                            <option value="100">100 từ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Vocabulary List -->
+        <div class="section-card">
+            <h3 class="section-title">
+                <i class="fas fa-list text-info"></i>
+                Từ vựng trong từ điển
+                <span class="badge bg-primary ms-2" th:if="${vocabularies != null}">
+                    <span th:text="${isSearch ? vocabularies.size() : vocabularies.totalElements}">1200</span> từ
+                </span>
+            </h3>
+
+            <!-- Search Results Info -->
+            <div th:if="${isSearch}" class="alert alert-info">
+                <i class="fas fa-search me-2"></i>
+                Tìm thấy <strong th:text="${vocabularies.size()}">25</strong> từ vựng với từ khóa 
+                "<strong th:text="${searchKeyword}">hello</strong>"
+                <a th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}" class="btn btn-sm btn-outline-primary ms-3">
+                    <i class="fas fa-times me-1"></i>Xóa bộ lọc
+                </a>
+            </div>
+
+            <!-- Vocabulary Cards -->
+            <div th:if="${vocabularies != null and ((isSearch and !vocabularies.isEmpty()) or (!isSearch and vocabularies.hasContent()))}">
+                <div class="row">
+                    <!-- For search results (List) -->
+                    <div th:if="${isSearch}" class="col-md-6" th:each="vocab : ${vocabularies}">
+                        <div class="word-card" th:onclick="|viewWord(${vocab.vocabId})|">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="word-main" th:text="${vocab.word}">hello</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-1 mb-2">
+                                        <span class="word-ipa" th:text="${vocab.formattedIpa}" th:if="${vocab.ipa}">/'hɛloʊ/</span>
+                                        <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos}">interjection</span>
+                                        <span class="word-level" th:text="${vocab.level}">BEGINNER</span>
+                                    </div>
+                                    <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" th:onclick="|addToLearning(${vocab.vocabId})|">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- For paginated results (Page) -->
+                    <div th:unless="${isSearch}" class="col-md-6" th:each="vocab : ${vocabularies.content}">
+                        <div class="word-card" th:onclick="|viewWord(${vocab.vocabId})|">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="word-main" th:text="${vocab.word}">hello</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-1 mb-2">
+                                        <span class="word-ipa" th:text="${vocab.formattedIpa}" th:if="${vocab.ipa}">/'hɛloʊ/</span>
+                                        <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos}">interjection</span>
+                                        <span class="word-level" th:text="${vocab.level}">BEGINNER</span>
+                                    </div>
+                                    <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" th:onclick="|addToLearning(${vocab.vocabId})|">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pagination (only for non-search results) -->
+                <nav th:unless="${isSearch}" th:if="${vocabularies.totalPages > 1}" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${vocabularies.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId} + '?page=' + (${vocabularies.number} - 1) + '&level=' + (${selectedLevel} ?: '') + '&search=' + (${searchKeyword} ?: '')}">
+                                Trước
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="page : ${#numbers.sequence(0, vocabularies.totalPages - 1)}" 
+                            th:classappend="${page == vocabularies.number} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId} + '?page=' + ${page} + '&level=' + (${selectedLevel} ?: '') + '&search=' + (${searchKeyword} ?: '')}"
+                               th:text="${page + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${vocabularies.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId} + '?page=' + (${vocabularies.number} + 1) + '&level=' + (${selectedLevel} ?: '') + '&search=' + (${searchKeyword} ?: '')}">
+                                Sau
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            <!-- Empty State -->
+            <div th:if="${vocabularies == null or ((isSearch and vocabularies.isEmpty()) or (!isSearch and !vocabularies.hasContent()))}">
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h3>Không tìm thấy từ vựng</h3>
+                    <p class="text-muted mb-4" th:if="${isSearch}">
+                        Không có từ vựng nào phù hợp với từ khóa "<strong th:text="${searchKeyword}">hello</strong>"
+                    </p>
+                    <p class="text-muted mb-4" th:unless="${isSearch}">
+                        Từ điển này hiện tại chưa có từ vựng nào.
+                    </p>
+                    <div class="d-flex gap-3 justify-content-center flex-wrap">
+                        <a th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}" class="btn btn-primary" th:if="${isSearch}">
+                            <i class="fas fa-list me-2"></i>Xem tất cả từ vựng
+                        </a>
+                        <a href="/vocabulary/add" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-2"></i>Thêm từ cá nhân
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const dictionaryId = [[${dictionary.dictionaryId}]];
+        
+        // Start learning with specific method
+        function startLearning(method) {
+            // TODO: These endpoints will be created in LearningController
+            const urls = {
+                'alphabetical': `/learn/dictionary/${dictionaryId}/alphabetical`,
+                'topics': `/learn/dictionary/${dictionaryId}/topics`, 
+                'custom': `/learn/dictionary/${dictionaryId}/custom`
+            };
+            
+            // For now, show alert that feature is coming
+            alert(`Tính năng "${getMethodName(method)}" sẽ sớm được triển khai!\nURL sẽ là: ${urls[method]}`);
+            
+            // TODO: Uncomment when controllers are ready
+            // window.location.href = urls[method];
+        }
+        
+        function getMethodName(method) {
+            const names = {
+                'alphabetical': 'Học theo A-Z',
+                'topics': 'Học theo chủ đề',
+                'custom': 'Tự chọn từ'
+            };
+            return names[method] || method;
+        }
+        
+        // View word detail
+        function viewWord(vocabId) {
+            window.location.href = `/vocabulary/${vocabId}`;
+        }
+        
+        // Add word to learning (will integrate with SRS later)
+        function addToLearning(vocabId) {
+            // TODO: Add word to user's learning progress
+            alert(`Sẽ thêm từ ID ${vocabId} vào danh sách học tập!`);
+        }
+        
+        // Card animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate learning cards
+            const learningCards = document.querySelectorAll('.learning-card');
+            learningCards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 150);
+            });
+            
+            // Word card click animation
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.word-card')) {
+                    const card = e.target.closest('.word-card');
+                    card.style.transform = 'translateX(4px) scale(0.98)';
+                    setTimeout(() => {
+                        card.style.transform = 'translateX(4px)';
+                    }, 150);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

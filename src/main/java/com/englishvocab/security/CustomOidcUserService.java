@@ -30,7 +30,7 @@ public class CustomOidcUserService extends OidcUserService {
             
             // Lấy thông tin user từ Google OIDC
             OidcUser oidcUser = super.loadUser(userRequest);
-            log.info("✅ Successfully loaded OIDC user from Google");
+            log.info("Successfully loaded OIDC user from Google");
             
             // Extract user info từ Google OIDC
             String email = oidcUser.getEmail();

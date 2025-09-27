@@ -33,8 +33,7 @@ public class UserCustomVocab {
     @Size(max = 100, message = "Từ vựng không được vượt quá 100 ký tự")
     private String name; // The custom word
     
-    @Column(nullable = false, length = 100)
-    @NotBlank(message = "IPA không được để trống")
+    @Column(length = 100)
     @Size(max = 100, message = "IPA không được vượt quá 100 ký tự")
     private String ipa;
     

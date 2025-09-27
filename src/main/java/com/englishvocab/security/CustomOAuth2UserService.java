@@ -33,24 +33,21 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             
             // Lấy thông tin user từ Google
             OAuth2User oauth2User = delegate.loadUser(userRequest);
-            log.info("✅ Successfully loaded OAuth2 user from Google");
+            log.info("Successfully loaded OAuth2 user from Google");
             
             // Extract user info từ Google
             String email = oauth2User.getAttribute("email");
             String name = oauth2User.getAttribute("name");
             String googleId = oauth2User.getAttribute("sub");
             
-            log.info("📋 Google OAuth2 User Info:");
-            log.info("   📧 Email: {}", email);
-            log.info("   👤 Name: {}", name);
-            log.info("   🆔 Google ID: {}", googleId);
+            log.info("Google OAuth2 User Info - Email: {}, Name: {}, Google ID: {}", email, name, googleId);
             
             if (email == null || email.trim().isEmpty()) {
-                log.error("❌ Email is null or empty from OAuth2 provider");
+                log.error("Email is null or empty from OAuth2 provider");
                 throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
             }
             
-            log.info("🔍 Checking if user exists in database with email: {}", email);
+            log.info("Checking if user exists in database with email: {}", email);
             
             // Tìm user trong database theo email
             User user = userRepository.findByEmail(email).orElse(null);
@@ -87,7 +84,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             log.info("   👤 Fullname: {}", finalName);
             log.info("   🔑 Password: null (Google user)");
             log.info("   👥 Role: USER");
-            log.info("   ✅ Status: ACTIVE");
+                log.info("   Status: ACTIVE");
             
             User user = User.builder()
                     .username(email.trim())  // Dùng email làm username
@@ -105,7 +102,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             log.info("   🆔 User ID: {}", savedUser.getId());
             log.info("   📧 Email: {}", savedUser.getEmail());
             log.info("   👤 Username: {}", savedUser.getUsername());
-            log.info("   🔍 Is Google User: {}", savedUser.isGoogleUser());
+            log.info("   Is Google User: {}", savedUser.isGoogleUser());
             
             return savedUser;
             

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
 <head>
     <title>Chỉnh sửa từ điển</title>
 </head>
@@ -82,8 +83,8 @@
                                 <select class="form-select" id="status" th:field="*{status}">
                                     <option th:each="s : ${statusOptions}" 
                                             th:value="${s}" 
-                                            th:text="${s == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Hoạt động' : 
-                                                     s == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                                            th:text="${s.name() == 'ACTIVE' ? 'Hoạt động' : 
+                                                     s.name() == 'INACTIVE' ? 'Không hoạt động' : 'Đã lưu trữ'}">
                                         Status
                                     </option>
                                 </select>
@@ -138,10 +139,10 @@
                     <div class="mb-2">
                         <strong>Trạng thái:</strong> 
                         <span class="badge" 
-                              th:classappend="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'bg-success' : 
-                                             dictionary.status == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'bg-warning' : 'bg-secondary'}"
-                              th:text="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Hoạt động' : 
-                                       dictionary.status == T(com.englishvocab.entity.Dictionary.Status).INACTIVE ? 'Không hoạt động' : 'Đã lưu trữ'}">
+                              th:classappend="${dictionary.status.name() == 'ACTIVE' ? 'bg-success' : 
+                                             dictionary.status.name() == 'INACTIVE' ? 'bg-warning' : 'bg-secondary'}"
+                              th:text="${dictionary.status.name() == 'ACTIVE' ? 'Hoạt động' : 
+                                       dictionary.status.name() == 'INACTIVE' ? 'Không hoạt động' : 'Đã lưu trữ'}">
                             Active
                         </span>
                     </div>
@@ -168,8 +169,8 @@
                     <form th:action="@{'/admin/dictionaries/' + ${dictionary.dictionaryId} + '/toggle-status'}" 
                           method="POST" class="mb-2">
                         <button type="submit" class="btn btn-outline-warning btn-sm w-100">
-                            <i th:class="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'fas fa-pause' : 'fas fa-play'}" class="me-2"></i>
-                            <span th:text="${dictionary.status == T(com.englishvocab.entity.Dictionary.Status).ACTIVE ? 'Vô hiệu hóa' : 'Kích hoạt'}">Toggle</span>
+                            <i th:class="${dictionary.status.name() == 'ACTIVE' ? 'fas fa-pause' : 'fas fa-play'}" class="me-2"></i>
+                            <span th:text="${dictionary.status.name() == 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt'}">Toggle</span>
                         </button>
                     </form>
                     
