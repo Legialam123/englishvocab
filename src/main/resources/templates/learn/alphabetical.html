@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Học từ vựng A-Z</title>
+    
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        .learning-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .vocab-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .vocab-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+        }
+        
+        .alphabet-nav {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .alphabet-letter {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            line-height: 35px;
+            text-align: center;
+            margin: 2px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .alphabet-letter:hover,
+        .alphabet-letter.active {
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .learning-progress {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 10px;
+        }
+        
+        .vocab-word {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .vocab-ipa {
+            color: #3498db;
+            font-style: italic;
+        }
+        
+        .vocab-meaning {
+            color: #27ae60;
+            margin-top: 0.5rem;
+        }
+        
+        .level-badge {
+            font-size: 0.8rem;
+        }
+        
+        .start-learning-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .start-learning-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="learning-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-1">
+                        <i class="bi bi-sort-alpha-down me-2"></i>
+                        <span th:text="${dictionary.name}">Dictionary Name</span>
+                    </h1>
+                    <p class="mb-0 opacity-75">Học từ vựng theo thứ tự alphabet A-Z</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/vocabulary/dictionaries" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Progress Overview -->
+        <div class="learning-progress">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-3"><i class="bi bi-graph-up text-primary"></i> Tiến độ học tập</h5>
+                    <div class="mb-2">
+                        <small class="text-muted">Tiến độ tổng quát</small>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted">45/100 từ (45%)</small>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success start-learning-btn" onclick="startLearningSession()">
+                            <i class="bi bi-play-circle"></i> Bắt đầu học
+                        </button>
+                        <small class="text-muted">20 từ/session</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alphabet Navigation -->
+        <div class="alphabet-nav text-center">
+            <h6 class="mb-3"><i class="bi bi-grid-3x3-gap"></i> Chọn chữ cái để bắt đầu</h6>
+            <div>
+                <span th:each="letter : ${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}">
+                    <a href="#" 
+                       th:href="@{/learn/dictionary/{id}/alphabetical(id=${dictionary.dictionaryId}, startLetter=${letter})}"
+                       th:class="'alphabet-letter' + (${param.startLetter != null and param.startLetter[0] == letter} ? ' active' : '')"
+                       th:text="${letter}">A</a>
+                </span>
+            </div>
+            <small class="text-muted mt-2 d-block">Click vào chữ cái để xem từ vựng bắt đầu bằng chữ đó</small>
+        </div>
+
+        <!-- Learning Options -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-sliders text-primary"></i> Tùy chọn học tập
+                        </h6>
+                        <form id="learningOptionsForm">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label">Số từ/session</label>
+                                    <select class="form-select form-select-sm" id="sessionSize">
+                                        <option value="10">10 từ</option>
+                                        <option value="20" selected>20 từ</option>
+                                        <option value="30">30 từ</option>
+                                        <option value="50">50 từ</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Level</label>
+                                    <select class="form-select form-select-sm" id="levelFilter">
+                                        <option value="">Tất cả</option>
+                                        <option value="BEGINNER">Beginner</option>
+                                        <option value="INTERMEDIATE">Intermediate</option>
+                                        <option value="ADVANCED">Advanced</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-info-circle text-info"></i> Thống kê từ điển
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="text-primary fw-bold h5">150</div>
+                                <small class="text-muted">Tổng từ</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-success fw-bold h5">68</div>
+                                <small class="text-muted">Đã học</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-warning fw-bold h5">12</div>
+                                <small class="text-muted">Cần ôn</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vocabulary Preview (Alphabetical) -->
+        <div class="row">
+            <div class="col-12">
+                <h5 class="mb-3">
+                    <i class="bi bi-book text-primary"></i> 
+                    Từ vựng 
+                    <span th:if="${param.startLetter != null}" th:text="'bắt đầu bằng ' + ${param.startLetter[0]}">bắt đầu bằng A</span>
+                    <span class="badge bg-secondary ms-2">20 từ đầu tiên</span>
+                </h5>
+                
+                <!-- Sample Vocabulary Cards -->
+                <div class="row" id="vocabularyContainer">
+                    <!-- This will be populated by JavaScript/AJAX in real implementation -->
+                    <div class="col-md-6 col-lg-4" th:each="i : ${#numbers.sequence(1, 9)}">
+                        <div class="card vocab-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="vocab-word" th:text="'Word ' + ${i}">Apple</span>
+                                    <span class="badge bg-success level-badge">BEGINNER</span>
+                                </div>
+                                <div class="vocab-ipa" th:text="'/ˈæpəl' + ${i}">/ˈæpəl/</div>
+                                <div class="vocab-meaning">
+                                    <strong>noun:</strong> Quả táo, trái táo
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i> Chưa học
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load More Button -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="loadMoreVocabulary()">
+                        <i class="bi bi-arrow-down-circle"></i> Xem thêm từ vựng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Session Modal -->
+        <div class="modal fade" id="learningModal" tabindex="-1" aria-labelledby="learningModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="learningModalLabel">
+                            <i class="bi bi-play-circle"></i> Bắt đầu session học tập
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Bạn sắp bắt đầu một session học từ vựng theo thứ tự A-Z:</p>
+                        <ul>
+                            <li><strong>Từ điển:</strong> <span th:text="${dictionary.name}">Dictionary Name</span></li>
+                            <li><strong>Số lượng từ:</strong> <span id="modalSessionSize">20</span> từ</li>
+                            <li><strong>Chế độ:</strong> Alphabetical (A-Z)</li>
+                            <li><strong>Ước tính thời gian:</strong> <span id="modalEstimatedTime">10-15</span> phút</li>
+                        </ul>
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Mẹo:</strong> Hãy tập trung và học một cách có ý thức. Kết quả học tập sẽ được lưu vào tiến độ cá nhân của bạn.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-success" onclick="confirmStartLearning()">
+                            <i class="bi bi-rocket"></i> Bắt đầu ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Global variables
+        const dictionaryId = [[${dictionary.dictionaryId}]];
+        const currentUserId = '[[${currentUserId}]]';
+        
+        /**
+         * Start learning session
+         */
+        function startLearningSession() {
+            // Update modal with current settings
+            const sessionSize = document.getElementById('sessionSize').value;
+            const level = document.getElementById('levelFilter').value;
+            
+            document.getElementById('modalSessionSize').textContent = sessionSize;
+            document.getElementById('modalEstimatedTime').textContent = 
+                Math.ceil(sessionSize * 0.5) + '-' + Math.ceil(sessionSize * 0.75);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('learningModal'));
+            modal.show();
+        }
+        
+        /**
+         * Confirm and redirect to learning session
+         */
+        function confirmStartLearning() {
+            const sessionSize = document.getElementById('sessionSize').value;
+            const level = document.getElementById('levelFilter').value;
+            const startLetter = new URLSearchParams(window.location.search).get('startLetter') || '';
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('dictionaryId', dictionaryId);
+            formData.append('learningMode', 'alphabetical');
+            formData.append('sessionSize', sessionSize);
+            if (level) formData.append('level', level);
+            if (startLetter) formData.append('startLetter', startLetter);
+            
+            // Submit to start session
+            const headers = {};
+            headers[csrfHeader] = csrfToken;
+            
+            fetch('/learn/session/start', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Failed to start session');
+                }
+            })
+            .then(data => {
+                // Redirect to flashcard session
+                // In a real implementation, we'd get the session ID from response
+                window.location.href = '/learn/session/flashcards?sessionId=temp-session-id';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi bắt đầu session học tập. Vui lòng thử lại!');
+            });
+        }
+        
+        /**
+         * Load more vocabulary (for pagination)
+         */
+        function loadMoreVocabulary() {
+            // TODO: Implement AJAX loading for more vocabulary
+            alert('Chức năng tải thêm từ vựng sẽ được implement trong phiên bản tiếp theo!');
+        }
+        
+        /**
+         * Update estimated time when session size changes
+         */
+        document.getElementById('sessionSize').addEventListener('change', function() {
+            const sessionSize = this.value;
+            const estimatedTime = Math.ceil(sessionSize * 0.5) + '-' + Math.ceil(sessionSize * 0.75);
+            // Update any displayed estimated time
+        });
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+</body>
+</html>

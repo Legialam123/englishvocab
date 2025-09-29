@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Flashcard Learning Session</title>
+    
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .learning-container {
+            min-height: 100vh;
+            padding: 15px 20px;
+        }
+        
+        .flashcard-wrapper {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            perspective: 1000px;
+            margin: 0 auto 2rem auto;
+            display: block;
+        }
+        
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            border-radius: 20px; /* Đảm bảo flashcard container cũng có border-radius */
+        }
+        
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .flashcard-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+        }
+        
+        .flashcard-front {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+        
+        .flashcard-back {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            transform: rotateY(180deg);
+        }
+        
+        .word-main {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .word-ipa {
+            font-size: 1.5rem;
+            color: #3498db;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .word-pos {
+            background: rgba(255,255,255,0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+        }
+        
+        .word-meaning {
+            font-size: 1.5rem;
+            color: #27ae60;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+        
+        .word-definition {
+            font-size: 1rem;
+            color: #34495e;
+            font-style: italic;
+            opacity: 0.8;
+        }
+        
+        .progress-header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .controls-panel {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .control-btn {
+            border: none;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-mastered {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+        }
+        
+        .btn-temporary {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+            color: white;
+            border: none;
+        }
+        
+        .btn-unknown {
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+            color: white;
+            border: none;
+        }
+        
+        .btn-flip {
+            background: linear-gradient(45deg, #007bff, #6f42c1);
+            color: white;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        }
+        
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .session-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 0.25rem;
+        }
+        
+        .flip-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .completion-modal .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .completion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .audio-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem auto;
+        }
+        
+        .audio-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        
+        .keyboard-hints {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        /* Clean session controls styling */
+        .session-controls .btn {
+            border: none;
+            color: #ffffff;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 40px;
+            border-radius: 8px;
+        }
+        
+        /* Pause button - Black */
+        .session-controls .btn-outline-light {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+        }
+        
+        .session-controls .btn-outline-light:hover {
+            background: rgba(0, 0, 0, 0.85);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+        
+        .session-controls .btn-outline-light:focus {
+            background: rgba(0, 0, 0, 0.85);
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+        }
+        
+        .session-controls .btn-outline-light:active {
+            background: rgba(0, 0, 0, 0.9) !important;
+            color: #ffffff !important;
+        }
+        
+        /* Quit button - Red */
+        .session-controls .btn-outline-danger {
+            background: rgba(220, 53, 69, 0.8);
+            color: #ffffff;
+        }
+        
+        .session-controls .btn-outline-danger:hover {
+            background: rgba(220, 53, 69, 0.9);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+        
+        .session-controls .btn-outline-danger:focus {
+            background: rgba(220, 53, 69, 0.9);
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+        
+        .session-controls .btn-outline-danger:active {
+            background: rgba(220, 53, 69, 1) !important;
+            color: #ffffff !important;
+        }
+        
+        .session-timer-center {
+            font-weight: 500;
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Enhanced keyboard guidance styling */
+        .keyboard-guidance {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: inline-block;
+        }
+        
+        /* Enhanced kbd styling for keyboard guidance */
+        kbd {
+            background-color: rgba(255,255,255,0.25);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.4);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            margin: 0 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .learning-container {
+                padding: 10px 15px;
+            }
+            
+            .flashcard-wrapper {
+                height: 320px;
+                margin-bottom: 1.5rem;
+            }
+            
+            .word-main {
+                font-size: 2.2rem;
+            }
+            
+            .word-meaning {
+                font-size: 1.2rem;
+            }
+            
+            .control-btn {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+                min-height: 45px;
+                border-radius: 20px;
+            }
+            
+            .control-btn i {
+                font-size: 0.75rem;
+            }
+            
+            .controls-panel {
+                padding: 1.2rem;
+            }
+            
+            .progress-header {
+                padding: 1.2rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .session-stats {
+                font-size: 0.9rem;
+            }
+            
+            .d-flex.gap-2 {
+                gap: 0.5rem !important;
+            }
+            
+            .keyboard-guidance {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+            
+            kbd {
+                padding: 2px 5px;
+                font-size: 0.7em;
+                margin: 0 1px;
+            }
+            
+            .session-controls .btn {
+                min-width: 35px;
+                padding: 6px 8px;
+                font-size: 0.85rem;
+                border-radius: 6px;
+            }
+            
+            .session-timer-center {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .session-controls-spacer {
+                width: 70px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="learning-container">
+        <div class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100">
+            <!-- Progress Header -->
+            <div class="row justify-content-center w-100">
+                <div class="col-md-10 col-lg-8">
+                    <div class="progress-header text-center">
+                        <!-- Top row: Controls, Timer, Spacer -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="session-controls">
+                                <button class="btn btn-outline-light btn-sm me-2" onclick="pauseSession()" title="Tạm dừng">
+                                    <i class="bi bi-pause"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="quitSession()" title="Thoát">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="session-timer-center">
+                                <small class="text-light">
+                                    <i class="bi bi-clock me-1"></i> <span id="sessionTimer">00:00</span>
+                                </small>
+                            </div>
+                            
+                            <div class="session-controls-spacer" style="width: 100px;"></div>
+                        </div>
+                        
+                        <!-- Stats row -->
+                        <div class="session-stats">
+                            <div class="stat-item">
+                                <div class="stat-number" id="currentCard">1</div>
+                                <div class="stat-label">Thẻ hiện tại</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="totalCards">20</div>
+                                <div class="stat-label">Tổng số thẻ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number text-success" id="masteredCount">0</div>
+                                <div class="stat-label">Đã nhớ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number text-warning" id="temporaryCount">0</div>
+                                <div class="stat-label">Nhớ tạm</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number text-danger" id="unknownCount">0</div>
+                                <div class="stat-label">Chưa biết</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress bar -->
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill" id="progressBar" style="width: 5%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flashcard -->
+            <div class="row justify-content-center w-100">
+                <div class="col-md-10 col-lg-8">
+                    <div class="flashcard-wrapper">
+                        <div class="flashcard" id="flashcard" onclick="flipCard()">
+                            <div class="flip-hint" id="flipHint">
+                                <i class="bi bi-arrow-repeat"></i> Click để lật thẻ
+                            </div>
+                            
+                            <!-- Front Side (Question) -->
+                            <div class="flashcard-side flashcard-front">
+                                <div class="word-main" id="frontWord">Loading...</div>
+                                <div class="word-ipa" id="frontIpa">/ˈloʊdɪŋ/</div>
+                                <button class="audio-btn" onclick="event.stopPropagation(); playAudio()">
+                                    <i class="bi bi-volume-up"></i>
+                                </button>
+                                <div class="word-pos" id="frontPos">noun</div>
+                                <small class="text-muted">Click để xem nghĩa</small>
+                            </div>
+                            
+                            <!-- Back Side (Answer) -->
+                            <div class="flashcard-side flashcard-back">
+                                <div class="word-main" id="backWord">Loading...</div>
+                                <div class="word-meaning" id="backMeaning">Đang tải...</div>
+                                <div class="word-definition" id="backDefinition">Loading definition...</div>
+                                <button class="audio-btn" onclick="event.stopPropagation(); playAudio()">
+                                    <i class="bi bi-volume-up"></i>
+                                </button>
+                                <small class="text-muted">Bạn có biết từ này không?</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="row justify-content-center w-100">
+                <div class="col-md-8 col-lg-6">
+                    <div class="controls-panel">
+                        <div class="d-grid gap-3">
+                            <button class="btn control-btn btn-flip" id="flipBtn" onclick="flipCard()">
+                                <i class="bi bi-arrow-repeat me-2"></i>
+                                <span id="flipText">Xem nghĩa</span>
+                            </button>
+                            
+                            <div class="d-flex gap-2" id="answerControls" style="display: none;">
+                                <button class="btn control-btn btn-unknown flex-fill" onclick="answerCard('unknown')" title="Chưa biết hoặc quên, sẽ review lại ngày mai">
+                                    <i class="bi bi-x-circle me-1"></i>Chưa biết
+                                </button>
+                                <button class="btn control-btn btn-temporary flex-fill" onclick="answerCard('temporary')" title="Nhớ được nhưng chưa chắc, sẽ review sau 3 ngày">
+                                    <i class="bi bi-clock me-1"></i>Nhớ tạm
+                                </button>
+                                <button class="btn control-btn btn-mastered flex-fill" onclick="answerCard('mastered')" title="Đã thuộc lòng, sẽ review sau 1 tuần">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Đã nhớ
+                                </button>
+                            </div>
+                            
+                            <!-- Keyboard guidance -->
+                            <div class="text-center mt-2" id="keyboardHints" style="display: none;">
+                                <div class="keyboard-guidance">
+                                    <i class="bi bi-keyboard me-1"></i>
+                                    <kbd>Enter</kbd> cho lật • 
+                                    <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> tương ứng 3 button
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Session Complete Modal -->
+    <div class="modal fade completion-modal" id="completionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="completion-header">
+                    <i class="bi bi-trophy display-1 mb-3"></i>
+                    <h2>Chúc mừng!</h2>
+                    <p class="lead">Bạn đã hoàn thành session học tập</p>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row text-center mb-4">
+                        <div class="col-md-2">
+                            <div class="h4 text-primary" id="finalTotalCards">20</div>
+                            <small class="text-muted">Tổng thẻ</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="h4 text-success" id="finalMasteredCount">12</div>
+                            <small class="text-muted">Đã nhớ</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="h4 text-warning" id="finalTemporaryCount">5</div>
+                            <small class="text-muted">Nhớ tạm</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="h4 text-danger" id="finalUnknownCount">3</div>
+                            <small class="text-muted">Chưa biết</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="h4 text-info" id="finalAccuracy">85%</div>
+                            <small class="text-muted">Độ chính xác</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="h4 text-info" id="finalSessionTime">05:32</div>
+                            <small class="text-muted">Thời gian</small>
+                        </div>
+                    </div>
+                    
+                    <div class="progress mb-4" style="height: 10px;">
+                        <div class="progress-bar bg-success" id="finalProgressBar" style="width: 75%"></div>
+                    </div>
+                    
+                    <div class="alert alert-success">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>Kết quả tuyệt vời!</strong> 
+                        Tiến độ học tập của bạn đã được cập nhật. 
+                        Những từ "chưa biết" sẽ xuất hiện trong sessions sau.
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="continueLearning()">
+                        <i class="bi bi-arrow-repeat me-2"></i>Học tiếp
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-lg" onclick="finishSession()">
+                        <i class="bi bi-house me-2"></i>Về trang chủ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div class="modal fade" id="pauseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pause-circle"></i> Session đã tạm dừng
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Session học tập của bạn đã được tạm dừng.</p>
+                    <p class="text-muted">Tiến độ hiện tại sẽ được lưu lại.</p>
+                    
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <div class="fw-bold" id="pauseCurrentCard">5</div>
+                            <small class="text-muted">Thẻ hiện tại</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold text-success" id="pauseMasteredCount">2</div>
+                            <small class="text-muted">Đã nhớ</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold text-warning" id="pauseTemporaryCount">2</div>
+                            <small class="text-muted">Nhớ tạm</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold text-danger" id="pauseUnknownCount">1</div>
+                            <small class="text-muted">Chưa biết</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="resumeSession()">
+                        <i class="bi bi-play"></i> Tiếp tục
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="quitSession()">
+                        <i class="bi bi-x"></i> Thoát session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Session variables
+        let currentCardIndex = 0;
+        let sessionData = {
+            sessionId: 'temp-session-id', // From URL parameter
+            vocabulary: [], // Will be loaded from server
+            answers: [], // Track user answers
+            startTime: new Date(),
+            isFlipped: false
+        };
+        
+        // Enhanced tracking with 3 levels
+        let masteredCount = 0;    // Đã nhớ - mastered
+        let temporaryCount = 0;   // Nhớ tạm - temporary  
+        let unknownCount = 0;     // Chưa biết - unknown
+        let sessionTimer;
+        
+        // Mock vocabulary data (in real implementation, loaded from server)
+        const mockVocabulary = [
+            {
+                id: 1,
+                word: "Apple",
+                ipa: "/ˈæpəl/",
+                pos: "noun",
+                meaningVi: "Quả táo, trái táo",
+                definitionEn: "A round fruit with red or green skin and white flesh"
+            },
+            {
+                id: 2,
+                word: "Beautiful", 
+                ipa: "/ˈbjuːtɪfəl/",
+                pos: "adjective",
+                meaningVi: "Đẹp, xinh đẹp",
+                definitionEn: "Pleasing to the senses or mind aesthetically"
+            },
+            {
+                id: 3,
+                word: "Computer",
+                ipa: "/kəmˈpjuːtər/", 
+                pos: "noun",
+                meaningVi: "Máy tính, máy vi tính",
+                definitionEn: "An electronic device for storing and processing data"
+            },
+            // Add more vocabulary items...
+        ];
+        
+        /**
+         * Initialize learning session
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSession();
+            startSessionTimer();
+            setupKeyboardControls();
+            
+            // Hide flip hint after 3 seconds
+            setTimeout(() => {
+                document.getElementById('flipHint').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('flipHint').style.display = 'none';
+                }, 500);
+            }, 3000);
+        });
+        
+        /**
+         * Initialize session with vocabulary data
+         */
+        function initializeSession() {
+            // In real implementation, load from server based on sessionId
+            sessionData.vocabulary = mockVocabulary;
+            document.getElementById('totalCards').textContent = sessionData.vocabulary.length;
+            
+            // Load first card
+            loadCard(0);
+            updateProgress();
+        }
+        
+        /**
+         * Load vocabulary card
+         */
+        function loadCard(index) {
+            if (index >= sessionData.vocabulary.length) {
+                completeSession();
+                return;
+            }
+            
+            const vocab = sessionData.vocabulary[index];
+            
+            // Update front side
+            document.getElementById('frontWord').textContent = vocab.word;
+            document.getElementById('frontIpa').textContent = vocab.ipa;
+            document.getElementById('frontPos').textContent = vocab.pos;
+            
+            // Update back side
+            document.getElementById('backWord').textContent = vocab.word;
+            document.getElementById('backMeaning').textContent = vocab.meaningVi;
+            document.getElementById('backDefinition').textContent = vocab.definitionEn;
+            
+            // Reset card state
+            resetCardState();
+            updateProgress();
+        }
+        
+        /**
+         * Reset card to front side
+         */
+        function resetCardState() {
+            const flashcard = document.getElementById('flashcard');
+            const flipBtn = document.getElementById('flipBtn');
+            const flipText = document.getElementById('flipText');
+            const answerControls = document.getElementById('answerControls');
+            const keyboardHints = document.getElementById('keyboardHints');
+            
+            flashcard.classList.remove('flipped');
+            sessionData.isFlipped = false;
+            
+            flipBtn.style.display = 'block';
+            flipText.textContent = 'Xem nghĩa';
+            answerControls.style.display = 'none';
+            keyboardHints.style.display = 'none';
+        }
+        
+        /**
+         * Enhanced Flip flashcard - bidirectional
+         */
+        function flipCard() {
+            const flashcard = document.getElementById('flashcard');
+            const flipBtn = document.getElementById('flipBtn');
+            const flipText = document.getElementById('flipText');
+            const answerControls = document.getElementById('answerControls');
+            const keyboardHints = document.getElementById('keyboardHints');
+            
+            if (!sessionData.isFlipped) {
+                // Front → Back: Show meaning
+                flashcard.classList.add('flipped');
+                sessionData.isFlipped = true;
+                flipText.textContent = 'Xem từ';
+                
+                // Show answer controls and keyboard hints with delay
+                setTimeout(() => {
+                    answerControls.style.display = 'block';
+                    keyboardHints.style.display = 'block';
+                }, 300);
+                
+            } else {
+                // Back → Front: Show word
+                flashcard.classList.remove('flipped');
+                sessionData.isFlipped = false;
+                flipText.textContent = 'Xem nghĩa';
+                // Keep answer controls and hints visible for easy access
+            }
+        }
+        
+        /**
+         * Enhanced Answer card - 3-level system
+         */
+        function answerCard(answerLevel) {
+            // Record answer with level
+            sessionData.answers.push({
+                vocabId: sessionData.vocabulary[currentCardIndex].id,
+                answerLevel: answerLevel,  // 'mastered', 'temporary', 'unknown'
+                timestamp: new Date()
+            });
+            
+            // Update counters based on answer level
+            switch(answerLevel) {
+                case 'mastered':
+                    masteredCount++;
+                    document.getElementById('masteredCount').textContent = masteredCount;
+                    break;
+                case 'temporary':
+                    temporaryCount++;
+                    document.getElementById('temporaryCount').textContent = temporaryCount;
+                    break;
+                case 'unknown':
+                    unknownCount++;
+                    document.getElementById('unknownCount').textContent = unknownCount;
+                    break;
+            }
+            
+            // Visual feedback
+            showAnswerFeedback(answerLevel);
+            
+            // Move to next card
+            currentCardIndex++;
+            document.getElementById('currentCard').textContent = currentCardIndex + 1;
+            
+            // Load next card or complete session
+            setTimeout(() => {
+                loadCard(currentCardIndex);
+            }, 500);
+        }
+        
+        /**
+         * Enhanced visual feedback - glow effect theo viền bo tròn của flashcard
+         */
+        function showAnswerFeedback(answerLevel) {
+            const flashcard = document.getElementById('flashcard');
+            const feedback = {
+                'mastered': { color: '#28a745', bgColor: 'rgba(40, 167, 69, 0.1)' },
+                'temporary': { color: '#ffc107', bgColor: 'rgba(255, 193, 7, 0.1)' },
+                'unknown': { color: '#dc3545', bgColor: 'rgba(220, 53, 69, 0.1)' }
+            };
+            
+            const currentFeedback = feedback[answerLevel];
+            
+            // Enhanced visual feedback - glow effect theo viền bo tròn flashcard
+            flashcard.style.boxShadow = `
+                0 0 15px ${currentFeedback.color}, 
+                0 0 30px ${currentFeedback.color}, 
+                0 0 45px ${currentFeedback.color},
+                0 8px 32px rgba(0,0,0,0.1)
+            `;
+            flashcard.style.border = `3px solid ${currentFeedback.color}`;
+            flashcard.style.backgroundColor = currentFeedback.bgColor;
+            flashcard.style.borderRadius = '20px'; // Đảm bảo border và shadow theo viền bo tròn
+            flashcard.style.transform = 'scale(1.03) translateY(-2px)';
+            flashcard.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            
+            // Remove effects after animation
+            setTimeout(() => {
+                flashcard.style.boxShadow = '';
+                flashcard.style.border = '';
+                flashcard.style.backgroundColor = '';
+                flashcard.style.borderRadius = '';
+                flashcard.style.transform = '';
+                flashcard.style.transition = '';
+            }, 900);
+        }
+        
+        /**
+         * Update progress bar
+         */
+        function updateProgress() {
+            const progress = ((currentCardIndex + 1) / sessionData.vocabulary.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        /**
+         * Enhanced Complete learning session
+         */
+        function completeSession() {
+            clearInterval(sessionTimer);
+            
+            // Calculate accuracy (mastered + temporary as correct)
+            const totalCorrect = masteredCount + temporaryCount;
+            const accuracy = Math.round((totalCorrect / sessionData.vocabulary.length) * 100);
+            
+            // Update completion modal with 3-level stats
+            document.getElementById('finalTotalCards').textContent = sessionData.vocabulary.length;
+            document.getElementById('finalMasteredCount').textContent = masteredCount;
+            document.getElementById('finalTemporaryCount').textContent = temporaryCount;
+            document.getElementById('finalUnknownCount').textContent = unknownCount;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            document.getElementById('finalSessionTime').textContent = formatTime(getSessionDuration());
+            
+            // Enhanced progress bar with segments
+            updateFinalProgressBar(accuracy);
+            
+            // Submit session results to server
+            submitSessionResults();
+            
+            // Show completion modal
+            const modal = new bootstrap.Modal(document.getElementById('completionModal'));
+            modal.show();
+        }
+        
+        /**
+         * Update final progress bar with segments
+         */
+        function updateFinalProgressBar(accuracy) {
+            const progressBar = document.getElementById('finalProgressBar');
+            progressBar.style.width = accuracy + '%';
+            
+            // Color based on accuracy
+            if (accuracy >= 80) {
+                progressBar.className = 'progress-bar bg-success';
+            } else if (accuracy >= 60) {
+                progressBar.className = 'progress-bar bg-warning';
+            } else {
+                progressBar.className = 'progress-bar bg-danger';
+            }
+        }
+        
+        /**
+         * Submit session results to server
+         */
+        function submitSessionResults() {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const sessionResult = {
+                sessionId: sessionData.sessionId,
+                answers: sessionData.answers,
+                duration: getSessionDuration(),
+                completedAt: new Date().toISOString()
+            };
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            headers[csrfHeader] = csrfToken;
+            
+            fetch('/learn/session/complete', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(sessionResult)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Session results submitted successfully');
+                if (data.success) {
+                    console.log('Redirecting to results page...');
+                    // Results page redirect will be handled by completion modal actions
+                } else {
+                    console.error('Session completion failed:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting session results:', error);
+                // Continue to show completion modal even if submission fails
+            });
+        }
+        
+        /**
+         * Play pronunciation audio
+         */
+        function playAudio() {
+            const word = sessionData.vocabulary[currentCardIndex].word;
+            
+            // Use Web Speech API for text-to-speech
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                speechSynthesis.speak(utterance);
+            } else {
+                console.log('Text-to-speech not supported');
+            }
+        }
+        
+        /**
+         * Enhanced Pause session
+         */
+        function pauseSession() {
+            document.getElementById('pauseCurrentCard').textContent = currentCardIndex + 1;
+            document.getElementById('pauseMasteredCount').textContent = masteredCount;
+            document.getElementById('pauseTemporaryCount').textContent = temporaryCount;
+            document.getElementById('pauseUnknownCount').textContent = unknownCount;
+            
+            const modal = new bootstrap.Modal(document.getElementById('pauseModal'));
+            modal.show();
+        }
+        
+        /**
+         * Resume session
+         */
+        function resumeSession() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('pauseModal'));
+            modal.hide();
+        }
+        
+        /**
+         * Quit session
+         */
+        function quitSession() {
+            if (confirm('Bạn có chắc muốn thoát session? Tiến độ hiện tại sẽ được lưu.')) {
+                // Submit current progress
+                submitSessionResults();
+                
+                // Redirect to dictionary page
+                window.location.href = '/vocabulary/dictionaries';
+            }
+        }
+        
+        /**
+         * Continue learning (start new session)
+         */
+        function continueLearning() {
+            window.location.reload();
+        }
+        
+        /**
+         * Finish session and go home
+         */
+        function finishSession() {
+            window.location.href = '/dashboard';
+        }
+        
+        /**
+         * Enhanced keyboard controls - 3-level system
+         */
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', function(event) {
+                switch(event.code) {
+                    case 'Enter':
+                        event.preventDefault();
+                        flipCard(); // Can flip both ways now
+                        break;
+                    case 'ArrowLeft':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('unknown'); // ❌ Chưa biết (first button)
+                        }
+                        break;
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('temporary'); // 🟡 Nhớ tạm (middle button)
+                        }
+                        break;
+                    case 'ArrowRight':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('mastered'); // ✅ Đã nhớ (last button)
+                        }
+                        break;
+                    case 'Escape':
+                        pauseSession();
+                        break;
+                    // Additional shortcuts - match button order
+                    case 'Digit1':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('unknown'); // First button
+                        }
+                        break;
+                    case 'Digit2':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('temporary'); // Second button
+                        }
+                        break;
+                    case 'Digit3':
+                        event.preventDefault();
+                        if (document.getElementById('answerControls').style.display !== 'none') {
+                            answerCard('mastered'); // Third button
+                        }
+                        break;
+                }
+            });
+        }
+        
+        /**
+         * Start session timer
+         */
+        function startSessionTimer() {
+            sessionTimer = setInterval(() => {
+                const duration = getSessionDuration();
+                document.getElementById('sessionTimer').textContent = formatTime(duration);
+            }, 1000);
+        }
+        
+        /**
+         * Get session duration in seconds
+         */
+        function getSessionDuration() {
+            return Math.floor((new Date() - sessionData.startTime) / 1000);
+        }
+        
+        /**
+         * Format time in MM:SS format
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

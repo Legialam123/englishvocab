@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Học từ vựng theo chủ đề</title>
+    
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        .learning-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .topic-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+        }
+        
+        .topic-card.selected {
+            border: 2px solid #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        }
+        
+        .topic-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .topic-stats {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .selected-topics-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+        }
+        
+        .start-learning-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .start-learning-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .start-learning-btn:disabled {
+            background: #6c757d;
+            box-shadow: none;
+        }
+        
+        .topic-level-bar {
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .level-segment {
+            height: 100%;
+            float: left;
+        }
+        
+        .level-beginner { background: #28a745; }
+        .level-intermediate { background: #ffc107; }
+        .level-advanced { background: #dc3545; }
+        
+        .selection-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 25px;
+            height: 25px;
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .topic-card.selected .selection-counter {
+            opacity: 1;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="learning-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-1">
+                        <i class="bi bi-tags-fill me-2"></i>
+                        <span th:text="${dictionary.name}">Dictionary Name</span>
+                    </h1>
+                    <p class="mb-0 opacity-75">Học từ vựng theo chủ đề</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/vocabulary/dictionaries" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Topics Selection -->
+            <div class="col-md-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">
+                        <i class="bi bi-collection text-primary"></i> 
+                        Chọn chủ đề để học
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="selectAllTopics()">
+                            <i class="bi bi-check2-square"></i> Chọn tất cả
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm ms-2" onclick="clearAllSelections()">
+                            <i class="bi bi-square"></i> Bỏ chọn
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Topics Grid -->
+                <div class="row" id="topicsContainer">
+                    <!-- Sample Topics - In real implementation, this would be populated by Thymeleaf -->
+                    <div class="col-md-6" th:each="i : ${#numbers.sequence(1, 8)}">
+                        <div class="card topic-card" th:attr="data-topic-id=${i}" onclick="toggleTopicSelection(this)">
+                            <div class="selection-counter">1</div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-start">
+                                    <div class="topic-icon me-3">
+                                        <i class="bi bi-book" th:class="'bi ' + (${i % 8 == 1} ? 'bi-book' : (${i % 8 == 2} ? 'bi-house' : (${i % 8 == 3} ? 'bi-car-front' : (${i % 8 == 4} ? 'bi-cup' : (${i % 8 == 5} ? 'bi-airplane' : (${i % 8 == 6} ? 'bi-briefcase' : (${i % 8 == 7} ? 'bi-heart' : 'bi-music-note')))))))"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title mb-1" 
+                                            th:text="(${i % 8 == 1} ? 'Education' : (${i % 8 == 2} ? 'Home & Family' : (${i % 8 == 3} ? 'Transportation' : (${i % 8 == 4} ? 'Food & Drink' : (${i % 8 == 5} ? 'Travel' : (${i % 8 == 6} ? 'Work & Business' : (${i % 8 == 7} ? 'Health' : 'Entertainment')))))))">
+                                            Education
+                                        </h6>
+                                        <p class="card-text text-muted small mb-2">
+                                            Từ vựng về giáo dục, trường học, học tập
+                                        </p>
+                                        
+                                        <!-- Level Distribution Bar -->
+                                        <div class="topic-level-bar">
+                                            <div class="level-segment level-beginner" style="width: 40%"></div>
+                                            <div class="level-segment level-intermediate" style="width: 35%"></div>
+                                            <div class="level-segment level-advanced" style="width: 25%"></div>
+                                        </div>
+                                        
+                                        <div class="topic-stats">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <small class="text-success fw-bold" th:text="${15 + i}">24</small><br>
+                                                    <small class="text-muted">Từ vựng</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <small class="text-primary fw-bold" th:text="${5 + (i % 3)}">8</small><br>
+                                                    <small class="text-muted">Đã học</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <small class="text-warning fw-bold" th:text="${i % 4}">3</small><br>
+                                                    <small class="text-muted">Cần ôn</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (if no topics) -->
+                <div class="empty-state d-none" id="emptyState">
+                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                    <h5>Chưa có chủ đề nào</h5>
+                    <p class="text-muted">Từ điển này chưa có chủ đề nào được phân loại.</p>
+                    <a href="/vocabulary/dictionaries" class="btn btn-primary">Chọn từ điển khác</a>
+                </div>
+            </div>
+
+            <!-- Selected Topics Panel -->
+            <div class="col-md-4">
+                <div class="selected-topics-panel">
+                    <h6 class="mb-3">
+                        <i class="bi bi-list-check text-success"></i> 
+                        Chủ đề đã chọn 
+                        <span class="badge bg-primary ms-2" id="selectedCount">0</span>
+                    </h6>
+                    
+                    <div id="selectedTopicsList" class="mb-3">
+                        <p class="text-muted text-center">Chưa chọn chủ đề nào</p>
+                    </div>
+                    
+                    <!-- Session Settings -->
+                    <div class="border-top pt-3">
+                        <h6 class="mb-3"><i class="bi bi-gear"></i> Cài đặt session</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Số từ mỗi chủ đề</label>
+                            <select class="form-select form-select-sm" id="wordsPerTopic">
+                                <option value="5">5 từ</option>
+                                <option value="10" selected>10 từ</option>
+                                <option value="15">15 từ</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Độ khó</label>
+                            <select class="form-select form-select-sm" id="difficultyLevel">
+                                <option value="">Tất cả</option>
+                                <option value="BEGINNER">Beginner</option>
+                                <option value="INTERMEDIATE">Intermediate</option>
+                                <option value="ADVANCED">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Thứ tự từ vựng</label>
+                            <select class="form-select form-select-sm" id="wordOrder">
+                                <option value="random" selected>Ngẫu nhiên</option>
+                                <option value="alphabetical">Theo alphabet</option>
+                                <option value="difficulty">Theo độ khó</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted">Ước tính từ vựng:</small>
+                            <small class="fw-bold" id="estimatedWords">0</small>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <small class="text-muted">Thời gian dự kiến:</small>
+                            <small class="fw-bold" id="estimatedTime">0 phút</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Start Learning Button -->
+                    <button class="btn start-learning-btn" id="startLearningBtn" disabled onclick="startTopicLearning()">
+                        <i class="bi bi-play-circle me-2"></i>Bắt đầu học
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Session Modal -->
+        <div class="modal fade" id="learningModal" tabindex="-1" aria-labelledby="learningModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="learningModalLabel">
+                            <i class="bi bi-tags"></i> Xác nhận session học theo chủ đề
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Bạn đã chọn các chủ đề sau:</strong></p>
+                        <div id="modalSelectedTopics"></div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Từ điển:</strong> <span th:text="${dictionary.name}">Dictionary Name</span></p>
+                                <p><strong>Số chủ đề:</strong> <span id="modalTopicCount">0</span> chủ đề</p>
+                            </div>
+                            <div class="col-6">
+                                <p><strong>Ước tính từ vựng:</strong> <span id="modalWordCount">0</span> từ</p>
+                                <p><strong>Thời gian dự kiến:</strong> <span id="modalDuration">0</span> phút</p>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Gợi ý:</strong> Từ vựng sẽ được trình bày theo từng chủ đề, giúp bạn liên kết và ghi nhớ tốt hơn.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-success" onclick="confirmStartTopicLearning()">
+                            <i class="bi bi-rocket"></i> Bắt đầu ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Global variables
+        const dictionaryId = [[${dictionary.dictionaryId}]];
+        const currentUserId = '[[${currentUserId}]]';
+        let selectedTopics = new Set();
+        
+        // Topic data (in real implementation, this would come from server)
+        const topicData = {
+            1: { id: 1, name: 'Education', words: 24 },
+            2: { id: 2, name: 'Home & Family', words: 18 },
+            3: { id: 3, name: 'Transportation', words: 22 },
+            4: { id: 4, name: 'Food & Drink', words: 31 },
+            5: { id: 5, name: 'Travel', words: 27 },
+            6: { id: 6, name: 'Work & Business', words: 19 },
+            7: { id: 7, name: 'Health', words: 25 },
+            8: { id: 8, name: 'Entertainment', words: 20 }
+        };
+        
+        /**
+         * Toggle topic selection
+         */
+        function toggleTopicSelection(element) {
+            const topicId = parseInt(element.getAttribute('data-topic-id'));
+            const counter = element.querySelector('.selection-counter');
+            
+            if (selectedTopics.has(topicId)) {
+                selectedTopics.delete(topicId);
+                element.classList.remove('selected');
+            } else {
+                selectedTopics.add(topicId);
+                element.classList.add('selected');
+                counter.textContent = selectedTopics.size;
+            }
+            
+            updateSelectedTopicsPanel();
+            updateSelectionCounters();
+        }
+        
+        /**
+         * Update selection counters on cards
+         */
+        function updateSelectionCounters() {
+            let counter = 1;
+            selectedTopics.forEach(topicId => {
+                const card = document.querySelector(`[data-topic-id="${topicId}"]`);
+                if (card) {
+                    card.querySelector('.selection-counter').textContent = counter++;
+                }
+            });
+        }
+        
+        /**
+         * Update selected topics panel
+         */
+        function updateSelectedTopicsPanel() {
+            const selectedCount = document.getElementById('selectedCount');
+            const selectedList = document.getElementById('selectedTopicsList');
+            const startBtn = document.getElementById('startLearningBtn');
+            const estimatedWords = document.getElementById('estimatedWords');
+            const estimatedTime = document.getElementById('estimatedTime');
+            
+            selectedCount.textContent = selectedTopics.size;
+            
+            if (selectedTopics.size === 0) {
+                selectedList.innerHTML = '<p class="text-muted text-center">Chưa chọn chủ đề nào</p>';
+                startBtn.disabled = true;
+                estimatedWords.textContent = '0';
+                estimatedTime.textContent = '0 phút';
+            } else {
+                let html = '';
+                let totalWords = 0;
+                const wordsPerTopic = parseInt(document.getElementById('wordsPerTopic').value);
+                
+                selectedTopics.forEach(topicId => {
+                    const topic = topicData[topicId];
+                    if (topic) {
+                        totalWords += Math.min(wordsPerTopic, topic.words);
+                        html += `<div class="badge bg-light text-dark me-1 mb-1">${topic.name}</div>`;
+                    }
+                });
+                
+                selectedList.innerHTML = html;
+                startBtn.disabled = false;
+                estimatedWords.textContent = totalWords;
+                estimatedTime.textContent = Math.ceil(totalWords * 0.5) + '-' + Math.ceil(totalWords * 0.75) + ' phút';
+            }
+        }
+        
+        /**
+         * Select all topics
+         */
+        function selectAllTopics() {
+            document.querySelectorAll('.topic-card').forEach(card => {
+                const topicId = parseInt(card.getAttribute('data-topic-id'));
+                if (!selectedTopics.has(topicId)) {
+                    selectedTopics.add(topicId);
+                    card.classList.add('selected');
+                }
+            });
+            updateSelectedTopicsPanel();
+            updateSelectionCounters();
+        }
+        
+        /**
+         * Clear all selections
+         */
+        function clearAllSelections() {
+            selectedTopics.clear();
+            document.querySelectorAll('.topic-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateSelectedTopicsPanel();
+        }
+        
+        /**
+         * Start topic learning
+         */
+        function startTopicLearning() {
+            if (selectedTopics.size === 0) return;
+            
+            // Update modal content
+            const modalSelectedTopics = document.getElementById('modalSelectedTopics');
+            const modalTopicCount = document.getElementById('modalTopicCount');
+            const modalWordCount = document.getElementById('modalWordCount');
+            const modalDuration = document.getElementById('modalDuration');
+            
+            let html = '';
+            let totalWords = 0;
+            const wordsPerTopic = parseInt(document.getElementById('wordsPerTopic').value);
+            
+            selectedTopics.forEach(topicId => {
+                const topic = topicData[topicId];
+                if (topic) {
+                    totalWords += Math.min(wordsPerTopic, topic.words);
+                    html += `<span class="badge bg-primary me-1 mb-1">${topic.name}</span>`;
+                }
+            });
+            
+            modalSelectedTopics.innerHTML = html;
+            modalTopicCount.textContent = selectedTopics.size;
+            modalWordCount.textContent = totalWords;
+            modalDuration.textContent = Math.ceil(totalWords * 0.5) + '-' + Math.ceil(totalWords * 0.75);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('learningModal'));
+            modal.show();
+        }
+        
+        /**
+         * Confirm and start topic learning
+         */
+        function confirmStartTopicLearning() {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const formData = new FormData();
+            formData.append('dictionaryId', dictionaryId);
+            formData.append('learningMode', 'topics');
+            formData.append('sessionSize', document.getElementById('estimatedWords').textContent);
+            
+            // Add selected topic IDs
+            selectedTopics.forEach(topicId => {
+                formData.append('topicIds', topicId);
+            });
+            
+            // Add settings
+            formData.append('wordsPerTopic', document.getElementById('wordsPerTopic').value);
+            formData.append('difficultyLevel', document.getElementById('difficultyLevel').value);
+            formData.append('wordOrder', document.getElementById('wordOrder').value);
+            
+            // Submit to start session
+            const headers = {};
+            headers[csrfHeader] = csrfToken;
+            
+            fetch('/learn/session/start', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Failed to start session');
+                }
+            })
+            .then(data => {
+                // Redirect to flashcard session
+                window.location.href = '/learn/session/flashcards?sessionId=temp-session-id';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi bắt đầu session học tập. Vui lòng thử lại!');
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('wordsPerTopic').addEventListener('change', updateSelectedTopicsPanel);
+        document.getElementById('difficultyLevel').addEventListener('change', updateSelectedTopicsPanel);
+        document.getElementById('wordOrder').addEventListener('change', updateSelectedTopicsPanel);
+    </script>
+</body>
+</html>

@@ -523,18 +523,14 @@
         
         // Start learning with specific method
         function startLearning(method) {
-            // TODO: These endpoints will be created in LearningController
             const urls = {
                 'alphabetical': `/learn/dictionary/${dictionaryId}/alphabetical`,
                 'topics': `/learn/dictionary/${dictionaryId}/topics`, 
                 'custom': `/learn/dictionary/${dictionaryId}/custom`
             };
             
-            // For now, show alert that feature is coming
-            alert(`Tính năng "${getMethodName(method)}" sẽ sớm được triển khai!\nURL sẽ là: ${urls[method]}`);
-            
-            // TODO: Uncomment when controllers are ready
-            // window.location.href = urls[method];
+            // Redirect to learning page
+            window.location.href = urls[method];
         }
         
         function getMethodName(method) {

@@ -26,6 +26,16 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
     Page<Vocab> findByDictionary(Dictionary dictionary, Pageable pageable);
     
     /**
+     * Tìm từ vựng theo dictionary, sắp xếp theo alphabet A-Z
+     */
+    List<Vocab> findByDictionaryOrderByWordAsc(Dictionary dictionary);
+    
+    /**
+     * Tìm từ vựng theo dictionary với pagination, sắp xếp theo alphabet
+     */
+    Page<Vocab> findByDictionaryOrderByWordAsc(Dictionary dictionary, Pageable pageable);
+    
+    /**
      * Tìm từ vựng theo level
      */
     List<Vocab> findByLevel(Vocab.Level level);

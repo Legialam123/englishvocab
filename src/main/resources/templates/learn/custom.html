@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tự chọn từ vựng học tập</title>
+    
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        .learning-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .vocab-item {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .vocab-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .vocab-item.selected {
+            border-left: 4px solid #007bff;
+            background: rgba(0,123,255,0.05);
+        }
+        
+        .vocab-item.selected .selection-checkbox {
+            background: #007bff;
+            color: white;
+        }
+        
+        .selection-checkbox {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .selected-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+        
+        .vocab-word {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+        
+        .vocab-ipa {
+            color: #3498db;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        
+        .vocab-meaning {
+            color: #27ae60;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .vocab-pos {
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .level-badge {
+            font-size: 0.75rem;
+        }
+        
+        .progress-indicator {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .progress-bar-custom {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-new { background: #6c757d; }
+        .progress-learning { background: #ffc107; }
+        .progress-mastered { background: #28a745; }
+        
+        .start-learning-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .start-learning-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .start-learning-btn:disabled {
+            background: #6c757d;
+            box-shadow: none;
+        }
+        
+        .bulk-actions {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box .bi-search {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .search-box input {
+            padding-left: 45px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+        
+        .saved-sets-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="learning-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-1">
+                        <i class="bi bi-hand-index-thumb me-2"></i>
+                        <span th:text="${dictionary.name}">Dictionary Name</span>
+                    </h1>
+                    <p class="mb-0 opacity-75">Tự chọn từ vựng để học tập</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/vocabulary/dictionaries" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-8">
+                <!-- Filter Panel -->
+                <div class="filter-panel">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Tìm kiếm từ vựng</label>
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" class="form-control" id="searchInput" 
+                                       placeholder="Nhập từ cần tìm..." onkeyup="filterVocabulary()">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Độ khó</label>
+                            <select class="form-select form-select-sm" id="levelFilter" onchange="filterVocabulary()">
+                                <option value="">Tất cả</option>
+                                <option value="BEGINNER">Beginner</option>
+                                <option value="INTERMEDIATE">Intermediate</option>
+                                <option value="ADVANCED">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Trạng thái học tập</label>
+                            <select class="form-select form-select-sm" id="statusFilter" onchange="filterVocabulary()">
+                                <option value="">Tất cả</option>
+                                <option value="new">Chưa học</option>
+                                <option value="learning">Đang học</option>
+                                <option value="mastered">Đã thành thạo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-bookmarks"></i> Bộ từ đã lưu
+                                </button>
+                                <ul class="dropdown-menu saved-sets-dropdown w-100">
+                                    <li><h6 class="dropdown-header">Bộ từ của bạn</h6></li>
+                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('favorites')">
+                                        <i class="bi bi-heart text-danger"></i> Từ yêu thích (15)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('difficult')">
+                                        <i class="bi bi-exclamation-triangle text-warning"></i> Từ khó nhớ (8)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('review')">
+                                        <i class="bi bi-arrow-clockwise text-info"></i> Cần ôn tập (12)
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="saveCurrentSet()">
+                                        <i class="bi bi-plus-circle text-success"></i> Lưu bộ từ hiện tại
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="bulk-actions">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" 
+                                       onchange="toggleSelectAll()">
+                                <label class="form-check-label" for="selectAllCheckbox">
+                                    Chọn tất cả (<span id="totalVocabCount">0</span>)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="selectByLevel('BEGINNER')">
+                                    Beginner
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="selectByLevel('INTERMEDIATE')">
+                                    Inter
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="selectByLevel('ADVANCED')">
+                                    Advanced
+                                </button>
+                            </div>
+                            <button class="btn btn-outline-secondary btn-sm ms-2" onclick="clearAllSelections()">
+                                <i class="bi bi-x-circle"></i> Bỏ chọn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vocabulary List -->
+                <div id="vocabularyList">
+                    <!-- Sample Vocabulary Items -->
+                    <div class="vocab-item card" th:each="i : ${#numbers.sequence(1, 20)}" 
+                         th:attr="data-vocab-id=${i}, data-level=${i % 3 == 1 ? 'BEGINNER' : (i % 3 == 2 ? 'INTERMEDIATE' : 'ADVANCED')}, data-status=${i % 4 == 1 ? 'new' : (i % 4 == 2 ? 'learning' : 'mastered')}"
+                         onclick="toggleVocabSelection(this)">
+                        <div class="selection-checkbox">
+                            <i class="bi bi-check" style="display: none;"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="vocab-word" th:text="'Word ' + ${i}">Apple</div>
+                                    <div class="vocab-ipa" th:text="'/wɜːd' + ${i} + '/'">/.../</div>
+                                    <div class="d-flex gap-2 mt-2">
+                                        <span class="vocab-pos">noun</span>
+                                        <span class="badge bg-success level-badge" 
+                                              th:class="'badge level-badge bg-' + (${i % 3 == 1} ? 'success' : (${i % 3 == 2} ? 'warning' : 'danger'))"
+                                              th:text="${i % 3 == 1 ? 'BEGINNER' : (i % 3 == 2 ? 'INTERMEDIATE' : 'ADVANCED')}">
+                                            BEGINNER
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="vocab-meaning">
+                                        <strong>Nghĩa:</strong> Từ, từ ngữ, lời nói
+                                    </div>
+                                    <div class="progress-indicator">
+                                        <div class="progress-bar-custom" 
+                                             th:class="'progress-bar-custom progress-' + (${i % 4 == 1} ? 'new' : (${i % 4 == 2} ? 'learning' : 'mastered'))"
+                                             th:style="'width: ' + (${i % 4 == 1} ? '0%' : (${i % 4 == 2} ? '60%' : '100%'))">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-1" 
+                                           th:text="${i % 4 == 1 ? 'Chưa học' : (i % 4 == 2 ? 'Đang học (box 2)' : 'Đã thành thạo')}">
+                                        Chưa học
+                                    </small>
+                                </div>
+                                <div class="col-md-1 text-center">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="event.stopPropagation(); previewVocab(this)"
+                                            title="Xem chi tiết">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load More -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="loadMoreVocab()">
+                        <i class="bi bi-arrow-down-circle"></i> Tải thêm từ vựng
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state d-none" id="emptyState">
+                    <i class="bi bi-search display-1 text-muted mb-3"></i>
+                    <h5>Không tìm thấy từ vựng</h5>
+                    <p class="text-muted">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                </div>
+            </div>
+
+            <!-- Selected Panel -->
+            <div class="col-md-4">
+                <div class="selected-panel">
+                    <h6 class="mb-3">
+                        <i class="bi bi-collection text-success"></i> 
+                        Từ đã chọn 
+                        <span class="badge bg-primary ms-2" id="selectedCount">0</span>
+                    </h6>
+                    
+                    <div id="selectedVocabList" class="mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <p class="text-muted text-center">Chưa chọn từ nào</p>
+                    </div>
+                    
+                    <!-- Session Settings -->
+                    <div class="border-top pt-3">
+                        <h6 class="mb-3"><i class="bi bi-gear"></i> Cài đặt học tập</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Số từ tối đa</label>
+                            <select class="form-select form-select-sm" id="maxWords">
+                                <option value="0">Không giới hạn</option>
+                                <option value="20" selected>20 từ</option>
+                                <option value="30">30 từ</option>
+                                <option value="50">50 từ</option>
+                            </select>
+                            <small class="text-muted">Nếu chọn nhiều hơn, hệ thống sẽ chọn ngẫu nhiên</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Thứ tự học</label>
+                            <select class="form-select form-select-sm" id="learningOrder">
+                                <option value="selection" selected>Theo thứ tự chọn</option>
+                                <option value="random">Ngẫu nhiên</option>
+                                <option value="difficulty">Dễ → khó</option>
+                                <option value="alphabetical">Theo alphabet</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="prioritizeDifficult" checked>
+                                <label class="form-check-label small" for="prioritizeDifficult">
+                                    Ưu tiên từ khó nhớ
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="border-top pt-3">
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="text-primary fw-bold h6" id="newWordsCount">0</div>
+                                <small class="text-muted">Chưa học</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-warning fw-bold h6" id="learningWordsCount">0</div>
+                                <small class="text-muted">Đang học</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-success fw-bold h6" id="masteredWordsCount">0</div>
+                                <small class="text-muted">Thành thạo</small>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted">Thời gian dự kiến:</small>
+                            <small class="fw-bold" id="estimatedTime">0 phút</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Start Learning Button -->
+                    <button class="btn start-learning-btn" id="startLearningBtn" disabled onclick="startCustomLearning()">
+                        <i class="bi bi-play-circle me-2"></i>Bắt đầu học
+                    </button>
+                    
+                    <!-- Save Set Button -->
+                    <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="saveCurrentSet()">
+                        <i class="bi bi-bookmark-plus"></i> Lưu bộ từ này
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vocab Preview Modal -->
+        <div class="modal fade" id="vocabPreviewModal" tabindex="-1" aria-labelledby="vocabPreviewModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="vocabPreviewModalLabel">Chi tiết từ vựng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="vocabPreviewContent">
+                        <!-- Vocab details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Confirmation Modal -->
+        <div class="modal fade" id="learningModal" tabindex="-1" aria-labelledby="learningModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="learningModalLabel">
+                            <i class="bi bi-hand-index-thumb"></i> Xác nhận session tự chọn
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Bạn đã chọn <span id="modalSelectedCount">0</span> từ vựng để học:</strong></p>
+                        <div class="mb-3" style="max-height: 150px; overflow-y: auto;">
+                            <div id="modalSelectedList"></div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Từ điển:</strong> <span th:text="${dictionary.name}">Dictionary Name</span></p>
+                                <p><strong>Thứ tự học:</strong> <span id="modalLearningOrder">Theo chọn</span></p>
+                            </div>
+                            <div class="col-6">
+                                <p><strong>Thời gian dự kiến:</strong> <span id="modalEstimatedTime">0</span> phút</p>
+                                <p><strong>Ưu tiên từ khó:</strong> <span id="modalPrioritizeDifficult">Có</span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-success">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Tuyệt vời!</strong> Việc tự chọn từ vựng giúp bạn tập trung vào những từ cần thiết nhất.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-success" onclick="confirmStartCustomLearning()">
+                            <i class="bi bi-rocket"></i> Bắt đầu ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Global variables
+        const dictionaryId = [[${dictionary.dictionaryId}]];
+        const currentUserId = '[[${currentUserId}]]';
+        let selectedVocabs = new Map();
+        let allVocabs = [];
+        
+        /**
+         * Initialize page
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVocabCount();
+        });
+        
+        /**
+         * Toggle vocabulary selection
+         */
+        function toggleVocabSelection(element) {
+            const vocabId = parseInt(element.getAttribute('data-vocab-id'));
+            const checkbox = element.querySelector('.selection-checkbox i');
+            const word = element.querySelector('.vocab-word').textContent;
+            const level = element.getAttribute('data-level');
+            const status = element.getAttribute('data-status');
+            
+            if (selectedVocabs.has(vocabId)) {
+                selectedVocabs.delete(vocabId);
+                element.classList.remove('selected');
+                checkbox.style.display = 'none';
+            } else {
+                selectedVocabs.set(vocabId, { word, level, status });
+                element.classList.add('selected');
+                checkbox.style.display = 'block';
+            }
+            
+            updateSelectedPanel();
+        }
+        
+        /**
+         * Update selected vocabulary panel
+         */
+        function updateSelectedPanel() {
+            const selectedCount = document.getElementById('selectedCount');
+            const selectedList = document.getElementById('selectedVocabList');
+            const startBtn = document.getElementById('startLearningBtn');
+            const newCount = document.getElementById('newWordsCount');
+            const learningCount = document.getElementById('learningWordsCount');
+            const masteredCount = document.getElementById('masteredWordsCount');
+            const estimatedTime = document.getElementById('estimatedTime');
+            
+            selectedCount.textContent = selectedVocabs.size;
+            
+            if (selectedVocabs.size === 0) {
+                selectedList.innerHTML = '<p class="text-muted text-center">Chưa chọn từ nào</p>';
+                startBtn.disabled = true;
+                newCount.textContent = '0';
+                learningCount.textContent = '0';
+                masteredCount.textContent = '0';
+                estimatedTime.textContent = '0 phút';
+            } else {
+                let html = '';
+                let newWords = 0, learningWords = 0, masteredWords = 0;
+                
+                selectedVocabs.forEach((vocab, id) => {
+                    html += `<div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">${vocab.word}</span>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeVocab(${id})" title="Xóa">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>`;
+                    
+                    if (vocab.status === 'new') newWords++;
+                    else if (vocab.status === 'learning') learningWords++;
+                    else masteredWords++;
+                });
+                
+                selectedList.innerHTML = html;
+                startBtn.disabled = false;
+                newCount.textContent = newWords;
+                learningCount.textContent = learningWords;
+                masteredCount.textContent = masteredWords;
+                
+                const time = Math.ceil(selectedVocabs.size * 0.5) + '-' + Math.ceil(selectedVocabs.size * 0.75);
+                estimatedTime.textContent = time + ' phút';
+            }
+        }
+        
+        /**
+         * Remove vocabulary from selection
+         */
+        function removeVocab(vocabId) {
+            const element = document.querySelector(`[data-vocab-id="${vocabId}"]`);
+            if (element) {
+                element.classList.remove('selected');
+                element.querySelector('.selection-checkbox i').style.display = 'none';
+            }
+            selectedVocabs.delete(vocabId);
+            updateSelectedPanel();
+        }
+        
+        /**
+         * Toggle select all
+         */
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('selectAllCheckbox');
+            const visibleVocabs = document.querySelectorAll('.vocab-item:not(.d-none)');
+            
+            if (checkbox.checked) {
+                visibleVocabs.forEach(element => {
+                    const vocabId = parseInt(element.getAttribute('data-vocab-id'));
+                    if (!selectedVocabs.has(vocabId)) {
+                        toggleVocabSelection(element);
+                    }
+                });
+            } else {
+                clearAllSelections();
+            }
+        }
+        
+        /**
+         * Select by level
+         */
+        function selectByLevel(level) {
+            document.querySelectorAll(`[data-level="${level}"]:not(.d-none)`).forEach(element => {
+                const vocabId = parseInt(element.getAttribute('data-vocab-id'));
+                if (!selectedVocabs.has(vocabId)) {
+                    toggleVocabSelection(element);
+                }
+            });
+        }
+        
+        /**
+         * Clear all selections
+         */
+        function clearAllSelections() {
+            document.querySelectorAll('.vocab-item.selected').forEach(element => {
+                toggleVocabSelection(element);
+            });
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
+        
+        /**
+         * Filter vocabulary
+         */
+        function filterVocabulary() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const level = document.getElementById('levelFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            let visibleCount = 0;
+            document.querySelectorAll('.vocab-item').forEach(element => {
+                const word = element.querySelector('.vocab-word').textContent.toLowerCase();
+                const vocabLevel = element.getAttribute('data-level');
+                const vocabStatus = element.getAttribute('data-status');
+                
+                const matchSearch = !search || word.includes(search);
+                const matchLevel = !level || vocabLevel === level;
+                const matchStatus = !status || vocabStatus === status;
+                
+                if (matchSearch && matchLevel && matchStatus) {
+                    element.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    element.classList.add('d-none');
+                }
+            });
+            
+            document.getElementById('totalVocabCount').textContent = visibleCount;
+            
+            // Show/hide empty state
+            const emptyState = document.getElementById('emptyState');
+            if (visibleCount === 0) {
+                emptyState.classList.remove('d-none');
+            } else {
+                emptyState.classList.add('d-none');
+            }
+        }
+        
+        /**
+         * Update vocabulary count
+         */
+        function updateVocabCount() {
+            const totalCount = document.querySelectorAll('.vocab-item').length;
+            document.getElementById('totalVocabCount').textContent = totalCount;
+        }
+        
+        /**
+         * Preview vocabulary
+         */
+        function previewVocab(button) {
+            // Mock preview data
+            const vocabId = button.closest('.vocab-item').getAttribute('data-vocab-id');
+            const word = button.closest('.vocab-item').querySelector('.vocab-word').textContent;
+            
+            document.getElementById('vocabPreviewContent').innerHTML = `
+                <div class="text-center mb-3">
+                    <h4>${word}</h4>
+                    <div class="text-muted">/wɜːd/</div>
+                </div>
+                <div class="mb-3">
+                    <strong>Meanings:</strong>
+                    <ul class="list-unstyled ms-3">
+                        <li>• <strong>noun:</strong> từ, từ ngữ, lời nói</li>
+                        <li>• <strong>verb:</strong> diễn đạt, phát biểu</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <strong>Examples:</strong>
+                    <ul class="list-unstyled ms-3">
+                        <li>• "Can you explain this <strong>word</strong>?"</li>
+                        <li>• "He didn't say a <strong>word</strong>."</li>
+                    </ul>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('vocabPreviewModal'));
+            modal.show();
+        }
+        
+        /**
+         * Start custom learning
+         */
+        function startCustomLearning() {
+            if (selectedVocabs.size === 0) return;
+            
+            // Update modal content
+            document.getElementById('modalSelectedCount').textContent = selectedVocabs.size;
+            document.getElementById('modalLearningOrder').textContent = 
+                document.getElementById('learningOrder').options[document.getElementById('learningOrder').selectedIndex].text;
+            document.getElementById('modalEstimatedTime').textContent = 
+                document.getElementById('estimatedTime').textContent;
+            document.getElementById('modalPrioritizeDifficult').textContent = 
+                document.getElementById('prioritizeDifficult').checked ? 'Có' : 'Không';
+            
+            let modalList = '';
+            let counter = 1;
+            selectedVocabs.forEach((vocab, id) => {
+                modalList += `<span class="badge bg-light text-dark me-1 mb-1">${counter++}. ${vocab.word}</span>`;
+            });
+            document.getElementById('modalSelectedList').innerHTML = modalList;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('learningModal'));
+            modal.show();
+        }
+        
+        /**
+         * Confirm start custom learning
+         */
+        function confirmStartCustomLearning() {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const formData = new FormData();
+            formData.append('dictionaryId', dictionaryId);
+            formData.append('learningMode', 'custom');
+            formData.append('sessionSize', selectedVocabs.size);
+            
+            // Add selected vocab IDs
+            selectedVocabs.forEach((vocab, id) => {
+                formData.append('selectedVocabIds', id);
+            });
+            
+            // Add settings
+            formData.append('learningOrder', document.getElementById('learningOrder').value);
+            formData.append('prioritizeDifficult', document.getElementById('prioritizeDifficult').checked);
+            
+            // Submit to start session
+            const headers = {};
+            headers[csrfHeader] = csrfToken;
+            
+            fetch('/learn/session/start', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Failed to start session');
+                }
+            })
+            .then(data => {
+                // Redirect to flashcard session
+                window.location.href = '/learn/session/flashcards?sessionId=temp-session-id';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi bắt đầu session học tập. Vui lòng thử lại!');
+            });
+        }
+        
+        /**
+         * Load more vocabulary (pagination)
+         */
+        function loadMoreVocab() {
+            // TODO: Implement AJAX pagination
+            alert('Chức năng tải thêm sẽ được implement trong version tiếp theo!');
+        }
+        
+        /**
+         * Load saved vocabulary set
+         */
+        function loadSavedSet(setType) {
+            // TODO: Implement saved sets functionality
+            alert(`Chức năng load bộ từ "${setType}" sẽ được implement!`);
+        }
+        
+        /**
+         * Save current vocabulary set
+         */
+        function saveCurrentSet() {
+            if (selectedVocabs.size === 0) {
+                alert('Vui lòng chọn ít nhất một từ vựng để lưu!');
+                return;
+            }
+            
+            const setName = prompt('Nhập tên cho bộ từ này:');
+            if (setName && setName.trim()) {
+                // TODO: Implement save functionality
+                alert(`Đã lưu bộ từ "${setName.trim()}" với ${selectedVocabs.size} từ vựng!`);
+            }
+        }
+    </script>
+</body>
+</html>
