@@ -67,4 +67,9 @@ public interface TopicsRepository extends JpaRepository<Topics, Integer> {
     // Find topics with vocabulary count
     @Query("SELECT t, COUNT(vt) as vocabCount FROM Topics t LEFT JOIN VocabTopics vt ON t.topicId = vt.topic.topicId GROUP BY t ORDER BY vocabCount DESC")
     List<Object[]> findTopicsWithVocabCount();
+    
+    /**
+     * Tìm topics theo status
+     */
+    List<Topics> findByStatus(Topics.Status status);
 }

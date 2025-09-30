@@ -148,6 +148,19 @@
     <!-- Header -->
     <div class="learning-header">
         <div class="container">
+            <!-- Breadcrumb Navigation -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/vocabulary/dictionaries}">Từ điển</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" th:text="${dictionary.name}">Dictionary</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Học theo chủ đề</li>
+                </ol>
+            </nav>
+            
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-1">
@@ -157,8 +170,8 @@
                     <p class="mb-0 opacity-75">Học từ vựng theo chủ đề</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="/vocabulary/dictionaries" class="btn btn-light btn-sm">
-                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Quay lại từ điển
                     </a>
                 </div>
             </div>
@@ -186,23 +199,18 @@
 
                 <!-- Topics Grid -->
                 <div class="row" id="topicsContainer">
-                    <!-- Sample Topics - In real implementation, this would be populated by Thymeleaf -->
-                    <div class="col-md-6" th:each="i : ${#numbers.sequence(1, 8)}">
-                        <div class="card topic-card" th:attr="data-topic-id=${i}" onclick="toggleTopicSelection(this)">
-                            <div class="selection-counter">1</div>
+                    <!-- Real Topics from Database -->
+                    <div class="col-md-6 mb-3" th:each="topic : ${topics}">
+                        <div class="card topic-card" th:attr="data-topic-id=${topic.topicId}" onclick="toggleTopicSelection(this)">
+                            <div class="selection-counter" style="display: none;">1</div>
                             <div class="card-body">
                                 <div class="d-flex align-items-start">
                                     <div class="topic-icon me-3">
-                                        <i class="bi bi-book" th:class="'bi ' + (${i % 8 == 1} ? 'bi-book' : (${i % 8 == 2} ? 'bi-house' : (${i % 8 == 3} ? 'bi-car-front' : (${i % 8 == 4} ? 'bi-cup' : (${i % 8 == 5} ? 'bi-airplane' : (${i % 8 == 6} ? 'bi-briefcase' : (${i % 8 == 7} ? 'bi-heart' : 'bi-music-note')))))))"></i>
+                                        <i class="bi bi-tag"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-title mb-1" 
-                                            th:text="(${i % 8 == 1} ? 'Education' : (${i % 8 == 2} ? 'Home & Family' : (${i % 8 == 3} ? 'Transportation' : (${i % 8 == 4} ? 'Food & Drink' : (${i % 8 == 5} ? 'Travel' : (${i % 8 == 6} ? 'Work & Business' : (${i % 8 == 7} ? 'Health' : 'Entertainment')))))))">
-                                            Education
-                                        </h6>
-                                        <p class="card-text text-muted small mb-2">
-                                            Từ vựng về giáo dục, trường học, học tập
-                                        </p>
+                                        <h6 class="card-title mb-1" th:text="${topic.name}">Topic Name</h6>
+                                        <p class="card-text text-muted small mb-2" th:text="${topic.description}">Topic description</p>
                                         
                                         <!-- Level Distribution Bar -->
                                         <div class="topic-level-bar">
@@ -214,15 +222,17 @@
                                         <div class="topic-stats">
                                             <div class="row text-center">
                                                 <div class="col-4">
-                                                    <small class="text-success fw-bold" th:text="${15 + i}">24</small><br>
+                                                    <small class="text-success fw-bold" 
+                                                           th:text="${topicVocabCounts != null and topicVocabCounts.containsKey(topic.topicId)} ? 
+                                                                  ${topicVocabCounts.get(topic.topicId)} : 0">0</small><br>
                                                     <small class="text-muted">Từ vựng</small>
                                                 </div>
                                                 <div class="col-4">
-                                                    <small class="text-primary fw-bold" th:text="${5 + (i % 3)}">8</small><br>
+                                                    <small class="text-primary fw-bold">0</small><br>
                                                     <small class="text-muted">Đã học</small>
                                                 </div>
                                                 <div class="col-4">
-                                                    <small class="text-warning fw-bold" th:text="${i % 4}">3</small><br>
+                                                    <small class="text-warning fw-bold">0</small><br>
                                                     <small class="text-muted">Cần ôn</small>
                                                 </div>
                                             </div>
@@ -230,6 +240,14 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- No topics message -->
+                    <div th:if="${topics == null or topics.isEmpty()}" class="col-12">
+                        <div class="alert alert-info text-center">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Không tìm thấy chủ đề nào trong từ điển này.
                         </div>
                     </div>
                 </div>
@@ -353,10 +371,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
-    <script>
+    <script th:inline="javascript">
         // Global variables
-        const dictionaryId = [[${dictionary.dictionaryId}]];
-        const currentUserId = '[[${currentUserId}]]';
+        const dictionaryId = /*[[${dictionary.dictionaryId}]]*/ 1;
+        const currentUserId = /*[[${currentUserId}]]*/ 'admin';
         let selectedTopics = new Set();
         
         // Topic data (in real implementation, this would come from server)
@@ -505,6 +523,12 @@
          * Confirm and start topic learning
          */
         function confirmStartTopicLearning() {
+            // Validate dictionaryId
+            if (!dictionaryId || dictionaryId === 'null' || dictionaryId === null) {
+                alert('Lỗi: Không tìm thấy ID từ điển. Vui lòng tải lại trang.');
+                return;
+            }
+            
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');

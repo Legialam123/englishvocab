@@ -2,9 +2,11 @@ package com.englishvocab.controller;
 
 import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.Topics;
+import com.englishvocab.entity.Vocab;
 import com.englishvocab.service.DictionaryService;
 import com.englishvocab.service.LearningService;
 import com.englishvocab.service.TopicsService;
+import com.englishvocab.service.VocabularyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,7 @@ public class LearningController {
     private final DictionaryService dictionaryService;
     private final TopicsService topicsService;
     private final LearningService learningService;
+    private final VocabularyService vocabularyService;
 
     /**
      * 📝 ALPHABETICAL LEARNING MODE
@@ -63,11 +69,25 @@ public class LearningController {
             String currentUserId = getCurrentUserId(authentication);
             model.addAttribute("currentUserId", currentUserId);
 
-            // TODO: Implement alphabetical vocabulary loading
-            // Pageable pageable = PageRequest.of(page - 1, size);
-            // Page<Vocab> vocabularies = vocabularyService.findByDictionaryAlphabetical(
-            //     dictionaryId, startLetter, level, pageable);
+            // Load vocabulary alphabetically from database
+            Pageable pageable = PageRequest.of(page - 1, size);
+            Page<Vocab> vocabularies = vocabularyService.findByDictionaryOrderByWordAsc(dictionaryId, pageable);
+            
+            // Apply filters if provided
+            if (startLetter != null && !startLetter.isEmpty()) {
+                vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, startLetter, pageable);
+            }
+            
+            if (level != null && !level.isEmpty()) {
+                vocabularies = vocabularyService.findByDictionaryAndLevel(dictionaryId, level, pageable);
+            }
 
+            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("totalPages", vocabularies.getTotalPages());
+            model.addAttribute("currentPage", page);
+            model.addAttribute("pageSize", size);
+            model.addAttribute("startLetter", startLetter);
+            model.addAttribute("level", level);
             model.addAttribute("pageTitle", "Học từ vựng: " + dictionary.getName() + " (A-Z)");
             model.addAttribute("learningMode", "alphabetical");
             
@@ -103,8 +123,13 @@ public class LearningController {
             String currentUserId = getCurrentUserId(authentication);
             model.addAttribute("currentUserId", currentUserId);
 
-            // TODO: Load topics for this dictionary with vocab counts
-            // List<TopicWithVocabCount> topics = topicsService.getTopicsWithVocabCountForDictionary(dictionaryId);
+            // Load topics with vocabulary counts for this dictionary
+            List<Topics> topics = topicsService.findActiveTopics();
+            model.addAttribute("topics", topics);
+            
+            // Load vocabulary counts per topic for this dictionary
+            Map<Integer, Long> topicVocabCounts = vocabularyService.getVocabCountByTopicsForDictionary(dictionaryId);
+            model.addAttribute("topicVocabCounts", topicVocabCounts);
 
             model.addAttribute("pageTitle", "Học từ vựng: " + dictionary.getName() + " (Chủ đề)");
             model.addAttribute("learningMode", "topics");
@@ -146,14 +171,23 @@ public class LearningController {
             String currentUserId = getCurrentUserId(authentication);
             model.addAttribute("currentUserId", currentUserId);
 
-            // TODO: Load vocabulary with advanced filtering
-            // Pageable pageable = PageRequest.of(page - 1, size);
-            // Page<Vocab> vocabularies = vocabularyService.findByDictionaryWithFilters(
-            //     dictionaryId, search, level, topicIds, pageable);
+            // Load vocabulary with advanced filtering from database
+            Pageable pageable = PageRequest.of(page - 1, size);
+            Page<Vocab> vocabularies = vocabularyService.findByDictionaryWithFilters(
+                dictionaryId, search, level, topicIds, pageable);
 
             // Load available topics for filtering
             List<Topics> availableTopics = topicsService.findActiveTopics();
             model.addAttribute("availableTopics", availableTopics);
+            
+            // Add vocabulary data to model
+            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("totalPages", vocabularies.getTotalPages());
+            model.addAttribute("currentPage", page);
+            model.addAttribute("pageSize", size);
+            model.addAttribute("search", search);
+            model.addAttribute("level", level);
+            model.addAttribute("selectedTopicIds", topicIds);
 
             model.addAttribute("pageTitle", "Học từ vựng: " + dictionary.getName() + " (Tự chọn)");
             model.addAttribute("learningMode", "custom");

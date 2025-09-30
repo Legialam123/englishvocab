@@ -1,5 +1,6 @@
 package com.englishvocab.repository;
 
+import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.VocabTopics;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -60,4 +61,10 @@ public interface VocabTopicsRepository extends JpaRepository<VocabTopics, VocabT
     @Modifying
     @Transactional
     void deleteByVocabIdAndTopicId(Integer vocabId, Integer topicId);
+    
+    /**
+     * Đếm số vocab của một topic trong dictionary cụ thể
+     */
+    @Query("SELECT COUNT(vt) FROM VocabTopics vt JOIN vt.vocab v WHERE vt.topicId = :topicId AND v.dictionary = :dictionary")
+    long countByTopicIdAndVocabDictionary(@Param("topicId") Integer topicId, @Param("dictionary") Dictionary dictionary);
 }

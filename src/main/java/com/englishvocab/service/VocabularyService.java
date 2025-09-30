@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -378,5 +380,83 @@ public class VocabularyService {
      */
     public boolean hasTopicAssigned(Integer vocabId, Integer topicId) {
         return vocabTopicsRepository.existsByVocabIdAndTopicId(vocabId, topicId);
+    }
+    
+    // ===== LEARNING MODE METHODS =====
+    
+    /**
+     * Find vocabulary by dictionary with alphabetical ordering
+     */
+    public Page<Vocab> findByDictionaryOrderByWordAsc(Integer dictionaryId, Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        return vocabRepository.findByDictionaryOrderByWordAsc(dictionary, pageable);
+    }
+    
+    /**
+     * Find vocabulary by dictionary and word starting with letter
+     */
+    public Page<Vocab> findByDictionaryAndWordStartingWith(Integer dictionaryId, String startLetter, Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        return vocabRepository.findByDictionaryAndWordStartingWith(dictionary, startLetter, pageable);
+    }
+    
+    /**
+     * Find vocabulary by dictionary and level
+     */
+    public Page<Vocab> findByDictionaryAndLevel(Integer dictionaryId, String level, Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        return vocabRepository.findByDictionaryAndLevel(dictionary, vocabLevel, pageable);
+    }
+    
+    /**
+     * Find vocabulary by dictionary with advanced filtering
+     */
+    public Page<Vocab> findByDictionaryWithFilters(Integer dictionaryId, String search, String level, 
+                                                   List<Integer> topicIds, Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        
+        // For now, implement basic filtering
+        // TODO: Add more sophisticated filtering logic
+        if (search != null && !search.isEmpty()) {
+            return vocabRepository.findByDictionaryAndWordContainingIgnoreCase(dictionary, search, pageable);
+        }
+        
+        if (level != null && !level.isEmpty()) {
+            Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+            return vocabRepository.findByDictionaryAndLevel(dictionary, vocabLevel, pageable);
+        }
+        
+        if (topicIds != null && !topicIds.isEmpty()) {
+            // TODO: Implement topic-based filtering
+            return vocabRepository.findByDictionary(dictionary, pageable);
+        }
+        
+        return vocabRepository.findByDictionary(dictionary, pageable);
+    }
+    
+    /**
+     * Get vocabulary count by topics for a dictionary
+     */
+    public Map<Integer, Long> getVocabCountByTopicsForDictionary(Integer dictionaryId) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        
+        Map<Integer, Long> topicCounts = new HashMap<>();
+        
+        // Get all active topics
+        List<Topics> topics = topicsRepository.findByStatus(Topics.Status.ACTIVE);
+        
+        for (Topics topic : topics) {
+            // Count vocabulary for this topic in this dictionary
+            long count = vocabTopicsRepository.countByTopicIdAndVocabDictionary(topic.getTopicId(), dictionary);
+            topicCounts.put(topic.getTopicId(), count);
+        }
+        
+        return topicCounts;
     }
 }

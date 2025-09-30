@@ -100,4 +100,22 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
      * Tìm từ vựng theo IPA
      */
     List<Vocab> findByIpaContainingIgnoreCase(String ipa);
+    
+    /**
+     * Tìm từ vựng theo dictionary và word starting with letter
+     */
+    @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary AND LOWER(v.word) LIKE LOWER(CONCAT(:startLetter, '%'))")
+    List<Vocab> findByDictionaryAndWordStartingWith(@Param("dictionary") Dictionary dictionary, @Param("startLetter") String startLetter);
+    
+    /**
+     * Tìm từ vựng theo dictionary và word starting with letter (pagination)
+     */
+    @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary AND LOWER(v.word) LIKE LOWER(CONCAT(:startLetter, '%'))")
+    Page<Vocab> findByDictionaryAndWordStartingWith(@Param("dictionary") Dictionary dictionary, @Param("startLetter") String startLetter, Pageable pageable);
+    
+    /**
+     * Tìm từ vựng theo dictionary và word containing (pagination)
+     */
+    @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary AND LOWER(v.word) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Vocab> findByDictionaryAndWordContainingIgnoreCase(@Param("dictionary") Dictionary dictionary, @Param("keyword") String keyword, Pageable pageable);
 }

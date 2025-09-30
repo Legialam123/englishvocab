@@ -157,6 +157,30 @@
             border-color: var(--primary-color);
         }
 
+        /* Toggle switch label styling - Override Bootstrap defaults */
+        .form-check.form-switch {
+            display: flex !important;
+            align-items: center !important;
+            gap: 1rem !important; /* Khoảng cách giữa toggle và chữ */
+            padding-left: 0 !important; /* Reset Bootstrap padding */
+        }
+
+        .form-switch .form-check-input {
+            margin-left: 0 !important; /* Reset Bootstrap margin */
+            margin-right: 0 !important;
+            position: static !important; /* Override Bootstrap position */
+        }
+
+        .form-switch .form-check-label {
+            margin-left: 0 !important; /* Reset Bootstrap margin mặc định */
+            padding-left: 0 !important; /* Reset Bootstrap padding */
+            display: flex !important;
+            align-items: center !important;
+            height: 1.5rem; /* Khớp với chiều cao toggle */
+            line-height: 1.5rem;
+            font-weight: 500;
+        }
+
         .breadcrumb {
             background: none;
             padding: 1rem 0;

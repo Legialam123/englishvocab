@@ -188,6 +188,19 @@
     <!-- Header -->
     <div class="learning-header">
         <div class="container">
+            <!-- Breadcrumb Navigation -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/vocabulary/dictionaries}">Từ điển</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" th:text="${dictionary.name}">Dictionary</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Tự chọn từ vựng</li>
+                </ol>
+            </nav>
+            
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-1">
@@ -197,8 +210,8 @@
                     <p class="mb-0 opacity-75">Tự chọn từ vựng để học tập</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="/vocabulary/dictionaries" class="btn btn-light btn-sm">
-                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Quay lại từ điển
                     </a>
                 </div>
             </div>
@@ -299,8 +312,8 @@
                 <!-- Vocabulary List -->
                 <div id="vocabularyList">
                     <!-- Sample Vocabulary Items -->
-                    <div class="vocab-item card" th:each="i : ${#numbers.sequence(1, 20)}" 
-                         th:attr="data-vocab-id=${i}, data-level=${i % 3 == 1 ? 'BEGINNER' : (i % 3 == 2 ? 'INTERMEDIATE' : 'ADVANCED')}, data-status=${i % 4 == 1 ? 'new' : (i % 4 == 2 ? 'learning' : 'mastered')}"
+                    <div class="vocab-item card mb-2" th:each="vocab, iterStat : ${vocabularies}" 
+                         th:attr="data-vocab-id=${vocab.vocabId}, data-level=${vocab.level.name()}, data-status='new'"
                          onclick="toggleVocabSelection(this)">
                         <div class="selection-checkbox">
                             <i class="bi bi-check" style="display: none;"></i>
@@ -308,29 +321,29 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-6">
-                                    <div class="vocab-word" th:text="'Word ' + ${i}">Apple</div>
-                                    <div class="vocab-ipa" th:text="'/wɜːd' + ${i} + '/'">/.../</div>
+                                    <div class="vocab-word" th:text="${vocab.word}">word</div>
+                                    <div class="vocab-ipa" th:if="${vocab.ipa}" th:text="${vocab.ipa}">/ipa/</div>
                                     <div class="d-flex gap-2 mt-2">
-                                        <span class="vocab-pos">noun</span>
-                                        <span class="badge bg-success level-badge" 
-                                              th:class="'badge level-badge bg-' + (${i % 3 == 1} ? 'success' : (${i % 3 == 2} ? 'warning' : 'danger'))"
-                                              th:text="${i % 3 == 1 ? 'BEGINNER' : (i % 3 == 2 ? 'INTERMEDIATE' : 'ADVANCED')}">
-                                            BEGINNER
-                                        </span>
+                                        <span class="vocab-pos" th:text="${vocab.pos}">pos</span>
+                                        <span class="badge level-badge" 
+                                              th:class="'badge level-badge bg-' + (${vocab.level.name() == 'BEGINNER'} ? 'success' : 
+                                                                                 (${vocab.level.name() == 'INTERMEDIATE'} ? 'warning' : 'danger'))"
+                                              th:text="${vocab.level.name()}">LEVEL</span>
                                     </div>
                                 </div>
                                 <div class="col-md-5">
                                     <div class="vocab-meaning">
-                                        <strong>Nghĩa:</strong> Từ, từ ngữ, lời nói
+                                        <strong>Nghĩa:</strong> <span th:text="${vocab.senses[0].meaningVi}">meaning</span>
+                                        <div th:if="${vocab.senses[0].definition}" class="small text-muted mt-1" th:text="${vocab.senses[0].definition}">definition</div>
                                     </div>
                                     <div class="progress-indicator">
                                         <div class="progress-bar-custom" 
-                                             th:class="'progress-bar-custom progress-' + (${i % 4 == 1} ? 'new' : (${i % 4 == 2} ? 'learning' : 'mastered'))"
-                                             th:style="'width: ' + (${i % 4 == 1} ? '0%' : (${i % 4 == 2} ? '60%' : '100%'))">
+                                             th:class="'progress-bar-custom progress-' + (${iterStat.index % 4 == 1} ? 'new' : (${iterStat.index % 4 == 2} ? 'learning' : 'mastered'))"
+                                             th:style="'width: ' + (${iterStat.index % 4 == 1} ? '0%' : (${iterStat.index % 4 == 2} ? '60%' : '100%'))">
                                         </div>
                                     </div>
                                     <small class="text-muted mt-1" 
-                                           th:text="${i % 4 == 1 ? 'Chưa học' : (i % 4 == 2 ? 'Đang học (box 2)' : 'Đã thành thạo')}">
+                                           th:text="${iterStat.index % 4 == 1 ? 'Chưa học' : (iterStat.index % 4 == 2 ? 'Đang học (box 2)' : 'Đã thành thạo')}">
                                         Chưa học
                                     </small>
                                 </div>
@@ -342,6 +355,14 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- No vocabulary message -->
+                    <div th:if="${vocabularies == null or vocabularies.isEmpty()}" class="col-12">
+                        <div class="alert alert-info text-center">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Không tìm thấy từ vựng nào trong từ điển này.
                         </div>
                     </div>
                 </div>
@@ -503,10 +524,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
-    <script>
+    <script th:inline="javascript">
         // Global variables
-        const dictionaryId = [[${dictionary.dictionaryId}]];
-        const currentUserId = '[[${currentUserId}]]';
+        const dictionaryId = /*[[${dictionary.dictionaryId}]]*/ 1;
+        const currentUserId = /*[[${currentUserId}]]*/ 'admin';
         let selectedVocabs = new Map();
         let allVocabs = [];
         
@@ -752,6 +773,12 @@
          * Confirm start custom learning
          */
         function confirmStartCustomLearning() {
+            // Validate dictionaryId
+            if (!dictionaryId || dictionaryId === 'null' || dictionaryId === null) {
+                alert('Lỗi: Không tìm thấy ID từ điển. Vui lòng tải lại trang.');
+                return;
+            }
+            
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
