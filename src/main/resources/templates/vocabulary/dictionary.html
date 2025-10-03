@@ -307,9 +307,6 @@
                     <a href="/vocabulary/dictionaries" class="btn btn-outline-light me-2">
                         <i class="fas fa-arrow-left me-1"></i>Quay lại
                     </a>
-                    <a href="/vocabulary/add" class="btn btn-light">
-                        <i class="fas fa-plus me-1"></i>Thêm từ mới
-                    </a>
                 </div>
             </div>
         </div>
@@ -506,9 +503,6 @@
                     <div class="d-flex gap-3 justify-content-center flex-wrap">
                         <a th:href="@{'/vocabulary/dictionary/' + ${dictionary.dictionaryId}}" class="btn btn-primary" th:if="${isSearch}">
                             <i class="fas fa-list me-2"></i>Xem tất cả từ vựng
-                        </a>
-                        <a href="/vocabulary/add" class="btn btn-outline-primary">
-                            <i class="fas fa-plus me-2"></i>Thêm từ cá nhân
                         </a>
                     </div>
                 </div>

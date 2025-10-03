@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::content}, ~{::scripts})}">
+<head>
+    <title>Bảng điều khiển quản trị</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- Welcome Banner -->
+    <div class="card text-white mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+        <div class="card-body py-4">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div>
+                    <h2 class="mb-2">Bảng điều khiển quản trị</h2>
+                    <p class="mb-0 text-white-50">Theo dõi nhanh tình trạng hệ thống, người dùng và nội dung học tập.</p>
+                </div>
+                <div class="text-md-end">
+                    <div class="fw-semibold text-uppercase small opacity-75">Tổng số người dùng</div>
+                    <div class="display-6 fw-bold" th:text="${userStats != null ? userStats.total : 0}">0</div>
+                    <div class="small">Active: <span th:text="${userStats != null ? userStats.active : 0}">0</span> · Admin: <span th:text="${userStats != null ? userStats.admins : 0}">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- High level metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-semibold text-muted">Người dùng</div>
+                        <span class="badge bg-primary">Tổng</span>
+                    </div>
+                    <div class="fs-2 fw-bold" th:text="${userStats != null ? userStats.total : 0}">0</div>
+                    <div class="text-muted small">
+                        Hoạt động: <span class="text-success fw-semibold" th:text="${userStats != null ? userStats.active : 0}">0</span>
+                        · Khóa: <span class="text-warning fw-semibold" th:text="${userStats != null ? userStats.locked : 0}">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-semibold text-muted">Từ vựng</div>
+                        <span class="badge bg-info text-dark">Kho học</span>
+                    </div>
+                    <div class="fs-2 fw-bold" th:text="${vocabStats != null ? vocabStats.total : 0}">0</div>
+                    <div class="text-muted small">
+                        Beginner: <span class="text-primary fw-semibold" th:text="${vocabStats != null ? vocabStats.beginner : 0}">0</span>
+                        · Intermediate: <span class="fw-semibold" th:text="${vocabStats != null ? vocabStats.intermediate : 0}">0</span>
+                        · Advanced: <span class="text-danger fw-semibold" th:text="${vocabStats != null ? vocabStats.advanced : 0}">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-semibold text-muted">Từ điển & Chủ đề</div>
+                        <span class="badge bg-success">Nội dung</span>
+                    </div>
+                    <div class="fs-5 fw-bold">
+                        <span th:text="${dictionaryStats != null ? dictionaryStats.total : 0}">0</span> từ điển ·
+                        <span th:text="${topicStats != null ? topicStats.total : 0}">0</span> chủ đề
+                    </div>
+                    <div class="text-muted small">
+                        Active dictionaries: <span class="fw-semibold text-success" th:text="${dictionaryStats != null ? dictionaryStats.active : 0}">0</span>
+                        · Active topics: <span class="fw-semibold text-success" th:text="${topicStats != null ? topicStats.active : 0}">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-semibold text-muted">Hoạt động học</div>
+                        <span class="badge bg-warning text-dark">Flashcards</span>
+                    </div>
+                    <div class="fs-2 fw-bold" th:text="${totalProgressRecords}">0</div>
+                    <div class="text-muted small">
+                        Quiz: <span class="fw-semibold" th:text="${activeQuizzes}">0</span> active / <span th:text="${totalQuizzes}">0</span> tổng
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent users -->
+        <div class="col-xl-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-users me-2 text-primary"></i>Người dùng mới</h5>
+                    <span class="badge bg-primary-subtle text-primary" th:text="${recentUsers != null ? #lists.size(recentUsers) : 0} + ' gần đây'">0 gần đây</span>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${recentUsers == null or #lists.isEmpty(recentUsers)}" class="p-4 text-center text-muted">
+                        <i class="fas fa-user-slash fa-2x mb-2"></i>
+                        <div>Chưa có đăng ký mới.</div>
+                    </div>
+                    <div th:if="${recentUsers != null and !#lists.isEmpty(recentUsers)}" class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center" th:each="user : ${recentUsers}">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold" th:text="${user.fullname}">User Name</div>
+                                <div class="text-muted small" th:text="${user.email}">email@example.com</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark" th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy')}" th:if="${user.createdAt != null}">dd/MM/yyyy</span>
+                                <span class="badge bg-secondary" th:text="${user.role}" th:unless="${user.createdAt != null}">ROLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vocabulary breakdown -->
+        <div class="col-xl-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-layer-group me-2 text-danger"></i>Trình độ từ vựng</h5>
+                    <span class="badge bg-danger-subtle text-danger">Learning levels</span>
+                </div>
+                <div class="card-body">
+                    <div th:if="${vocabStats == null or vocabStats.total == 0}" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <div>Chưa có dữ liệu từ vựng để thống kê.</div>
+                    </div>
+                    <div th:if="${vocabStats != null and vocabStats.total > 0}" class="list-group list-group-flush">
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-dark">Beginner</div>
+                                <div class="text-muted small">Từ vựng cơ bản</div>
+                            </div>
+                            <span class="badge bg-light text-dark fs-6 px-3 py-2" th:text="${vocabStats.beginner} + ' từ'">0 từ</span>
+                        </div>
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-dark">Intermediate</div>
+                                <div class="text-muted small">Mức độ trung bình</div>
+                            </div>
+                            <span class="badge bg-light text-dark fs-6 px-3 py-2" th:text="${vocabStats.intermediate} + ' từ'">0 từ</span>
+                        </div>
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-dark">Advanced</div>
+                                <div class="text-muted small">Mức độ nâng cao</div>
+                            </div>
+                            <span class="badge bg-light text-dark fs-6 px-3 py-2" th:text="${vocabStats.advanced} + ' từ'">0 từ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <!-- Dictionaries summary -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-book me-2 text-success"></i>Trạng thái từ điển</h5>
+                    <a href="/admin/dictionaries" class="btn btn-sm btn-outline-primary">Quản lý</a>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fw-bold fs-4" th:text="${dictionaryStats != null ? dictionaryStats.active : 0}">0</div>
+                            <div class="text-muted small">Đang hoạt động</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold fs-4" th:text="${dictionaryStats != null ? dictionaryStats.inactive : 0}">0</div>
+                            <div class="text-muted small">Tạm dừng</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold fs-4" th:text="${dictionaryStats != null ? dictionaryStats.archived : 0}">0</div>
+                            <div class="text-muted small">Đã lưu trữ</div>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="text-muted small mb-0">
+                        Tổng số từ điển: <strong th:text="${dictionaryStats != null ? dictionaryStats.total : 0}">0</strong> ·
+                        Tỷ lệ hoạt động: <strong th:text="${dictionaryActivePercent} + '%'"></strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top topics -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tags me-2 text-warning"></i>Chủ đề nhiều từ vựng</h5>
+                    <a href="/admin/topics" class="btn btn-sm btn-outline-secondary">Xem tất cả</a>
+                </div>
+                <div class="card-body">
+                    <div th:if="${topTopics == null or #lists.isEmpty(topTopics)}" class="text-center text-muted py-4">
+                        <i class="fas fa-tag fa-2x mb-2"></i>
+                        <div>Chưa có dữ liệu chủ đề.</div>
+                    </div>
+                    <div th:if="${topTopics != null and !#lists.isEmpty(topTopics)}" class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center" th:each="topicInfo, iterStat : ${topTopics}">
+                            <div class="badge rounded-pill bg-warning text-dark me-3" th:text="${iterStat.index + 1}">1</div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold" th:text="${topicInfo.topic.name}">Topic name</div>
+                                <div class="text-muted small" th:text="${topicInfo.topic.description}" th:if="${topicInfo.topic.description != null}">Mô tả</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark" th:text="${topicInfo.vocabCount} + ' từ'">0 từ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <!-- Placeholder for future dashboard scripts -->
+</th:block>
+
+</body>
+</html>

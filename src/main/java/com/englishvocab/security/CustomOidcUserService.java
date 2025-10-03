@@ -1,7 +1,6 @@
 package com.englishvocab.security;
 
 import com.englishvocab.entity.User;
-import com.englishvocab.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +10,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 
@@ -19,100 +19,32 @@ import java.util.Collections;
 @Slf4j
 public class CustomOidcUserService extends OidcUserService {
     
-    private final UserRepository userRepository;
+    private final OAuthUserProvisioningService provisioningService;
     
     @Override
     @Transactional
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
         
         try {
-            log.info("🚀 Starting OIDC user loading process...");
-            
-            // Lấy thông tin user từ Google OIDC
             OidcUser oidcUser = super.loadUser(userRequest);
-            log.info("Successfully loaded OIDC user from Google");
-            
-            // Extract user info từ Google OIDC
+
             String email = oidcUser.getEmail();
-            String name = oidcUser.getFullName();
-            String googleId = oidcUser.getSubject();
-            
-            log.info("📋 Google OIDC User Info:");
-            log.info("   📧 Email: {}", email);
-            log.info("   👤 Name: {}", name);
-            log.info("   🆔 Google Subject: {}", googleId);
-            log.info("   ✅ Email Verified: {}", oidcUser.getEmailVerified());
-            
-            if (email == null || email.trim().isEmpty()) {
-                log.error("❌ Email is null or empty from OIDC provider");
+            if (!StringUtils.hasText(email)) {
                 throw new OAuth2AuthenticationException("Email not found from OIDC provider");
             }
-            
-            log.info("🔍 Checking if user exists in database with email: {}", email);
-            
-            // Tìm user trong database theo email
-            User user = userRepository.findByEmail(email).orElse(null);
-            
-            if (user != null) {
-                // OPTION A: Auto-link existing user
-                log.info("🔗 AUTO-LINKING: Found existing user with ID: {}, Username: {}", 
-                        user.getId(), user.getUsername());
-                return createCustomOidcUser(user, oidcUser);
-            } else {
-                // Tạo user mới từ Google
-                log.info("👨‍💻 CREATING NEW USER: No existing user found, creating new Google user");
-                User newUser = createUserFromOidc(email, name, googleId);
-                return createCustomOidcUser(newUser, oidcUser);
-            }
-            
+
+            boolean emailVerified = Boolean.TRUE.equals(oidcUser.getEmailVerified());
+            String displayName = oidcUser.getFullName();
+            String providerId = oidcUser.getSubject();
+
+            User user = provisioningService.provisionUser(email, displayName, emailVerified, providerId);
+
+            return createCustomOidcUser(user, oidcUser);
         } catch (Exception e) {
-            log.error("❌ Error during OIDC user loading: ", e);
+            log.error("Failed to process OIDC user", e);
             throw new OAuth2AuthenticationException("Failed to process OIDC user: " + e.getMessage());
         }
     }
-    
-    /**
-     * Tạo user mới từ thông tin Google OIDC
-     */
-    private User createUserFromOidc(String email, String name, String googleId) {
-        try {
-            String finalName = (name != null && !name.trim().isEmpty()) 
-                ? name.trim() 
-                : extractNameFromEmail(email);
-                
-            log.info("📝 Building new Google OIDC user:");
-            log.info("   📧 Username (email): {}", email);
-            log.info("   👤 Fullname: {}", finalName);
-            log.info("   🔑 Password: null (Google user)");
-            log.info("   👥 Role: USER");
-            log.info("   ✅ Status: ACTIVE");
-            
-            User user = User.builder()
-                    .username(email.trim())  // Dùng email làm username
-                    .password(null)   // Không có password cho Google user
-                    .fullname(finalName)
-                    .email(email.trim())
-                    .role(User.Role.USER)  // Mặc định role USER
-                    .status(User.Status.ACTIVE)  // Active ngay
-                    .build();
-            
-            log.info("💾 Saving user to database...");
-            User savedUser = userRepository.save(user);
-            
-            log.info("🎉 SUCCESS: Created new Google OIDC user!");
-            log.info("   🆔 User ID: {}", savedUser.getId());
-            log.info("   📧 Email: {}", savedUser.getEmail());
-            log.info("   👤 Username: {}", savedUser.getUsername());
-            log.info("   🔍 Is Google User: {}", savedUser.isGoogleUser());
-            
-            return savedUser;
-            
-        } catch (Exception e) {
-            log.error("❌ FAILED to create Google OIDC user for email: {}", email, e);
-            throw new RuntimeException("Failed to create Google OIDC user: " + e.getMessage(), e);
-        }
-    }
-    
     /**
      * Tạo custom OIDC user principal
      */
@@ -132,17 +64,5 @@ public class CustomOidcUserService extends OidcUserService {
                 oidcUser.getIdToken(),
                 oidcUser.getUserInfo()
         );
-    }
-    
-    /**
-     * Extract name từ email nếu không có name từ Google
-     */
-    private String extractNameFromEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "User";
-        }
-        String localPart = email.split("@")[0];
-        // Capitalize first letter
-        return localPart.substring(0, 1).toUpperCase() + localPart.substring(1);
     }
 }

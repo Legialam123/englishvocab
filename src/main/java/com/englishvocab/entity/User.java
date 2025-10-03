@@ -57,6 +57,13 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
+    @Column(name = "google_user", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean googleUser = false;
     
     public enum Role {
         USER, ADMIN
@@ -70,7 +77,7 @@ public class User {
      * Kiểm tra xem user có phải Google user không
      */
     public boolean isGoogleUser() {
-        return password == null;
+        return googleUser;
     }
     
     /**
