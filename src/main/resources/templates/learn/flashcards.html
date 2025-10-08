@@ -681,53 +681,25 @@
     
     <!-- Custom JavaScript -->
     <script>
-        // Session variables
+        // Session variables - loaded from backend
         let currentCardIndex = 0;
         let sessionData = {
-            sessionId: 'temp-session-id', // From URL parameter
-            vocabulary: [], // Will be loaded from server
+            sessionId: new URLSearchParams(window.location.search).get('sessionId'),
+            session: null, // LearningSession object from backend
+            vocabulary: [], // SessionVocabulary[] from backend
             answers: [], // Track user answers
             startTime: new Date(),
             isFlipped: false
         };
         
         // Enhanced tracking with 3 levels
-        let masteredCount = 0;    // Đã nhớ - mastered
-        let temporaryCount = 0;   // Nhớ tạm - temporary  
-        let unknownCount = 0;     // Chưa biết - unknown
+        let masteredCount = 0;    // Đã nhớ - CORRECT
+        let temporaryCount = 0;   // Nhớ tạm - WRONG (sẽ review lại)
+        let unknownCount = 0;     // Chưa biết - SKIP
         let sessionTimer;
         
-        // Mock vocabulary data (in real implementation, loaded from server)
-        const mockVocabulary = [
-            {
-                id: 1,
-                word: "Apple",
-                ipa: "/ˈæpəl/",
-                pos: "noun",
-                meaningVi: "Quả táo, trái táo",
-                definitionEn: "A round fruit with red or green skin and white flesh"
-            },
-            {
-                id: 2,
-                word: "Beautiful", 
-                ipa: "/ˈbjuːtɪfəl/",
-                pos: "adjective",
-                meaningVi: "Đẹp, xinh đẹp",
-                definitionEn: "Pleasing to the senses or mind aesthetically"
-            },
-            {
-                id: 3,
-                word: "Computer",
-                ipa: "/kəmˈpjuːtər/", 
-                pos: "noun",
-                meaningVi: "Máy tính, máy vi tính",
-                definitionEn: "An electronic device for storing and processing data"
-            },
-            // Add more vocabulary items...
-        ];
-        
         /**
-         * Initialize learning session
+         * Initialize learning session - Load from backend
          */
         document.addEventListener('DOMContentLoaded', function() {
             initializeSession();
@@ -744,20 +716,43 @@
         });
         
         /**
-         * Initialize session with vocabulary data
+         * Initialize session with vocabulary data from backend
          */
         function initializeSession() {
-            // In real implementation, load from server based on sessionId
-            sessionData.vocabulary = mockVocabulary;
-            document.getElementById('totalCards').textContent = sessionData.vocabulary.length;
+            // Check if we have session data from Thymeleaf
+            const sessionFromThymeleaf = /*[[${session}]]*/ null;
+            const vocabulariesFromThymeleaf = /*[[${vocabularies}]]*/ [];
             
-            // Load first card
-            loadCard(0);
-            updateProgress();
+            if (sessionFromThymeleaf && vocabulariesFromThymeleaf) {
+                sessionData.session = sessionFromThymeleaf;
+                sessionData.vocabulary = vocabulariesFromThymeleaf;
+                sessionData.sessionId = sessionFromThymeleaf.sessionUuid;
+                
+                // Update session stats from backend
+                masteredCount = sessionFromThymeleaf.correctCount || 0;
+                temporaryCount = sessionFromThymeleaf.wrongCount || 0;
+                unknownCount = sessionFromThymeleaf.skipCount || 0;
+                
+                document.getElementById('masteredCount').textContent = masteredCount;
+                document.getElementById('temporaryCount').textContent = temporaryCount;
+                document.getElementById('unknownCount').textContent = unknownCount;
+                document.getElementById('totalCards').textContent = sessionData.vocabulary.length;
+                
+                // Find first unanswered card
+                currentCardIndex = sessionData.vocabulary.findIndex(v => !v.userAnswer) || 0;
+                
+                // Load first card
+                loadCard(currentCardIndex);
+                updateProgress();
+            } else {
+                console.error('No session data available');
+                alert('Không thể tải session. Vui lòng thử lại.');
+                window.location.href = '/vocabulary/dictionaries';
+            }
         }
         
         /**
-         * Load vocabulary card
+         * Load vocabulary card from backend data
          */
         function loadCard(index) {
             if (index >= sessionData.vocabulary.length) {
@@ -765,17 +760,26 @@
                 return;
             }
             
-            const vocab = sessionData.vocabulary[index];
+            const sessionVocab = sessionData.vocabulary[index];
+            const vocab = sessionVocab.vocab;
+            
+            // Get primary meaning from first sense
+            const meaningVi = vocab.senses && vocab.senses.length > 0 
+                ? vocab.senses[0].meaningVi 
+                : 'Chưa có nghĩa';
+            const definition = vocab.senses && vocab.senses.length > 0 
+                ? vocab.senses[0].definition 
+                : '';
             
             // Update front side
             document.getElementById('frontWord').textContent = vocab.word;
-            document.getElementById('frontIpa').textContent = vocab.ipa;
-            document.getElementById('frontPos').textContent = vocab.pos;
+            document.getElementById('frontIpa').textContent = vocab.ipa || '';
+            document.getElementById('frontPos').textContent = vocab.pos || 'word';
             
             // Update back side
             document.getElementById('backWord').textContent = vocab.word;
-            document.getElementById('backMeaning').textContent = vocab.meaningVi;
-            document.getElementById('backDefinition').textContent = vocab.definitionEn;
+            document.getElementById('backMeaning').textContent = meaningVi;
+            document.getElementById('backDefinition').textContent = definition;
             
             // Reset card state
             resetCardState();
@@ -833,15 +837,29 @@
         }
         
         /**
-         * Enhanced Answer card - 3-level system
+         * Enhanced Answer card - Record to backend immediately
          */
         function answerCard(answerLevel) {
+            const sessionVocab = sessionData.vocabulary[currentCardIndex];
+            const vocabId = sessionVocab.vocab.vocabId;
+            
+            // Map answerLevel to backend AnswerType
+            const answerTypeMap = {
+                'mastered': 'CORRECT',
+                'temporary': 'WRONG',
+                'unknown': 'SKIP'
+            };
+            const answerType = answerTypeMap[answerLevel];
+            
             // Record answer with level
             sessionData.answers.push({
-                vocabId: sessionData.vocabulary[currentCardIndex].id,
-                answerLevel: answerLevel,  // 'mastered', 'temporary', 'unknown'
-                timestamp: new Date()
+                vocabId: vocabId,
+                answerType: answerType,
+                timeSpent: 0 // Can calculate if needed
             });
+            
+            // Send to backend immediately via AJAX
+            recordAnswerToBackend(vocabId, answerType);
             
             // Update counters based on answer level
             switch(answerLevel) {
@@ -870,6 +888,46 @@
             setTimeout(() => {
                 loadCard(currentCardIndex);
             }, 500);
+        }
+        
+        /**
+         * Record answer to backend via AJAX
+         */
+        function recordAnswerToBackend(vocabId, answerType) {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+            headers[csrfHeader] = csrfToken;
+            
+            const params = new URLSearchParams({
+                sessionId: sessionData.sessionId,
+                vocabId: vocabId,
+                answerType: answerType,
+                timeSpent: 0
+            });
+            
+            fetch('/learn/session/answer', {
+                method: 'POST',
+                headers: headers,
+                body: params
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Answer recorded successfully', data);
+                    // Update session stats from backend if needed
+                } else {
+                    console.error('Failed to record answer:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error recording answer:', error);
+                // Continue anyway, answers are also tracked locally
+            });
         }
         
         /**
@@ -974,8 +1032,7 @@
             const sessionResult = {
                 sessionId: sessionData.sessionId,
                 answers: sessionData.answers,
-                duration: getSessionDuration(),
-                completedAt: new Date().toISOString()
+                duration: getSessionDuration()
             };
             
             const headers = {
@@ -991,10 +1048,10 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Session results submitted successfully');
-                if (data.success) {
-                    console.log('Redirecting to results page...');
-                    // Results page redirect will be handled by completion modal actions
-                } else {
+                if (data.success && data.redirectUrl) {
+                    console.log('Session completed with result:', data.result);
+                    // Results will be shown in modal, then redirect via finishSession()
+                } else if (!data.success) {
                     console.error('Session completion failed:', data.message);
                 }
             })
@@ -1022,7 +1079,7 @@
         }
         
         /**
-         * Enhanced Pause session
+         * Enhanced Pause session - Call backend API
          */
         function pauseSession() {
             document.getElementById('pauseCurrentCard').textContent = currentCardIndex + 1;
@@ -1030,14 +1087,58 @@
             document.getElementById('pauseTemporaryCount').textContent = temporaryCount;
             document.getElementById('pauseUnknownCount').textContent = unknownCount;
             
+            // Call backend pause API
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+            headers[csrfHeader] = csrfToken;
+            
+            const params = new URLSearchParams({ sessionId: sessionData.sessionId });
+            
+            fetch('/learn/session/pause', {
+                method: 'POST',
+                headers: headers,
+                body: params
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Session paused successfully');
+                }
+            })
+            .catch(error => console.error('Error pausing session:', error));
+            
             const modal = new bootstrap.Modal(document.getElementById('pauseModal'));
             modal.show();
         }
         
         /**
-         * Resume session
+         * Resume session - Call backend API
          */
         function resumeSession() {
+            // Call backend resume API
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+            headers[csrfHeader] = csrfToken;
+            
+            const params = new URLSearchParams({ sessionId: sessionData.sessionId });
+            
+            fetch('/learn/session/resume', {
+                method: 'POST',
+                headers: headers,
+                body: params
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Session resumed successfully');
+                }
+            })
+            .catch(error => console.error('Error resuming session:', error));
+            
             const modal = bootstrap.Modal.getInstance(document.getElementById('pauseModal'));
             modal.hide();
         }
@@ -1063,10 +1164,10 @@
         }
         
         /**
-         * Finish session and go home
+         * Finish session and view results
          */
         function finishSession() {
-            window.location.href = '/dashboard';
+            window.location.href = '/learn/session/results?sessionId=' + sessionData.sessionId;
         }
         
         /**

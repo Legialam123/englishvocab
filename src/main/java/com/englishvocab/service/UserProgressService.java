@@ -4,6 +4,7 @@ import com.englishvocab.entity.User;
 import com.englishvocab.entity.Vocab;
 import com.englishvocab.entity.UserVocabProgress;
 import com.englishvocab.repository.UserVocabProgressRepository;
+import com.englishvocab.repository.VocabRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ import java.util.Optional;
 public class UserProgressService {
     
     private final UserVocabProgressRepository progressRepository;
+    private final VocabRepository vocabRepository;
     
     // SRS intervals in days for each box (Simple Leitner System)
     private static final int[] SRS_INTERVALS = {1, 3, 7, 14, 30}; // Box 1-5
@@ -339,6 +341,108 @@ public class UserProgressService {
         // Simple streak calculation - consecutive days with activity
         // This is a basic implementation, can be improved
         return Math.min(recentActivity.size() / 5, 30); // Rough estimate
+    }
+    
+    // ==================== HELPER METHODS FOR LEARNING SERVICE ====================
+    
+    /**
+     * Lấy vocabularies cần review từ dictionary
+     */
+    @Transactional(readOnly = true)
+    public List<Vocab> getVocabulariesDueForReview(User user, com.englishvocab.entity.Dictionary dictionary, Integer limit) {
+        List<UserVocabProgress> dueForReview = progressRepository.findDueForReview(user, LocalDateTime.now());
+        
+        return dueForReview.stream()
+                .filter(p -> p.getVocab().getDictionary().equals(dictionary))
+                .map(UserVocabProgress::getVocab)
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .toList();
+    }
+    
+    /**
+     * Lấy vocabularies chưa học từ dictionary
+     */
+    @Transactional(readOnly = true)
+    public List<Vocab> getNewVocabularies(User user, com.englishvocab.entity.Dictionary dictionary, Integer limit) {
+        // Get all vocabs from dictionary
+        List<Vocab> allVocabs = vocabRepository.findByDictionary(dictionary);
+        
+        // Get learned vocabs
+        List<UserVocabProgress> learnedProgress = progressRepository.findByUser(user);
+        List<Integer> learnedVocabIds = learnedProgress.stream()
+                .map(p -> p.getVocab().getVocabId())
+                .toList();
+        
+        // Filter out learned vocabs
+        return allVocabs.stream()
+                .filter(v -> !learnedVocabIds.contains(v.getVocabId()))
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .toList();
+    }
+    
+    /**
+     * Cập nhật progress sau khi học (batch processing từ LearningService)
+     */
+    public void updateProgress(User user, Vocab vocab, boolean correct) {
+        try {
+            // Find or create progress
+            UserVocabProgress progress = progressRepository.findByUserAndVocab(user, vocab)
+                    .orElseGet(() -> {
+                        UserVocabProgress newProgress = UserVocabProgress.builder()
+                                .user(user)
+                                .vocab(vocab)
+                                .box(1)
+                                .status(UserVocabProgress.Status.LEARNING)
+                                .firstLearned(LocalDateTime.now())
+                                .streak(0)
+                                .wrongCount(0)
+                                .build();
+                        return newProgress;
+                    });
+            
+            // Update based on answer
+            progress.setLastReviewed(LocalDateTime.now());
+            
+            if (correct) {
+                // Correct answer - move up
+                progress.setStreak(progress.getStreak() + 1);
+                
+                int currentBox = progress.getBox();
+                if (currentBox < 5) {
+                    progress.setBox(currentBox + 1);
+                    log.debug("User {} moved vocab {} to box {}", 
+                        user.getUsername(), vocab.getWord(), progress.getBox());
+                }
+                
+                // Update status based on box
+                if (progress.getBox() >= 4) {
+                    progress.setStatus(UserVocabProgress.Status.MASTERED);
+                } else {
+                    progress.setStatus(UserVocabProgress.Status.LEARNING);
+                }
+                
+            } else {
+                // Wrong answer - move down to box 1
+                progress.setStreak(0);
+                progress.setBox(1);
+                progress.setWrongCount(progress.getWrongCount() + 1);
+                progress.setStatus(UserVocabProgress.Status.LEARNING);
+                
+                log.debug("User {} got vocab {} wrong, moved to box 1", 
+                    user.getUsername(), vocab.getWord());
+            }
+            
+            // Calculate next review
+            progress.setNextReviewAt(calculateNextReview(progress.getBox()));
+            
+            // Save
+            progressRepository.save(progress);
+            
+        } catch (Exception e) {
+            log.error("Error updating progress for user: {} vocab: {}", 
+                user.getUsername(), vocab.getWord(), e);
+            throw new RuntimeException("Không thể cập nhật progress: " + e.getMessage());
+        }
     }
     
     // ===== DATA TRANSFER OBJECTS =====

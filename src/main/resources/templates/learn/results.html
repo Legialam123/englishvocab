@@ -282,19 +282,22 @@
             <!-- Header -->
             <div class="results-header">
                 <i class="bi bi-trophy trophy-icon"></i>
-                <h1>Xuất sắc! Session hoàn thành</h1>
+                <h1 th:text="${stats.accuracy >= 80} ? 'Xuất sắc! Session hoàn thành' : ${stats.accuracy >= 60} ? 'Tốt lắm! Session hoàn thành' : 'Hoàn thành Session'">Xuất sắc! Session hoàn thành</h1>
                 <p class="lead text-muted">Bạn đã hoàn thành session học từ vựng một cách tuyệt vời</p>
                 
                 <!-- Achievements -->
                 <div class="mt-3">
-                    <span class="achievement-badge">
-                        <i class="bi bi-lightning"></i> First Session
+                    <span class="achievement-badge" th:if="${session.completedVocabularyCount >= 20}">
+                        <i class="bi bi-lightning"></i> High Volume
                     </span>
-                    <span class="achievement-badge">
-                        <i class="bi bi-target"></i> 75% Accuracy
+                    <span class="achievement-badge" th:if="${stats.accuracy >= 75}">
+                        <i class="bi bi-target"></i> <span th:text="${stats.accuracy} + '% Accuracy'">75% Accuracy</span>
                     </span>
-                    <span class="achievement-badge">
+                    <span class="achievement-badge" th:if="${stats.timeSpent < 600}">
                         <i class="bi bi-clock"></i> Quick Learner
+                    </span>
+                    <span class="achievement-badge" th:if="${stats.correctCount == stats.totalWords}">
+                        <i class="bi bi-star-fill"></i> Perfect Score!
                     </span>
                 </div>
             </div>
@@ -303,28 +306,28 @@
             <div class="row">
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number text-primary">20</div>
+                        <div class="stat-number text-primary" th:text="${stats.totalWords}">20</div>
                         <div class="stat-label">Tổng từ vựng</div>
                         <div class="stat-description">Đã học trong session</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number text-success">15</div>
+                        <div class="stat-number text-success" th:text="${stats.correctCount}">15</div>
                         <div class="stat-label">Đã biết</div>
                         <div class="stat-description">Trả lời đúng</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number text-warning">5</div>
+                        <div class="stat-number text-warning" th:text="${stats.wrongCount}">5</div>
                         <div class="stat-label">Cần học thêm</div>
                         <div class="stat-description">Sẽ xuất hiện lại</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number text-info">05:32</div>
+                        <div class="stat-number text-info" th:text="${#numbers.formatInteger(stats.timeSpent / 60, 1, 'COMMA')} + ':' + ${#numbers.formatInteger(stats.timeSpent % 60, 2, 'COMMA')}">05:32</div>
                         <div class="stat-label">Thời gian</div>
                         <div class="stat-description">Tốc độ tốt</div>
                     </div>
@@ -339,19 +342,21 @@
                             <i class="bi bi-graph-up text-primary"></i> Hiệu suất tổng quát
                         </h5>
                         
-                        <div class="progress-ring" style="--progress-angle: 270deg;">
+                        <div class="progress-ring" th:attr="data-progress=${stats.accuracy}" style="--progress-angle: 270deg;">
                             <div class="progress-ring-circle">
                                 <div class="progress-ring-inner">
-                                    <div class="progress-percentage">75%</div>
+                                    <div class="progress-percentage" th:text="${#numbers.formatDecimal(stats.accuracy, 1, 0)} + '%'">75%</div>
                                     <small class="text-muted">Chính xác</small>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="text-center">
-                            <h6 class="text-success">Kết quả xuất sắc!</h6>
+                            <h6 th:text="${stats.accuracy >= 80} ? 'Kết quả xuất sắc!' : ${stats.accuracy >= 60} ? 'Kết quả tốt!' : 'Cần cải thiện'" class="text-success">Kết quả xuất sắc!</h6>
                             <p class="text-muted small">
-                                Bạn đang có tiến bộ rất tốt. Hãy tiếp tục duy trì phong độ này!
+                                <span th:if="${stats.accuracy >= 80}">Bạn đang có tiến bộ rất tốt. Hãy tiếp tục duy trì phong độ này!</span>
+                                <span th:if="${stats.accuracy >= 60 and stats.accuracy < 80}">Bạn đang tiến bộ tốt. Hãy cố gắng thêm một chút nữa!</span>
+                                <span th:if="${stats.accuracy < 60}">Đừng nản lòng! Hãy ôn tập lại các từ khó nhé.</span>
                             </p>
                         </div>
                     </div>
@@ -371,15 +376,15 @@
                         <div class="row text-center mt-3">
                             <div class="col-4">
                                 <small class="text-muted">Trung bình/từ</small>
-                                <div class="fw-bold">16.6s</div>
+                                <div class="fw-bold" th:text="${stats.totalWords > 0} ? ${#numbers.formatDecimal(stats.timeSpent / stats.totalWords, 1, 1)} + 's' : 'N/A'">16.6s</div>
                             </div>
                             <div class="col-4">
-                                <small class="text-muted">Nhanh nhất</small>
-                                <div class="fw-bold text-success">8.2s</div>
+                                <small class="text-muted">Tổng thời gian</small>
+                                <div class="fw-bold text-success" th:text="${#numbers.formatInteger(stats.timeSpent / 60, 1, 'COMMA')} + 'm ' + ${#numbers.formatInteger(stats.timeSpent % 60, 1, 'COMMA')} + 's'">5m 32s</div>
                             </div>
                             <div class="col-4">
-                                <small class="text-muted">Chậm nhất</small>
-                                <div class="fw-bold text-warning">35.1s</div>
+                                <small class="text-muted">Tốc độ</small>
+                                <div class="fw-bold text-info" th:text="${stats.timeSpent / stats.totalWords < 15} ? 'Nhanh' : ${stats.timeSpent / stats.totalWords < 25} ? 'Vừa' : 'Chậm'">Vừa</div>
                             </div>
                         </div>
                     </div>
@@ -390,52 +395,49 @@
             <div class="vocabulary-review">
                 <h5 class="mb-4">
                     <i class="bi bi-list-check text-primary"></i> Chi tiết từng từ vựng
-                    <span class="badge bg-secondary ms-2">20 từ</span>
+                    <span class="badge bg-secondary ms-2" th:text="${stats.totalWords} + ' từ'">20 từ</span>
                 </h5>
                 
                 <div class="row">
                     <div class="col-md-6">
                         <h6 class="text-success mb-3">
-                            <i class="bi bi-check-circle"></i> Đã biết (15 từ)
+                            <i class="bi bi-check-circle"></i> Đã biết (<span th:text="${stats.correctCount}">15</span> từ)
                         </h6>
                         
-                        <!-- Sample correct vocabulary -->
-                        <div class="vocab-item" th:each="i : ${#numbers.sequence(1, 8)}">
+                        <!-- Correct vocabulary from session -->
+                        <div class="vocab-item" th:each="result : ${session.vocabularyResults}" th:if="${result.answerType.name() == 'CORRECT'}">
                             <div class="vocab-result-icon vocab-correct">
                                 <i class="bi bi-check"></i>
                             </div>
                             <div class="vocab-details">
-                                <div class="vocab-word" th:text="'Word ' + ${i}">Apple</div>
-                                <div class="vocab-meaning">Quả táo, trái táo</div>
+                                <div class="vocab-word" th:text="${result.vocabulary.word}">Apple</div>
+                                <div class="vocab-meaning" th:text="${result.vocabulary.senses[0]?.meaningVi}">Quả táo, trái táo</div>
                             </div>
-                            <small class="text-muted">12.5s</small>
                         </div>
                         
-                        <div class="text-center mt-3">
-                            <button class="btn btn-outline-success btn-sm" onclick="showAllCorrect()">
-                                Xem tất cả <i class="bi bi-chevron-down"></i>
-                            </button>
+                        <div class="alert alert-success mt-3" th:if="${stats.correctCount > 0}">
+                            <i class="bi bi-trophy me-2"></i>
+                            <strong>Xuất sắc!</strong> Bạn đã nắm vững <span th:text="${stats.correctCount}">15</span> từ vựng.
                         </div>
                     </div>
                     
                     <div class="col-md-6">
                         <h6 class="text-warning mb-3">
-                            <i class="bi bi-exclamation-triangle"></i> Cần học thêm (5 từ)
+                            <i class="bi bi-exclamation-triangle"></i> Cần học thêm (<span th:text="${stats.wrongCount}">5</span> từ)
                         </h6>
                         
-                        <!-- Sample incorrect vocabulary -->
-                        <div class="vocab-item" th:each="i : ${#numbers.sequence(1, 5)}">
+                        <!-- Incorrect vocabulary from session -->
+                        <div class="vocab-item" th:each="result : ${session.vocabularyResults}" th:if="${result.answerType.name() == 'WRONG'}">
                             <div class="vocab-result-icon vocab-incorrect">
                                 <i class="bi bi-x"></i>
                             </div>
                             <div class="vocab-details">
-                                <div class="vocab-word" th:text="'Difficult ' + ${i}">Beautiful</div>
-                                <div class="vocab-meaning">Đẹp, xinh đẹp</div>
+                                <div class="vocab-word" th:text="${result.vocabulary.word}">Beautiful</div>
+                                <div class="vocab-meaning" th:text="${result.vocabulary.senses[0]?.meaningVi}">Đẹp, xinh đẹp</div>
                             </div>
-                            <small class="text-muted">28.3s</small>
                         </div>
                         
-                        <div class="alert alert-info mt-3">
+                        <div class="alert alert-info mt-3" th:if="${stats.wrongCount > 0}">
                             <i class="bi bi-lightbulb me-2"></i>
                             <strong>Mẹo:</strong> Những từ này sẽ xuất hiện thường xuyên hơn trong các session tiếp theo để giúp bạn ghi nhớ tốt hơn.
                         </div>
@@ -476,7 +478,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
-    <script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Get data from Thymeleaf
+        const sessionData = {
+            id: /*[[${session.id}]]*/ null,
+            dictionaryId: /*[[${session.dictionary.id}]]*/ null,
+            totalWords: /*[[${stats.totalWords}]]*/ 0,
+            correctCount: /*[[${stats.correctCount}]]*/ 0,
+            wrongCount: /*[[${stats.wrongCount}]]*/ 0,
+            skipCount: /*[[${stats.skipCount}]]*/ 0,
+            accuracy: /*[[${stats.accuracy}]]*/ 0,
+            timeSpent: /*[[${stats.timeSpent}]]*/ 0
+        };
+        
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();
@@ -492,10 +507,10 @@
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Đã biết', 'Cần học thêm'],
+                    labels: ['Đã biết', 'Cần học thêm', 'Bỏ qua'],
                     datasets: [{
-                        data: [15, 5],
-                        backgroundColor: ['#28a745', '#ffc107'],
+                        data: [sessionData.correctCount, sessionData.wrongCount, sessionData.skipCount],
+                        backgroundColor: ['#28a745', '#ffc107', '#6c757d'],
                         borderWidth: 0
                     }]
                 },
@@ -505,6 +520,17 @@
                     plugins: {
                         legend: {
                             position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = sessionData.totalWords;
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
                         }
                     }
                 }
@@ -518,8 +544,8 @@
             const ring = document.querySelector('.progress-ring');
             const percentage = document.querySelector('.progress-percentage');
             
+            const target = sessionData.accuracy;
             let current = 0;
-            const target = 75;
             const increment = target / 50;
             
             const animation = setInterval(() => {
@@ -539,23 +565,20 @@
          * Continue learning (new session)
          */
         function continueLearning() {
-            // Go back to dictionary selection or start new session
-            window.location.href = '/vocabulary/dictionaries';
+            // Go back to dictionary to start new session
+            window.location.href = '/vocabulary/dictionary/' + sessionData.dictionaryId;
         }
         
         /**
          * Review difficult words
          */
         function reviewDifficultWords() {
-            // Create custom session with incorrect words
-            const incorrectWords = [/* list of incorrect word IDs */];
-            
-            // Redirect to custom learning with these words
-            const params = new URLSearchParams();
-            params.append('reviewMode', 'true');
-            params.append('wordIds', incorrectWords.join(','));
-            
-            window.location.href = '/learn/custom/review?' + params.toString();
+            // Start new session with only wrong answers
+            if (sessionData.wrongCount > 0) {
+                alert('Tính năng ôn tập từ khó sẽ được phát triển trong phiên bản tiếp theo!');
+            } else {
+                alert('Bạn không có từ nào cần ôn tập!');
+            }
         }
         
         /**
@@ -580,13 +603,13 @@
             if (navigator.share) {
                 navigator.share({
                     title: 'Kết quả học từ vựng',
-                    text: 'Tôi vừa hoàn thành session học từ vựng với 75% độ chính xác!',
+                    text: `Tôi vừa hoàn thành session học từ vựng với ${sessionData.accuracy.toFixed(1)}% độ chính xác!`,
                     url: window.location.href
                 });
             } else {
                 // Fallback to copy to clipboard
                 navigator.clipboard.writeText(
-                    'Tôi vừa hoàn thành session học từ vựng với 75% độ chính xác! ' + window.location.href
+                    `Tôi vừa hoàn thành session học từ vựng với ${sessionData.accuracy.toFixed(1)}% độ chính xác! ${window.location.href}`
                 );
                 alert('Đã copy kết quả vào clipboard!');
             }
@@ -598,6 +621,7 @@
         function exportToPDF() {
             alert('Tính năng xuất PDF sẽ được phát triển trong phiên bản tiếp theo!');
         }
+        /*]]>*/
     </script>
 </body>
 </html>

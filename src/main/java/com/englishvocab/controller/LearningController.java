@@ -1,13 +1,23 @@
 package com.englishvocab.controller;
 
+import com.englishvocab.dto.SessionResultDTO;
+import com.englishvocab.dto.SessionResultRequest;
 import com.englishvocab.entity.Dictionary;
+import com.englishvocab.entity.LearningSession;
+import com.englishvocab.entity.SessionVocabulary;
 import com.englishvocab.entity.Topics;
+import com.englishvocab.entity.User;
 import com.englishvocab.entity.Vocab;
+import com.englishvocab.repository.UserRepository;
 import com.englishvocab.service.DictionaryService;
+import com.englishvocab.service.LearningService;
 import com.englishvocab.service.TopicsService;
 import com.englishvocab.service.VocabularyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -16,20 +26,19 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * Controller xử lý các chức năng học từ vựng
+ * Controller xử lý các chức năng học từ vựng với Redis caching
  * 
  * Learning Modes:
- * 1. Alphabetical - Học theo thứ tự A-Z
- * 2. Topics - Học theo chủ đề 
- * 3. Custom - Tự chọn từ vựng
+ * 1. Review - Ôn tập từ cần review (ưu tiên)
+ * 2. New - Học từ mới
+ * 3. Alphabetical - Học theo thứ tự A-Z
+ * 4. Topics - Học theo chủ đề 
+ * 5. Custom - Tự chọn từ vựng
  * 
  * @author EnglishVocab Team
  */
@@ -42,6 +51,8 @@ public class LearningController {
     private final DictionaryService dictionaryService;
     private final TopicsService topicsService;
     private final VocabularyService vocabularyService;
+    private final LearningService learningService;
+    private final UserRepository userRepository;
 
     /**
      * 📝 ALPHABETICAL LEARNING MODE
@@ -205,6 +216,7 @@ public class LearningController {
     /**
      * 🎯 START LEARNING SESSION
      * Bắt đầu session học với từ vựng đã chọn
+     * Session được cache trong Redis với TTL 30 phút
      */
     @PostMapping("/session/start")
     public String startLearningSession(
@@ -218,17 +230,23 @@ public class LearningController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String currentUserId = getCurrentUserId(authentication);
+            // Get current user
+            String userEmail = getCurrentUserId(authentication);
+            User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+            
+            // Get dictionary
+            Dictionary dictionary = dictionaryService.findByIdOrThrow(dictionaryId);
 
-            // TODO: Create learning session
-            // String sessionId = learningService.createLearningSession(
-            //     currentUserId, dictionaryId, learningMode, selectedVocabIds, topicIds, sessionSize);
+            // Create learning session (cached in Redis)
+            LearningSession session = learningService.createSession(
+                user, dictionary, learningMode, selectedVocabIds, sessionSize);
 
-            log.info("User {} started learning session for dictionary {} in {} mode", 
-                    currentUserId, dictionaryId, learningMode);
+            log.info("User {} started learning session {} for dictionary {} in {} mode", 
+                    userEmail, session.getSessionUuid(), dictionary.getName(), learningMode);
 
             // Redirect to flashcard session
-            return "redirect:/learn/session/flashcards?sessionId=" + "temp-session-id";
+            return "redirect:/learn/session/flashcards?sessionId=" + session.getSessionUuid();
 
         } catch (RuntimeException e) {
             log.error("Error starting learning session", e);
@@ -239,7 +257,7 @@ public class LearningController {
 
     /**
      * 🃏 FLASHCARD SESSION
-     * Interface học với flashcards
+     * Interface học với flashcards (cached in Redis)
      */
     @GetMapping("/session/flashcards")
     public String flashcardSession(
@@ -249,15 +267,26 @@ public class LearningController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String currentUserId = getCurrentUserId(authentication);
+            String userEmail = getCurrentUserId(authentication);
 
-            // TODO: Load learning session
-            // LearningSession session = learningService.getSession(sessionId, currentUserId);
+            // Load learning session from cache/database
+            LearningSession session = learningService.getSessionByUuid(sessionId);
             
+            // Verify user owns this session
+            if (!session.getUser().getEmail().equals(userEmail)) {
+                throw new RuntimeException("Không có quyền truy cập session này");
+            }
+            
+            // Get session vocabularies with pagination
+            Page<SessionVocabulary> vocabularies = learningService.getSessionVocabularies(
+                sessionId, PageRequest.of(0, 100));
+            
+            model.addAttribute("session", session);
+            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("dictionary", session.getDictionary());
             model.addAttribute("pageTitle", "Học từ vựng - Flashcards");
-            // model.addAttribute("session", session);
 
-            log.info("User {} accessing flashcard session {}", currentUserId, sessionId);
+            log.info("User {} accessing flashcard session {}", userEmail, sessionId);
 
             return "learn/flashcards";
 
@@ -267,10 +296,90 @@ public class LearningController {
             return "redirect:/vocabulary/dictionaries";
         }
     }
+    
+    /**
+     * 🎯 RECORD ANSWER API
+     * Record user answer (update Redis cache)
+     */
+    @PostMapping("/session/answer")
+    @ResponseBody
+    public ResponseEntity<?> recordAnswer(
+            @RequestParam String sessionId,
+            @RequestParam Integer vocabId,
+            @RequestParam String answerType, // CORRECT, WRONG, SKIP
+            @RequestParam(defaultValue = "0") Integer timeSpent,
+            Authentication authentication) {
+
+        try {
+            String userEmail = getCurrentUserId(authentication);
+            
+            // Record answer (updates cache automatically)
+            SessionVocabulary.AnswerType answer = SessionVocabulary.AnswerType.valueOf(answerType);
+            LearningSession session = learningService.recordAnswer(sessionId, vocabId, answer, timeSpent);
+
+            log.debug("User {} recorded {} for vocab {} in session {}", 
+                userEmail, answerType, vocabId, sessionId);
+
+            return ResponseEntity.ok().body(Map.of(
+                "success", true,
+                "correctCount", session.getCorrectCount(),
+                "wrongCount", session.getWrongCount(),
+                "skipCount", session.getSkipCount(),
+                "progress", session.getProgress()
+            ));
+
+        } catch (RuntimeException e) {
+            log.error("Error recording answer", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * ⏸️ PAUSE SESSION API
+     */
+    @PostMapping("/session/pause")
+    @ResponseBody
+    public ResponseEntity<?> pauseSession(
+            @RequestParam String sessionId,
+            Authentication authentication) {
+
+        try {
+            learningService.pauseSession(sessionId);
+            return ResponseEntity.ok().body(Map.of("success", true));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * ▶️ RESUME SESSION API
+     */
+    @PostMapping("/session/resume")
+    @ResponseBody
+    public ResponseEntity<?> resumeSession(
+            @RequestParam String sessionId,
+            Authentication authentication) {
+
+        try {
+            learningService.resumeSession(sessionId);
+            return ResponseEntity.ok().body(Map.of("success", true));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
 
     /**
      * 📊 SESSION COMPLETE
-     * Hoàn thành session và hiển thị kết quả
+     * Hoàn thành session và hiển thị kết quả (evict from cache)
      */
     @PostMapping("/session/complete")
     @ResponseBody
@@ -279,21 +388,22 @@ public class LearningController {
             Authentication authentication) {
 
         try {
-            String currentUserId = getCurrentUserId(authentication);
+            String userEmail = getCurrentUserId(authentication);
 
-            // TODO: Complete session and update progress
-            // learningService.completeSession(request.getSessionId(), currentUserId, request);
+            // Complete session and update progress (batch update)
+            SessionResultDTO result = learningService.completeSession(
+                request.getSessionId(), request);
 
-            log.info("User {} completed learning session {} with {} answers in {} seconds", 
-                    currentUserId, request.getSessionId(), 
-                    request.getAnswers() != null ? request.getAnswers().size() : 0, 
-                    request.getDuration());
+            log.info("User {} completed learning session {} - Result: {}/{} correct", 
+                    userEmail, request.getSessionId(), 
+                    result.getCorrectCount(), result.getTotalWords());
 
             // Return success response for AJAX
             return ResponseEntity.ok().body(Map.of(
                 "success", true,
                 "message", "Session completed successfully",
-                "redirectUrl", "/learn/session/results?sessionId=" + request.getSessionId()
+                "redirectUrl", "/learn/session/results?sessionId=" + request.getSessionId(),
+                "result", result
             ));
 
         } catch (RuntimeException e) {
@@ -317,15 +427,24 @@ public class LearningController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String currentUserId = getCurrentUserId(authentication);
+            String userEmail = getCurrentUserId(authentication);
 
-            // TODO: Load session results
-            // LearningSessionResult result = learningService.getSessionResult(sessionId, currentUserId);
+            // Load session (from database, no longer in cache)
+            LearningSession session = learningService.getSessionByUuid(sessionId);
+            
+            // Verify user owns this session
+            if (!session.getUser().getEmail().equals(userEmail)) {
+                throw new RuntimeException("Không có quyền truy cập session này");
+            }
+            
+            // Get statistics
+            Map<String, Object> stats = learningService.getSessionStatistics(sessionId);
 
+            model.addAttribute("session", session);
+            model.addAttribute("stats", stats);
             model.addAttribute("pageTitle", "Kết quả học tập");
-            // model.addAttribute("result", result);
 
-            log.info("User {} viewing results for session {}", currentUserId, sessionId);
+            log.info("User {} viewing results for session {}", userEmail, sessionId);
 
             return "learn/results";
 
@@ -346,37 +465,6 @@ public class LearningController {
             return ((OAuth2User) authentication.getPrincipal()).getAttribute("email");
         } else {
             return authentication.getName();
-        }
-    }
-
-    /**
-     * DTO for session completion request
-     */
-    @lombok.Data
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class SessionResultRequest {
-        private String sessionId;
-        private List<SessionAnswer> answers;
-        private Integer duration; // in seconds
-        private String completedAt;
-    }
-
-    /**
-     * Enhanced DTO for individual vocabulary answer - 3-level system
-     */
-    @lombok.Data
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class SessionAnswer {
-        private Integer vocabId;
-        private String answerLevel;  // 'mastered', 'temporary', 'unknown'
-        private String timestamp;
-        
-        // Legacy support
-        @Deprecated
-        public boolean isCorrect() {
-            return "mastered".equals(answerLevel) || "temporary".equals(answerLevel);
         }
     }
 }

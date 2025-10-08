@@ -373,28 +373,45 @@
     
     <!-- Custom JavaScript -->
     <script th:inline="javascript">
+        /*<![CDATA[*/
         // Global variables
         const dictionaryId = /*[[${dictionary.dictionaryId}]]*/ 1;
-        const currentUserId = /*[[${currentUserId}]]*/ 'admin';
+        const currentUserId = /*[[${currentUserId}]]*/ 'user';
         let selectedTopics = new Set();
         
-        // Topic data (in real implementation, this would come from server)
-        const topicData = {
-            1: { id: 1, name: 'Education', words: 24 },
-            2: { id: 2, name: 'Home & Family', words: 18 },
-            3: { id: 3, name: 'Transportation', words: 22 },
-            4: { id: 4, name: 'Food & Drink', words: 31 },
-            5: { id: 5, name: 'Travel', words: 27 },
-            6: { id: 6, name: 'Work & Business', words: 19 },
-            7: { id: 7, name: 'Health', words: 25 },
-            8: { id: 8, name: 'Entertainment', words: 20 }
-        };
+        // Build topic data from backend - use array approach
+        const topicsArray = [
+            /*[# th:each="topic : ${topics}"]*/
+            {
+                id: /*[[${topic.topicId}]]*/ 0,
+                name: /*[[''+${topic.name}]]*/ '',
+                words: /*[[${topicVocabCounts != null and topicVocabCounts.containsKey(topic.topicId)} ? ${topicVocabCounts.get(topic.topicId)} : 0]]*/ 0
+            },
+            /*[/]*/
+        ];
+        
+        // Convert array to object with id as key
+        const topicData = {};
+        topicsArray.forEach(topic => {
+            if (topic && topic.id) {
+                topicData[topic.id] = topic;
+            }
+        });
+        
+        // Debug: Check topic data
+        console.log('=== DEBUG: Topic Data ===');
+        console.log('topicData object:', topicData);
+        console.log('Number of topics:', Object.keys(topicData).length);
+        Object.keys(topicData).forEach(key => {
+            console.log(`Topic ${key}:`, topicData[key]);
+        });
         
         /**
          * Toggle topic selection
          */
         function toggleTopicSelection(element) {
             const topicId = parseInt(element.getAttribute('data-topic-id'));
+            
             const counter = element.querySelector('.selection-counter');
             
             if (selectedTopics.has(topicId)) {
@@ -445,13 +462,24 @@
                 let totalWords = 0;
                 const wordsPerTopic = parseInt(document.getElementById('wordsPerTopic').value);
                 
+                console.log('=== DEBUG: Calculating estimates ===');
+                console.log('wordsPerTopic:', wordsPerTopic);
+                console.log('selectedTopics:', Array.from(selectedTopics));
+                
                 selectedTopics.forEach(topicId => {
                     const topic = topicData[topicId];
+                    console.log(`Topic ${topicId}:`, topic);
                     if (topic) {
-                        totalWords += Math.min(wordsPerTopic, topic.words);
+                        const words = Math.min(wordsPerTopic, topic.words);
+                        console.log(`  - topic.words: ${topic.words}, wordsPerTopic: ${wordsPerTopic}, min: ${words}`);
+                        totalWords += words;
                         html += `<div class="badge bg-light text-dark me-1 mb-1">${topic.name}</div>`;
+                    } else {
+                        console.log(`  - Topic not found in topicData!`);
                     }
                 });
+                
+                console.log('Total words calculated:', totalWords);
                 
                 selectedList.innerHTML = html;
                 startBtn.disabled = false;
@@ -579,6 +607,7 @@
         document.getElementById('wordsPerTopic').addEventListener('change', updateSelectedTopicsPanel);
         document.getElementById('difficultyLevel').addEventListener('change', updateSelectedTopicsPanel);
         document.getElementById('wordOrder').addEventListener('change', updateSelectedTopicsPanel);
+        /*]]>*/
     </script>
 </body>
 </html>

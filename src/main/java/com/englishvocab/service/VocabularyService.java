@@ -224,6 +224,47 @@ public class VocabularyService {
         log.info("Đã xóa từ vựng: {}", vocab.getWord());
     }
     
+    // ==================== HELPER METHODS FOR LEARNING SERVICE ====================
+    
+    /**
+     * Lấy danh sách vocab theo IDs
+     */
+    public List<Vocab> findByIdIn(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return vocabRepository.findAllById(ids);
+    }
+    
+    /**
+     * Lấy vocabularies từ dictionary (giới hạn số lượng)
+     */
+    public List<Vocab> getVocabulariesByDictionary(com.englishvocab.entity.Dictionary dictionary, Integer limit) {
+        List<Vocab> allVocabs = vocabRepository.findByDictionary(dictionary);
+        
+        if (limit != null && limit > 0 && allVocabs.size() > limit) {
+            return allVocabs.subList(0, limit);
+        }
+        
+        return allVocabs;
+    }
+    
+    /**
+     * Lấy random vocabularies từ dictionary
+     */
+    public List<Vocab> getRandomVocabularies(com.englishvocab.entity.Dictionary dictionary, Integer limit) {
+        List<Vocab> allVocabs = vocabRepository.findByDictionary(dictionary);
+        
+        // Shuffle để random
+        java.util.Collections.shuffle(allVocabs);
+        
+        if (limit != null && limit > 0 && allVocabs.size() > limit) {
+            return allVocabs.subList(0, limit);
+        }
+        
+        return allVocabs;
+    }
+    
     /**
      * Thống kê từ vựng
      */
