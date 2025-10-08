@@ -246,6 +246,111 @@ public class VocabularyController {
             return "redirect:/vocabulary/add";
         }
     }
+
+    /**
+     * Form chỉnh sửa từ vựng cá nhân
+     */
+    @GetMapping("/custom/{customVocabId}/edit")
+    public String editCustomVocabForm(
+            @PathVariable Integer customVocabId,
+            Authentication authentication,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            User currentUser = getCurrentUser(authentication);
+            UserCustomVocab customVocab = userCustomVocabService.findByIdOrThrow(customVocabId);
+
+            if (!customVocab.getUser().getId().equals(currentUser.getId())) {
+                log.warn("User {} tried to edit custom vocab {} belonging to user {}",
+                        currentUser.getUsername(), customVocabId, customVocab.getUser().getUsername());
+                redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền sửa từ vựng này");
+                return "redirect:/vocabulary";
+            }
+
+            CustomVocabForm form = new CustomVocabForm();
+            form.setWord(customVocab.getName());
+            form.setIpa(customVocab.getIpa());
+            form.setPos(customVocab.getPos());
+            form.setMeaningVi(customVocab.getMeaningVi());
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("customVocab", customVocab);
+            model.addAttribute("customVocabId", customVocabId);
+            model.addAttribute("customVocabForm", form);
+
+            return "vocabulary/edit";
+
+        } catch (Exception e) {
+            log.error("Error loading edit form for custom vocab {}", customVocabId, e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi khi tải form chỉnh sửa: " + e.getMessage());
+            return "redirect:/vocabulary";
+        }
+    }
+
+    /**
+     * Cập nhật từ vựng cá nhân
+     */
+    @PostMapping("/custom/{customVocabId}/edit")
+    public String updateCustomVocab(
+            @PathVariable Integer customVocabId,
+            @Valid @ModelAttribute("customVocabForm") CustomVocabForm form,
+            BindingResult result,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes,
+            Model model) {
+
+        User currentUser = getCurrentUser(authentication);
+        UserCustomVocab existingVocab = userCustomVocabService.findByIdOrThrow(customVocabId);
+
+        if (!existingVocab.getUser().getId().equals(currentUser.getId())) {
+            log.warn("User {} tried to update custom vocab {} belonging to user {}",
+                    currentUser.getUsername(), customVocabId, existingVocab.getUser().getUsername());
+            redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền sửa từ vựng này");
+            return "redirect:/vocabulary";
+        }
+
+        if (!result.hasErrors()) {
+            String submittedWord = form.getWord();
+            if (submittedWord != null && !submittedWord.equalsIgnoreCase(existingVocab.getName())
+                    && userCustomVocabService.existsByUserAndWord(currentUser, submittedWord)) {
+                result.rejectValue("word", "duplicate.word", "Bạn đã thêm từ này rồi");
+            }
+        }
+
+        if (result.hasErrors()) {
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("customVocab", existingVocab);
+            model.addAttribute("customVocabId", customVocabId);
+            return "vocabulary/edit";
+        }
+
+        try {
+            UserCustomVocab vocabToUpdate = UserCustomVocab.builder()
+                    .customVocabId(customVocabId)
+                    .user(currentUser)
+                    .name(form.getWord())
+                    .ipa(form.getIpa())
+                    .pos(form.getPos())
+                    .meaningVi(form.getMeaningVi())
+                    .build();
+
+            userCustomVocabService.update(customVocabId, vocabToUpdate);
+
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã cập nhật từ vựng '" + form.getWord() + "' thành công!");
+
+            return "redirect:/vocabulary";
+
+        } catch (RuntimeException e) {
+            log.error("Error updating custom vocab {}", customVocabId, e);
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("customVocab", existingVocab);
+            model.addAttribute("customVocabId", customVocabId);
+            model.addAttribute("errorMessage", e.getMessage());
+            return "vocabulary/edit";
+        }
+    }
     
     /**
      * Xem chi tiết từ vựng
@@ -288,6 +393,10 @@ public class VocabularyController {
             
             model.addAttribute("currentUser", currentUser);
             
+            if ("custom".equals(type)) {
+                return "redirect:/vocabulary/custom/" + vocabId + "/edit";
+            }
+
             return "vocabulary/detail";
             
         } catch (Exception e) {

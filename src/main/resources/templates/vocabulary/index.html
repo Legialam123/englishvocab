@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
     
     <style>
         :root {
@@ -97,6 +98,10 @@
             background: white;
             border-color: var(--primary-color);
             transform: translateX(4px);
+        }
+
+        .word-card.no-click-effect {
+            cursor: default;
         }
 
         .word-main {
@@ -287,7 +292,7 @@
             </div>
             <div class="col-md-3 mb-3">
                 <div class="stats-card">
-                    <div class="stats-number text-info">85%</div>
+                    <div class="stats-number text-info">0%</div>
                     <div class="stats-label">Độ chính xác</div>
                 </div>
             </div>
@@ -307,7 +312,7 @@
                             <i class="fas fa-graduation-cap me-2"></i>
                             Ôn tập (<span th:text="${wordsToReview}">5</span> từ)
                         </a>
-                        <a href="/learn/new" class="btn btn-outline-primary">
+                        <a href="/vocabulary/dictionaries" class="btn btn-outline-primary">
                             <i class="fas fa-plus-circle me-2"></i>
                             Học từ mới
                         </a>
@@ -400,12 +405,14 @@
             
             <div class="row">
                 <div class="col-md-6" th:each="custom : ${customWords}">
-                    <div class="word-card" th:onclick="|window.location.href='/vocabulary/${custom.customVocabId}?type=custom'|">
+                    <div class="word-card no-click-effect">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <div class="word-main" th:text="${custom.name}">awesome</div>
                                 <span class="word-ipa" th:text="${custom.formattedIpa}" th:if="${custom.ipa}">/ˈɔːsəm/</span>
-                                <span class="word-pos" th:text="${custom.pos}" th:if="${custom.pos}">adj</span>
+                      <span class="word-pos"
+                          th:text="${custom.pos}"
+                          th:if="${custom.pos != null and !#strings.isEmpty(custom.pos.trim())}">adj</span>
                                 <div class="word-meaning" th:text="${custom.meaningVi}" th:if="${custom.meaningVi}">tuyệt vời</div>
                             </div>
                             <div class="text-end">
@@ -416,8 +423,8 @@
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li>
-                                            <a class="dropdown-item" th:href="@{'/vocabulary/' + ${custom.customVocabId} + '?type=custom'}">
-                                                <i class="fas fa-eye me-2"></i>Xem chi tiết
+                                            <a class="dropdown-item" th:href="@{'/vocabulary/custom/' + ${custom.customVocabId} + '/edit'}">
+                                                <i class="fas fa-pen-to-square me-2"></i>Sửa
                                             </a>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
@@ -473,13 +480,14 @@
 
         // Word card click animation
         document.addEventListener('click', function(e) {
-            if (e.target.closest('.word-card')) {
-                const card = e.target.closest('.word-card');
-                card.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    card.style.transform = '';
-                }, 150);
+            const card = e.target.closest('.word-card');
+            if (!card || card.classList.contains('no-click-effect')) {
+                return;
             }
+            card.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                card.style.transform = '';
+            }, 150);
         });
     </script>
 </body>

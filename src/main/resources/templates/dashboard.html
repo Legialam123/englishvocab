@@ -6,9 +6,25 @@
     <title>Dashboard - English Vocab</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
     <style>
+        html, body {    
+            height: 100%;
+        }
         body {
+            margin: 0;
             background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1 0 auto;
+        }
+        footer {
+            flex-shrink: 0;
+            width: 100%;
+            margin-top: auto;
         }
         .navbar-brand {
             font-weight: bold;
@@ -116,7 +132,8 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <main class="flex-grow-1">
+    <div class="container mt-4 mb-5">
         <!-- Welcome Card -->
         <div class="card welcome-card">
             <div class="card-body p-4">
@@ -145,7 +162,7 @@
             </div>
         </div>
 
-        <div class="row">
+    <div class="row">
             <!-- Quick Actions -->
             <div class="col-md-8">
                 <div class="card">
@@ -154,14 +171,14 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mt-3 mb-3">
                                 <a href="/vocabulary/add" class="btn btn-primary w-100 py-3">
                                     <i class="fas fa-plus-circle me-2"></i>
                                     <div>Thêm từ vựng mới</div>
                                     <small>Thêm từ vựng vào bộ sưu tập</small>
                                 </a>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mt-3 mb-3">
                                 <a href="/vocabulary/dictionaries" class="btn btn-outline-primary w-100 py-3">
                                     <i class="fas fa-play me-2"></i>
                                     <div>Bắt đầu luyện tập</div>
@@ -184,7 +201,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>  
             </div>
 
             <!-- User Info -->
@@ -193,40 +210,39 @@
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-user me-2"></i>Thông tin tài khoản</h5>
                     </div>
-                    <div class="card-body" th:if="${currentUser}">
-                        <div class="text-center mb-3">
+                    <div class="card-body pt-4 pb-4 " th:if="${currentUser}">
+                        <div class="text-center mb-4">
                             <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
-                                 style="width: 80px; height: 80px;">
+                                 style="width: 50px; height: 50px;">
                                 <i class="fas fa-user text-white" style="font-size: 2rem;"></i>
                             </div>
                         </div>
-                        
-                        <table class="table table-borderless small">
-                            <tr>
-                                <td><strong>Họ tên:</strong></td>
-                                <td th:text="${currentUser.fullname}">N/A</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Username:</strong></td>
-                                <td th:text="${currentUser.username}">N/A</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Email:</strong></td>
-                                <td th:text="${currentUser.email}">N/A</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Vai trò:</strong></td>
-                                <td>
+                        <div class="d-flex flex-column gap-3 small">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">Họ tên:</span>
+                                <span th:text="${currentUser.fullname}">N/A</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">Username:</span>
+                                <span th:text="${currentUser.username}">N/A</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">Email:</span>
+                                <span th:text="${currentUser.email}">N/A</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">Vai trò:</span>
+                                <span>
                                     <span class="badge bg-primary" th:text="${currentUser.role}">USER</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Trạng thái:</strong></td>
-                                <td>
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">Trạng thái:</span>
+                                <span>
                                     <span class="badge bg-success" th:text="${currentUser.status}">ACTIVE</span>
-                                </td>
-                            </tr>
-                        </table>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -251,6 +267,18 @@
             </div>
         </div>
     </div>
+    </main>
+
+    <footer class="bg-white border-top py-3 mt-auto">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span class="text-muted small">© <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">2025</span> English Vocab. Đồng hành cùng hành trình học tiếng Anh của bạn.</span>
+            <div class="d-flex gap-3 small">
+                <a href="/vocabulary/dictionaries" class="text-decoration-none">Khám phá từ điển</a>
+                <a href="/user/profile" class="text-decoration-none">Trung tâm tài khoản</a>
+                <a href="mailto:support@englishvocab.com" class="text-decoration-none">Hỗ trợ</a>
+            </div>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
