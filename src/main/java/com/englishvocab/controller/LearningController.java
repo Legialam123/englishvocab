@@ -4,7 +4,6 @@ import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.Topics;
 import com.englishvocab.entity.Vocab;
 import com.englishvocab.service.DictionaryService;
-import com.englishvocab.service.LearningService;
 import com.englishvocab.service.TopicsService;
 import com.englishvocab.service.VocabularyService;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +41,6 @@ public class LearningController {
 
     private final DictionaryService dictionaryService;
     private final TopicsService topicsService;
-    private final LearningService learningService;
     private final VocabularyService vocabularyService;
 
     /**
