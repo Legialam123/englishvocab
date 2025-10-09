@@ -8,6 +8,7 @@ import com.englishvocab.entity.SessionVocabulary;
 import com.englishvocab.entity.Topics;
 import com.englishvocab.entity.User;
 import com.englishvocab.entity.Vocab;
+import com.englishvocab.security.CustomUserPrincipal;
 import com.englishvocab.repository.UserRepository;
 import com.englishvocab.service.DictionaryService;
 import com.englishvocab.service.LearningService;
@@ -232,6 +233,11 @@ public class LearningController {
         try {
             // Get current user
             String userEmail = getCurrentUserId(authentication);
+            if (log.isDebugEnabled()) {
+                log.debug("Start session request from user={} dictionaryId={} mode={} sessionSize={} selectedVocabIds={} topicIds={}",
+                        userEmail, dictionaryId, learningMode, sessionSize, selectedVocabIds, topicIds);
+            }
+
             User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
             
@@ -249,7 +255,8 @@ public class LearningController {
             return "redirect:/learn/session/flashcards?sessionId=" + session.getSessionUuid();
 
         } catch (RuntimeException e) {
-            log.error("Error starting learning session", e);
+            log.error("Error starting learning session for user {} dictionary {} mode {} selectedVocabIds {} topicIds {}", 
+                    getSafeUserEmail(authentication), dictionaryId, learningMode, selectedVocabIds, topicIds, e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/vocabulary/dictionary/" + dictionaryId;
         }
@@ -388,15 +395,11 @@ public class LearningController {
             Authentication authentication) {
 
         try {
-            String userEmail = getCurrentUserId(authentication);
+            getCurrentUserId(authentication);
 
             // Complete session and update progress (batch update)
             SessionResultDTO result = learningService.completeSession(
                 request.getSessionId(), request);
-
-            log.info("User {} completed learning session {} - Result: {}/{} correct", 
-                    userEmail, request.getSessionId(), 
-                    result.getCorrectCount(), result.getTotalWords());
 
             // Return success response for AJAX
             return ResponseEntity.ok().body(Map.of(
@@ -431,6 +434,7 @@ public class LearningController {
 
             // Load session (from database, no longer in cache)
             LearningSession session = learningService.getSessionByUuid(sessionId);
+            SessionResultDTO result = learningService.getSessionResult(sessionId);
             
             // Verify user owns this session
             if (!session.getUser().getEmail().equals(userEmail)) {
@@ -440,11 +444,9 @@ public class LearningController {
             // Get statistics
             Map<String, Object> stats = learningService.getSessionStatistics(sessionId);
 
-            model.addAttribute("session", session);
+            model.addAttribute("result", result);
             model.addAttribute("stats", stats);
             model.addAttribute("pageTitle", "Kết quả học tập");
-
-            log.info("User {} viewing results for session {}", userEmail, sessionId);
 
             return "learn/results";
 
@@ -459,12 +461,29 @@ public class LearningController {
      * Helper method to get current user ID from Authentication
      */
     private String getCurrentUserId(Authentication authentication) {
-        if (authentication.getPrincipal() instanceof OidcUser) {
-            return ((OidcUser) authentication.getPrincipal()).getEmail();
-        } else if (authentication.getPrincipal() instanceof OAuth2User) {
-            return ((OAuth2User) authentication.getPrincipal()).getAttribute("email");
-        } else {
-            return authentication.getName();
+        if (authentication == null) {
+            throw new RuntimeException("Không tìm thấy thông tin người dùng");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserPrincipal customUser) {
+            return customUser.getEmail();
+        }
+        if (principal instanceof OidcUser oidcUser) {
+            return oidcUser.getEmail();
+        }
+        if (principal instanceof OAuth2User oAuth2User) {
+            return (String) oAuth2User.getAttributes().getOrDefault("email", "");
+        }
+
+        return authentication.getName();
+    }
+
+    private String getSafeUserEmail(Authentication authentication) {
+        try {
+            return authentication != null ? getCurrentUserId(authentication) : "anonymous";
+        } catch (RuntimeException ex) {
+            return "unknown";
         }
     }
 }

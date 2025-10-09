@@ -440,6 +440,7 @@
     </style>
 </head>
 <body>
+    <input type="hidden" id="sessionUuid" th:value="${session != null ? session.sessionUuid : param.sessionId}" />
     <div class="learning-container">
         <div class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100">
             <!-- Progress Header -->
@@ -625,7 +626,7 @@
                         <i class="bi bi-arrow-repeat me-2"></i>Học tiếp
                     </button>
                     <button type="button" class="btn btn-outline-primary btn-lg" onclick="finishSession()">
-                        <i class="bi bi-house me-2"></i>Về trang chủ
+                        <i class="bi bi-house me-2"></i>Xem kết quả
                     </button>
                 </div>
             </div>
@@ -680,11 +681,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
-    <script>
+    <script th:inline="javascript">
         // Session variables - loaded from backend
         let currentCardIndex = 0;
         let sessionData = {
-            sessionId: new URLSearchParams(window.location.search).get('sessionId'),
+            sessionId: null,
             session: null, // LearningSession object from backend
             vocabulary: [], // SessionVocabulary[] from backend
             answers: [], // Track user answers
@@ -718,7 +719,12 @@
         /**
          * Initialize session with vocabulary data from backend
          */
-        function initializeSession() {
+    function initializeSession() {
+            const resolvedId = resolveSessionId();
+            if (resolvedId) {
+                sessionData.sessionId = resolvedId;
+            }
+
             // Check if we have session data from Thymeleaf
             const sessionFromThymeleaf = /*[[${session}]]*/ null;
             const vocabulariesFromThymeleaf = /*[[${vocabularies}]]*/ [];
@@ -726,7 +732,6 @@
             if (sessionFromThymeleaf && vocabulariesFromThymeleaf) {
                 sessionData.session = sessionFromThymeleaf;
                 sessionData.vocabulary = vocabulariesFromThymeleaf;
-                sessionData.sessionId = sessionFromThymeleaf.sessionUuid;
                 
                 // Update session stats from backend
                 masteredCount = sessionFromThymeleaf.correctCount || 0;
@@ -749,6 +754,35 @@
                 alert('Không thể tải session. Vui lòng thử lại.');
                 window.location.href = '/vocabulary/dictionaries';
             }
+        }
+
+        /**
+         * Resolve session identifier from multiple sources
+         */
+        function resolveSessionId() {
+            if (sessionData.sessionId) {
+                return sessionData.sessionId;
+            }
+
+            if (sessionData.session && sessionData.session.sessionUuid) {
+                sessionData.sessionId = sessionData.session.sessionUuid;
+                return sessionData.sessionId;
+            }
+
+            const hiddenField = document.getElementById('sessionUuid');
+            if (hiddenField && hiddenField.value) {
+                sessionData.sessionId = hiddenField.value;
+                return sessionData.sessionId;
+            }
+
+            const urlSessionId = new URLSearchParams(window.location.search).get('sessionId');
+            if (urlSessionId) {
+                sessionData.sessionId = urlSessionId;
+                return sessionData.sessionId;
+            }
+
+            console.warn('Session ID could not be resolved');
+            return null;
         }
         
         /**
@@ -898,13 +932,19 @@
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             
+            const sessionId = resolveSessionId();
+            if (!sessionId) {
+                console.error('Không thể ghi nhận đáp án: thiếu sessionId');
+                return;
+            }
+
             const headers = {
                 'Content-Type': 'application/x-www-form-urlencoded'
             };
             headers[csrfHeader] = csrfToken;
             
             const params = new URLSearchParams({
-                sessionId: sessionData.sessionId,
+                sessionId: sessionId,
                 vocabId: vocabId,
                 answerType: answerType,
                 timeSpent: 0
@@ -1029,8 +1069,14 @@
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             
+            const sessionId = resolveSessionId();
+            if (!sessionId) {
+                console.error('Không thể hoàn tất session: thiếu sessionId');
+                return;
+            }
+
             const sessionResult = {
-                sessionId: sessionData.sessionId,
+                sessionId: sessionId,
                 answers: sessionData.answers,
                 duration: getSessionDuration()
             };
@@ -1091,10 +1137,16 @@
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             
+            const sessionId = resolveSessionId();
+            if (!sessionId) {
+                console.error('Không thể tạm dừng session: thiếu sessionId');
+                return;
+            }
+
             const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
             headers[csrfHeader] = csrfToken;
             
-            const params = new URLSearchParams({ sessionId: sessionData.sessionId });
+            const params = new URLSearchParams({ sessionId: sessionId });
             
             fetch('/learn/session/pause', {
                 method: 'POST',
@@ -1121,10 +1173,16 @@
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             
+            const sessionId = resolveSessionId();
+            if (!sessionId) {
+                console.error('Không thể tiếp tục session: thiếu sessionId');
+                return;
+            }
+
             const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
             headers[csrfHeader] = csrfToken;
             
-            const params = new URLSearchParams({ sessionId: sessionData.sessionId });
+            const params = new URLSearchParams({ sessionId: sessionId });
             
             fetch('/learn/session/resume', {
                 method: 'POST',
@@ -1167,7 +1225,14 @@
          * Finish session and view results
          */
         function finishSession() {
-            window.location.href = '/learn/session/results?sessionId=' + sessionData.sessionId;
+            const sessionId = resolveSessionId();
+            if (!sessionId) {
+                console.error('Không thể chuyển tới trang kết quả: thiếu sessionId');
+                alert('Không thể xác định session. Vui lòng quay lại danh sách từ điển.');
+                window.location.href = '/vocabulary/dictionaries';
+                return;
+            }
+            window.location.href = '/learn/session/results?sessionId=' + encodeURIComponent(sessionId);
         }
         
         /**

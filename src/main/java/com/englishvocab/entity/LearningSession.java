@@ -1,5 +1,7 @@
 package com.englishvocab.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +25,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LearningSession {
     
     @Id
@@ -36,10 +39,12 @@ public class LearningSession {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"password", "googleId", "hibernateLazyInitializer", "handler"})
     private User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dictionary_id", nullable = false)
+    @JsonIgnoreProperties({"vocabularies", "userDictLists"})
     private Dictionary dictionary;
     
     @Enumerated(EnumType.STRING)
@@ -97,6 +102,7 @@ public class LearningSession {
     // Relationships
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
+    @JsonIgnore
     private List<SessionVocabulary> sessionVocabularies = new ArrayList<>();
     
     /**

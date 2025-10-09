@@ -1,5 +1,7 @@
 package com.englishvocab.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,10 +30,12 @@ public class SessionVocabulary {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
+    @JsonIgnore
     private LearningSession session;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", nullable = false)
+    @JsonIgnoreProperties({"dictionary", "vocabTopics", "userProgress", "listVocabs", "hibernateLazyInitializer", "handler"})
     private Vocab vocab;
     
     @Column(name = "order_index", nullable = false)

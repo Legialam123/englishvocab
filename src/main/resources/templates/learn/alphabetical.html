@@ -223,7 +223,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h6 class="card-title">
-                            <i class="bi bi-info-circle text-info"></i> Thống kê từ điển
+                            <i class="bi bi-info-circle text-info"></i> Thống kê từ vựng
                         </h6>
                         <div class="row text-center">
                             <div class="col-4">
@@ -402,19 +402,24 @@
             fetch('/learn/session/start', {
                 method: 'POST',
                 headers: headers,
-                body: formData
+                body: formData,
+                redirect: 'follow'
             })
             .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Failed to start session');
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
                 }
-            })
-            .then(data => {
-                // Redirect to flashcard session
-                // In a real implementation, we'd get the session ID from response
-                window.location.href = '/learn/session/flashcards?sessionId=temp-session-id';
+
+                if (response.ok) {
+                    const locationHeader = response.headers.get('X-Redirect-Url');
+                    if (locationHeader) {
+                        window.location.href = locationHeader;
+                        return;
+                    }
+                }
+
+                throw new Error('Failed to start session');
             })
             .catch(error => {
                 console.error('Error:', error);

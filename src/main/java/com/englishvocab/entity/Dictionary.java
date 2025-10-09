@@ -1,5 +1,7 @@
 package com.englishvocab.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,6 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Dictionary {
     
     @Id
@@ -58,10 +61,12 @@ public class Dictionary {
     
     // Relationships
     @OneToMany(mappedBy = "dictionary", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Vocab> vocabularies;
     
     @OneToMany(mappedBy = "dictionary", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserDictList> userDictLists;
+    @JsonIgnore
+    private List<UserVocabList> userDictLists;
     
     public enum Status {
         ACTIVE, INACTIVE, ARCHIVED

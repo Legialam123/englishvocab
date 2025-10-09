@@ -1,5 +1,7 @@
 package com.englishvocab.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -18,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "dictionary", "senses", "vocabTopics", "userProgress", "listVocabs"})
 public class Vocab {
     
     @Id
@@ -26,6 +29,7 @@ public class Vocab {
     private Integer vocabId;
     
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
     @JoinColumn(name = "dictionary_id", nullable = false)
     private Dictionary dictionary;
     
@@ -57,13 +61,16 @@ public class Vocab {
     private List<Senses> senses;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<VocabTopics> vocabTopics;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<UserVocabProgress> userProgress;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ListVocab> listVocabs;
+    @JsonIgnore
+    private List<DictVocabList> listVocabs;
     
     public enum Level {
         BEGINNER, INTERMEDIATE, ADVANCED, EXPERT

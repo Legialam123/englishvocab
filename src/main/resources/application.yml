@@ -95,11 +95,11 @@ server:
 # ===== LOGGING CONFIGURATION =====
 logging:
   level:
-    '[com.englishvocab]': DEBUG
-    '[org.springframework.security]': DEBUG
+    '[com.englishvocab]': INFO
+    '[org.springframework.security]': WARN
     '[org.springframework.web]': INFO
-    '[org.hibernate.SQL]': DEBUG
-    '[org.hibernate.type.descriptor.sql.BasicBinder]': TRACE
+    '[org.hibernate.SQL]': WARN
+    '[org.hibernate.type.descriptor.sql.BasicBinder]': WARN
   file:
     name: logs/englishvocab.log
     '[max-size]': 10MB

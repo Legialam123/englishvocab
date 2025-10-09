@@ -805,18 +805,24 @@
             fetch('/learn/session/start', {
                 method: 'POST',
                 headers: headers,
-                body: formData
+                body: formData,
+                redirect: 'follow'
             })
             .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Failed to start session');
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
                 }
-            })
-            .then(data => {
-                // Redirect to flashcard session
-                window.location.href = '/learn/session/flashcards?sessionId=temp-session-id';
+
+                if (response.ok) {
+                    const locationHeader = response.headers.get('X-Redirect-Url');
+                    if (locationHeader) {
+                        window.location.href = locationHeader;
+                        return;
+                    }
+                }
+
+                throw new Error('Failed to start session');
             })
             .catch(error => {
                 console.error('Error:', error);

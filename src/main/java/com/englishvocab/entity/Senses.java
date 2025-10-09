@@ -1,5 +1,6 @@
 package com.englishvocab.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -23,6 +24,7 @@ public class Senses {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", nullable = false)
+    @JsonIgnore
     private Vocab vocab;
     
     @Column(name = "meaning_vi", nullable = false, length = 50)

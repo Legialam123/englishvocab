@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -26,60 +27,61 @@ import java.time.Duration;
  * - Dictionary data: 24 hours TTL
  */
 @Configuration
-@EnableCaching
 public class RedisConfig {
 
     /**
      * Configure Redis cache manager với custom TTL cho từng cache
      */
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // Create ObjectMapper for JSON serialization
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        // Enable polymorphic type handling for JPA entities
-        objectMapper.activateDefaultTyping(
-            BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Object.class)
-                .build(),
-            ObjectMapper.DefaultTyping.NON_FINAL,
-            JsonTypeInfo.As.PROPERTY
-        );
+    @Configuration
+    @ConditionalOnProperty(prefix = "app.cache", name = "enabled", havingValue = "true")
+    @EnableCaching
+    static class RedisCachingConfiguration {
 
-        GenericJackson2JsonRedisSerializer serializer = 
-            new GenericJackson2JsonRedisSerializer(objectMapper);
+        @Bean
+        public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // Default cache configuration (30 minutes)
-        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(30))
-            .serializeKeysWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-            .disableCachingNullValues();
+            objectMapper.activateDefaultTyping(
+                BasicPolymorphicTypeValidator.builder()
+                    .allowIfBaseType(Object.class)
+                    .build(),
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY
+            );
 
-        // Custom configurations for specific caches
-        RedisCacheConfiguration activeSessionsConfig = defaultConfig
-            .entryTtl(Duration.ofMinutes(30))
-            .prefixCacheNameWith("session:");
+            GenericJackson2JsonRedisSerializer serializer =
+                new GenericJackson2JsonRedisSerializer(objectMapper);
 
-        RedisCacheConfiguration userProgressConfig = defaultConfig
-            .entryTtl(Duration.ofHours(1))
-            .prefixCacheNameWith("progress:");
+            RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(30))
+                .serializeKeysWith(
+                    RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(
+                    RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                .disableCachingNullValues();
 
-        RedisCacheConfiguration dictionaryConfig = defaultConfig
-            .entryTtl(Duration.ofHours(24))
-            .prefixCacheNameWith("dict:");
+            RedisCacheConfiguration activeSessionsConfig = defaultConfig
+                .entryTtl(Duration.ofMinutes(30))
+                .prefixCacheNameWith("session:");
 
-        return RedisCacheManager.builder(connectionFactory)
-            .cacheDefaults(defaultConfig)
-            .withCacheConfiguration("active_sessions", activeSessionsConfig)
-            .withCacheConfiguration("user_progress", userProgressConfig)
-            .withCacheConfiguration("dictionaries", dictionaryConfig)
-            .transactionAware()
-            .build();
+            RedisCacheConfiguration userProgressConfig = defaultConfig
+                .entryTtl(Duration.ofHours(1))
+                .prefixCacheNameWith("progress:");
+
+            RedisCacheConfiguration dictionaryConfig = defaultConfig
+                .entryTtl(Duration.ofHours(24))
+                .prefixCacheNameWith("dict:");
+
+            return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(defaultConfig)
+                .withCacheConfiguration("active_sessions", activeSessionsConfig)
+                .withCacheConfiguration("user_progress", userProgressConfig)
+                .withCacheConfiguration("dictionaries", dictionaryConfig)
+                .transactionAware()
+                .build();
+        }
     }
 
     /**

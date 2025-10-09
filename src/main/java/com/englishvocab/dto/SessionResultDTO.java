@@ -20,6 +20,7 @@ import java.util.List;
 public class SessionResultDTO {
     
     private String sessionUuid;
+    private Integer dictionaryId;
     private String dictionaryName;
     private String learningMode;
     private LocalDateTime startedAt;
@@ -61,6 +62,7 @@ public class SessionResultDTO {
     public static SessionResultDTO fromSession(LearningSession session, List<SessionVocabulary> vocabularies) {
         SessionResultDTOBuilder builder = SessionResultDTO.builder()
                 .sessionUuid(session.getSessionUuid())
+                .dictionaryId(session.getDictionary().getDictionaryId())
                 .dictionaryName(session.getDictionary().getName())
                 .learningMode(session.getLearningMode().name())
                 .startedAt(session.getStartedAt())

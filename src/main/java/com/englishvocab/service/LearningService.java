@@ -7,9 +7,6 @@ import com.englishvocab.repository.LearningSessionRepository;
 import com.englishvocab.repository.SessionVocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,10 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service quản lý Learning Sessions với Redis caching
- * - Active sessions: cached trong Redis (30min TTL)
- * - Auto-expire sau 30 phút
- * - Scheduled cleanup jobs
+ * Service quản lý Learning Sessions
  */
 @Service
 @RequiredArgsConstructor
@@ -45,15 +39,45 @@ public class LearningService {
     
     /**
      * Tạo learning session mới với auto-expire sau 30 phút
-     * Session được cache trong Redis với TTL 30 phút
      */
-    @CachePut(value = "active_sessions", key = "#result.sessionUuid")
     public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                         String learningMode, List<Integer> vocabularyIds, 
                                         Integer maxVocabularies) {
-        // Kiểm tra session active
+        LearningSession.LearningMode requestedMode = parseLearningMode(learningMode);
+
         if (hasActiveSession(user)) {
-            throw new RuntimeException("Bạn đã có phiên học đang hoạt động. Vui lòng hoàn thành hoặc tạm dừng trước!");
+            List<LearningSession> activeSessions = sessionRepository.findActiveOrPausedSessions(user);
+
+            activeSessions.stream()
+                .filter(LearningSession::isExpired)
+                .forEach(LearningSession::expire);
+
+            Optional<LearningSession> reusableSession = activeSessions.stream()
+                .filter(session -> !session.isExpired()
+                        && session.getDictionary().getDictionaryId().equals(dictionary.getDictionaryId())
+                        && session.getLearningMode() == requestedMode)
+                .findFirst();
+
+            if (reusableSession.isPresent()) {
+                LearningSession activeSession = reusableSession.get();
+
+                if (activeSession.getStatus() == LearningSession.Status.PAUSED) {
+                    activeSession.resume();
+                } else {
+                    activeSession.setExpiresAt(LocalDateTime.now().plusMinutes(SESSION_TIMEOUT_MINUTES));
+                    activeSession.updateActivity();
+                }
+
+                sessionRepository.saveAll(activeSessions);
+
+                return sessionRepository.save(activeSession);
+            }
+
+            activeSessions.stream()
+                .filter(session -> !session.isExpired())
+                .forEach(LearningSession::cancel);
+
+            sessionRepository.saveAll(activeSessions);
         }
 
         // Select vocabularies theo priority
@@ -61,6 +85,8 @@ public class LearningService {
             user, dictionary, learningMode, vocabularyIds, maxVocabularies);
 
         if (vocabularies.isEmpty()) {
+            log.warn("No vocabularies found for user {} dictionary {} mode {} with requestedIds {}",
+                    user.getEmail(), dictionary.getDictionaryId(), requestedMode, vocabularyIds);
             throw new RuntimeException("Không tìm thấy từ vựng phù hợp!");
         }
 
@@ -70,7 +96,7 @@ public class LearningService {
         session.setDictionary(dictionary);
         session.setSessionUuid(UUID.randomUUID().toString());
         session.setStatus(LearningSession.Status.ACTIVE);
-        session.setLearningMode(parseLearningMode(learningMode));
+        session.setLearningMode(requestedMode);
         session.setTargetWords(vocabularies.size());
         session.setActualWords(0);
         session.setStartedAt(LocalDateTime.now());
@@ -89,8 +115,8 @@ public class LearningService {
         }
         sessionVocabRepository.saveAll(sessionVocabs);
 
-        log.info("Created session {} for user {} with {} vocabularies, expires at {}",
-            session.getSessionUuid(), user.getEmail(), vocabularies.size(), session.getExpiresAt());
+        log.info("Created learning session {} for user {} ({} vocabularies)",
+            session.getSessionUuid(), user.getEmail(), vocabularies.size());
 
         return session;
     }
@@ -99,6 +125,9 @@ public class LearningService {
      * Parse learning mode string to enum
      */
     private LearningSession.LearningMode parseLearningMode(String mode) {
+        if (mode == null) {
+            return LearningSession.LearningMode.REVIEW;
+        }
         return switch (mode.toLowerCase()) {
             case "alphabetical" -> LearningSession.LearningMode.ALPHABETICAL;
             case "topics" -> LearningSession.LearningMode.TOPICS;
@@ -170,18 +199,15 @@ public class LearningService {
 
     /**
      * Lấy active session của user
-     * Cached trong Redis để fast access
      */
-    @Cacheable(value = "active_sessions", key = "#sessionUuid")
     public Optional<LearningSession> getActiveSession(User user) {
         List<LearningSession> sessions = sessionRepository.findActiveOrPausedSessions(user);
         return sessions.isEmpty() ? Optional.empty() : Optional.of(sessions.get(0));
     }
     
     /**
-     * Get session by UUID (with caching)
+     * Get session by UUID
      */
-    @Cacheable(value = "active_sessions", key = "#sessionUuid")
     public LearningSession getSessionByUuid(String sessionUuid) {
         return sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
@@ -191,9 +217,7 @@ public class LearningService {
 
     /**
      * Record câu trả lời của user
-     * Update cache sau khi record
      */
-    @CachePut(value = "active_sessions", key = "#sessionUuid")
     public LearningSession recordAnswer(String sessionUuid, Integer vocabularyId, 
                             SessionVocabulary.AnswerType answer, Integer timeSpentSec) {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
@@ -223,46 +247,36 @@ public class LearningService {
         }
         session = sessionRepository.save(session);
 
-        log.debug("Recorded answer {} for vocab {} in session {}", 
-            answer, vocabularyId, sessionUuid);
-            
         return session;
     }
 
     /**
-     * Pause session (update cache)
+     * Pause session
      */
-    @CachePut(value = "active_sessions", key = "#sessionUuid")
     public LearningSession pauseSession(String sessionUuid) {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
 
         session.pause();
         session = sessionRepository.save(session);
-
-        log.info("Paused session {}", sessionUuid);
         return session;
     }
 
     /**
-     * Resume session (update cache)
+     * Resume session
      */
-    @CachePut(value = "active_sessions", key = "#sessionUuid")
     public LearningSession resumeSession(String sessionUuid) {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
 
         session.resume();
         session = sessionRepository.save(session);
-
-        log.info("Resumed session {}", sessionUuid);
         return session;
     }
 
     /**
-     * Cancel session (evict from cache)
+     * Cancel session
      */
-    @CacheEvict(value = "active_sessions", key = "#sessionUuid")
     public void cancelSession(String sessionUuid) {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
@@ -270,15 +284,12 @@ public class LearningService {
         session.setStatus(LearningSession.Status.COMPLETED);
         session.setCompletedAt(LocalDateTime.now());
         sessionRepository.save(session);
-
-        log.info("Cancelled session {}", sessionUuid);
     }
 
     /**
      * Complete session và batch update progress
      * Evict from cache khi complete
      */
-    @CacheEvict(value = "active_sessions", key = "#sessionUuid")
     public SessionResultDTO completeSession(String sessionUuid, SessionResultRequest request) {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
@@ -304,9 +315,6 @@ public class LearningService {
 
         // Generate result DTO
         SessionResultDTO result = SessionResultDTO.fromSession(session, sessionVocabs);
-
-        log.info("Completed session {} - Result: {}/{} correct", 
-            sessionUuid, session.getCorrectCount(), session.getTargetWords());
 
         return result;
     }
@@ -334,9 +342,6 @@ public class LearningService {
                 );
             }
         }
-
-        log.info("Batch updated progress for {} vocabularies in session {}", 
-            sessionVocabs.size(), session.getSessionUuid());
     }
 
     // ==================== SESSION QUERIES ====================
@@ -389,25 +394,45 @@ public class LearningService {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
 
-        long answered = sessionVocabRepository.countAnsweredInSession(session);
-        long unanswered = session.getTargetWords() - answered;
+        int totalWords = Optional.ofNullable(session.getActualWords()).orElse(0);
+        int correctCount = Optional.ofNullable(session.getCorrectCount()).orElse(0);
+        int wrongCount = Optional.ofNullable(session.getWrongCount()).orElse(0);
+        int skipCount = Optional.ofNullable(session.getSkipCount()).orElse(0);
+        int timeSpent = Optional.ofNullable(session.getTimeSpentSec()).orElse(0);
+
+        double accuracy = totalWords > 0
+            ? (correctCount * 100.0) / totalWords
+            : 0.0;
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("sessionUuid", session.getSessionUuid());
         stats.put("status", session.getStatus());
-        stats.put("total", session.getTargetWords());
-        stats.put("answered", answered);
-        stats.put("unanswered", unanswered);
-        stats.put("correct", session.getCorrectCount());
-        stats.put("wrong", session.getWrongCount());
-        stats.put("skip", session.getSkipCount());
-        stats.put("accuracy", answered > 0 ? 
-            (double) session.getCorrectCount() / answered * 100 : 0.0);
+        stats.put("totalWords", totalWords);
+        stats.put("correctCount", correctCount);
+        stats.put("wrongCount", wrongCount);
+        stats.put("skipCount", skipCount);
+        stats.put("accuracy", accuracy);
+        stats.put("accuracyRounded", Math.round(accuracy));
+        stats.put("averageTimePerWord", totalWords > 0 ? (double) timeSpent / totalWords : 0.0);
+        stats.put("timeSpent", timeSpent);
+        stats.put("timeSpentFormatted", session.getFormattedDuration());
         stats.put("startedAt", session.getStartedAt());
+        stats.put("completedAt", session.getCompletedAt());
         stats.put("expiresAt", session.getExpiresAt());
         stats.put("isExpired", session.isExpired());
 
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public SessionResultDTO getSessionResult(String sessionUuid) {
+        LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
+            .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
+
+        List<SessionVocabulary> sessionVocabs = sessionVocabRepository
+            .findBySessionOrderByOrderIndex(session);
+
+        return SessionResultDTO.fromSession(session, sessionVocabs);
     }
 
     // ==================== SCHEDULED TASKS ====================
@@ -421,22 +446,16 @@ public class LearningService {
         List<LearningSession> expiredSessions = sessionRepository
             .findExpiredSessions(LocalDateTime.now());
 
-        for (LearningSession session : expiredSessions) {
+        expiredSessions.forEach(session -> {
             try {
-                log.info("Auto-completing expired session {}", session.getSessionUuid());
-                
-                // Complete session
                 session.complete();
                 sessionRepository.save(session);
-
-                // Batch update progress
                 updateUserProgressFromSession(session);
-
             } catch (Exception e) {
-                log.error("Failed to auto-complete session {}: {}", 
+                log.error("Failed to auto-complete session {}: {}",
                     session.getSessionUuid(), e.getMessage());
             }
-        }
+        });
 
         if (!expiredSessions.isEmpty()) {
             log.info("Auto-completed {} expired sessions", expiredSessions.size());
@@ -465,8 +484,10 @@ public class LearningService {
         // Delete sessions
         sessionRepository.deleteAll(oldSessions);
 
-        log.info("Cleaned up {} old sessions older than {} days", 
-            oldSessions.size(), SESSION_CLEANUP_DAYS);
+        if (!oldSessions.isEmpty()) {
+            log.info("Cleaned up {} completed sessions older than {} days",
+                oldSessions.size(), SESSION_CLEANUP_DAYS);
+        }
     }
 
     // ==================== USER SESSION HISTORY ====================

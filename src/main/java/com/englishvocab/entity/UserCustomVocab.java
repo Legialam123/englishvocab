@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "user_custom_vocab")
@@ -48,7 +49,10 @@ public class UserCustomVocab {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
+
+    @OneToMany(mappedBy = "customVocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CustomVocabList> customVocabLists;
+
     /**
      * Convenience methods
      */
