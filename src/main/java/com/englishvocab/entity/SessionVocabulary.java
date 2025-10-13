@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -21,39 +22,40 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class SessionVocabulary {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "session_vocab_id")
-    private Long sessionVocabId;
+    Long sessionVocabId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
     @JsonIgnore
-    private LearningSession session;
+    LearningSession session;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", nullable = false)
     @JsonIgnoreProperties({"dictionary", "vocabTopics", "userProgress", "listVocabs", "hibernateLazyInitializer", "handler"})
-    private Vocab vocab;
+    Vocab vocab;
     
     @Column(name = "order_index", nullable = false)
-    private Integer orderIndex; // Thứ tự trong session
+    Integer orderIndex; // Thứ tự trong session
     
     @Enumerated(EnumType.STRING)
     @Column(name = "user_answer", length = 20)
-    private AnswerType userAnswer;
+    AnswerType userAnswer;
     
     @Column(name = "time_spent_sec")
-    private Integer timeSpentSec; // Thời gian trả lời từ này (giây)
+    Integer timeSpentSec; // Thời gian trả lời từ này (giây)
     
     @Column(name = "answered_at")
-    private LocalDateTime answeredAt;
+    LocalDateTime answeredAt;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     /**
      * Enum cho loại câu trả lời

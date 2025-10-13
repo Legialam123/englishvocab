@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -16,41 +17,42 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class QuizAttempts {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "quiz_attempt_id")
-    private Integer quizAttemptId;
+    Integer quizAttemptId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)
-    private Quizzes quiz;
+    Quizzes quiz;
     
     @Column(name = "started_at")
-    private LocalDateTime startedAt;
+    LocalDateTime startedAt;
     
     @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
+    LocalDateTime submittedAt;
     
     @Column(name = "duration_sec")
-    private Integer durationSec; // Time taken in seconds
+    Integer durationSec; // Time taken in seconds
     
     @Column(nullable = false, columnDefinition = "integer default 0")
     @Builder.Default
-    private Integer score = 0; // Score achieved
+    Integer score = 0; // Score achieved
     
     @Column(name = "max_score", nullable = false, columnDefinition = "integer default 100")
     @Builder.Default
-    private Integer maxScore = 100; // Maximum possible score
+    Integer maxScore = 100; // Maximum possible score
     
     // Relationships
     @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuizItemResults> itemResults;
+    List<QuizItemResults> itemResults;
     
     /**
      * Convenience methods
@@ -93,5 +95,5 @@ public class QuizAttempts {
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 }

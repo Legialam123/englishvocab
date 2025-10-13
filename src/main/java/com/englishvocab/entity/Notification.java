@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -17,40 +18,41 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class Notification {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "notification_id")
-    private Integer notificationId;
+    Integer notificationId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Tiêu đề thông báo không được để trống")
     @Size(max = 100, message = "Tiêu đề không được vượt quá 100 ký tự")
-    private String title;
+    String title;
     
     @Column(nullable = false, length = 200)
     @NotBlank(message = "Nội dung thông báo không được để trống")
     @Size(max = 200, message = "Nội dung không được vượt quá 200 ký tự")
-    private String message;
+    String message;
     
     @Column(nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Type type = Type.INFO;
+    Type type = Type.INFO;
     
     @Column(nullable = false, length = 10)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Status status = Status.UNREAD;
+    Status status = Status.UNREAD;
     
     @CreationTimestamp
     @Column(name = "sent_at", updatable = false)
-    private LocalDateTime sentAt;
+    LocalDateTime sentAt;
     
     public enum Type {
         INFO,           // Thông tin

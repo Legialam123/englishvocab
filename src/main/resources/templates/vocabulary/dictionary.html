@@ -123,14 +123,41 @@
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--primary-color);
-            margin-bottom: 0.25rem;
         }
 
         .word-ipa {
             color: #64748b;
             font-style: italic;
             font-size: 0.9rem;
-            margin-right: 0.5rem;
+        }
+
+        .word-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .word-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .word-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+            align-items: baseline;
+        }
+
+        .word-level {
+            margin-left: auto;
         }
 
         .word-pos {
@@ -373,9 +400,9 @@
                                th:value="${searchKeyword}" placeholder="Nhập từ cần tìm...">
                     </div>
                     <div class="col-md-3">
-                        <label for="level" class="form-label">Mức độ</label>
+                        <label for="level" class="form-label">Độ Khó</label>
                         <select class="form-select" id="level" name="level">
-                            <option value="">Tất cả mức độ</option>
+                            <option value="">Tất cả</option>
                             <option th:each="levelOption : ${levels}" 
                                     th:value="${levelOption.name()}"
                                     th:text="${levelOption.name()}"
@@ -427,11 +454,15 @@
                         <div class="word-card">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
-                                    <div class="word-main" th:text="${vocab.word}">hello</div>
-                                    <div class="d-flex align-items-center flex-wrap gap-1 mb-2">
-                                        <span class="word-ipa" th:text="${vocab.formattedIpa}" th:if="${vocab.ipa}">/'hɛloʊ/</span>
-                                        <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos}">interjection</span>
-                                        <span class="word-level" th:text="${vocab.level}">BEGINNER</span>
+                                    <div class="word-heading">
+                                        <div class="word-header">
+                                            <span class="word-main" th:text="${vocab.word}">hello</span>
+                                            <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos != null and !#strings.isEmpty(vocab.pos)}">interjection</span>
+                                        </div>
+                                        <span class="word-level" th:text="${vocab.level}" th:if="${vocab.level}">BEGINNER</span>
+                                    </div>
+                                    <div class="word-tags" th:if="${vocab.ipa != null and !#strings.isEmpty(vocab.ipa)}">
+                                        <span class="word-ipa" th:text="${vocab.formattedIpa}">/'hɛloʊ/</span>
                                     </div>
                                     <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
                                 </div>
@@ -444,11 +475,15 @@
                         <div class="word-card">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
-                                    <div class="word-main" th:text="${vocab.word}">hello</div>
-                                    <div class="d-flex align-items-center flex-wrap gap-1 mb-2">
-                                        <span class="word-ipa" th:text="${vocab.formattedIpa}" th:if="${vocab.ipa}">/'hɛloʊ/</span>
-                                        <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos}">interjection</span>
-                                        <span class="word-level" th:text="${vocab.level}">BEGINNER</span>
+                                    <div class="word-heading">
+                                        <div class="word-header">
+                                            <span class="word-main" th:text="${vocab.word}">hello</span>
+                                            <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos != null and !#strings.isEmpty(vocab.pos)}">interjection</span>
+                                        </div>
+                                        <span class="word-level" th:text="${vocab.level}" th:if="${vocab.level}">BEGINNER</span>
+                                    </div>
+                                    <div class="word-tags" th:if="${vocab.ipa != null and !#strings.isEmpty(vocab.ipa)}">
+                                        <span class="word-ipa" th:text="${vocab.formattedIpa}">/'hɛloʊ/</span>
                                     </div>
                                     <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
                                 </div>

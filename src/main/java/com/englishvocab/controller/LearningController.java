@@ -13,6 +13,7 @@ import com.englishvocab.repository.UserRepository;
 import com.englishvocab.service.DictionaryService;
 import com.englishvocab.service.LearningService;
 import com.englishvocab.service.TopicsService;
+import com.englishvocab.service.UserProgressService;
 import com.englishvocab.service.VocabularyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Controller xử lý các chức năng học từ vựng với Redis caching
@@ -50,6 +53,7 @@ import java.util.Map;
 public class LearningController {
 
     private final DictionaryService dictionaryService;
+    private final UserProgressService userProgressService;
     private final TopicsService topicsService;
     private final VocabularyService vocabularyService;
     private final LearningService learningService;
@@ -61,11 +65,12 @@ public class LearningController {
      */
     @GetMapping("/dictionary/{dictionaryId}/alphabetical")
     public String alphabeticalMode(
-            @PathVariable Integer dictionaryId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String startLetter,
-            @RequestParam(required = false) String level,
+        @PathVariable Integer dictionaryId,
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String startLetter,
+        @RequestParam(required = false) String letters,
+        @RequestParam(required = false) String level,
             Authentication authentication,
             Model model,
             RedirectAttributes redirectAttributes) {
@@ -78,31 +83,72 @@ public class LearningController {
             // Get current user
             String currentUserId = getCurrentUserId(authentication);
             model.addAttribute("currentUserId", currentUserId);
+            User user = userRepository.findByEmail(currentUserId)
+            .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
-            // Load vocabulary alphabetically from database
             Pageable pageable = PageRequest.of(page - 1, size);
             Page<Vocab> vocabularies = vocabularyService.findByDictionaryOrderByWordAsc(dictionaryId, pageable);
-            
-            // Apply filters if provided
-            if (startLetter != null && !startLetter.isEmpty()) {
-                vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, startLetter, pageable);
+
+            List<String> activeLetterWindow = null;
+
+            String lettersDisplay = null;
+
+            if (letters != null && !letters.isBlank()) {
+                String sanitizedLetters = letters.replaceAll("[^a-zA-Z]", "");
+                if (!sanitizedLetters.isEmpty()) {
+                    lettersDisplay = sanitizedLetters.toUpperCase(Locale.ROOT)
+                            .chars()
+                            .mapToObj(character -> String.valueOf((char) character))
+                            .collect(Collectors.joining(", "));
+                }
+                List<String> requestedLetters = sanitizedLetters.chars()
+                        .mapToObj(character -> String.valueOf((char) character).toLowerCase(Locale.ROOT))
+                        .collect(Collectors.toList());
+
+                if (!requestedLetters.isEmpty()) {
+                    vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, requestedLetters, pageable);
+                    activeLetterWindow = requestedLetters.stream()
+                            .map(letter -> letter.toUpperCase(Locale.ROOT))
+                            .collect(Collectors.toList());
+                }
             }
-            
+
+            if (activeLetterWindow == null && startLetter != null && !startLetter.isEmpty()) {
+                vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, startLetter, pageable);
+                activeLetterWindow = List.of(startLetter.substring(0, 1).toUpperCase(Locale.ROOT));
+            }
+
             if (level != null && !level.isEmpty()) {
                 vocabularies = vocabularyService.findByDictionaryAndLevel(dictionaryId, level, pageable);
             }
 
+            long total = vocabularyService.countByDictionary(dictionary.getDictionaryId());
+            long learned = userProgressService.countLearnedWordsInDictionary(user, dictionary);
+            long review = userProgressService.countWordsForReviewInDictionary(user, dictionary);
+            long inProgress = Math.max(total - learned - review, 0);
+            double percent = total == 0 ? 0 : (learned * 100.0 / total);
+
+            model.addAttribute("inProgressCount", inProgress);
+            model.addAttribute("progressPercent", percent);
             model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("totalVocab", total);
+            model.addAttribute("learnedVocab", learned);
+            model.addAttribute("reviewVocab", review);
             model.addAttribute("totalPages", vocabularies.getTotalPages());
             model.addAttribute("currentPage", page);
             model.addAttribute("pageSize", size);
             model.addAttribute("startLetter", startLetter);
+            model.addAttribute("letters", letters);
+            model.addAttribute("activeLetterWindow", activeLetterWindow != null ? activeLetterWindow : List.of());
+            model.addAttribute("lettersDisplay", lettersDisplay);
+            Map<String, Long> letterCounts = vocabularyService.getVocabCountByFirstLetter(dictionaryId);
+            model.addAttribute("letterCounts", letterCounts);
             model.addAttribute("level", level);
             model.addAttribute("pageTitle", "Học từ vựng: " + dictionary.getName() + " (A-Z)");
             model.addAttribute("learningMode", "alphabetical");
             
-            log.info("User {} started alphabetical learning for dictionary {}", 
-                    currentUserId, dictionary.getName());
+        log.info("User {} started alphabetical learning for dictionary {}",
+            currentUserId, dictionary.getName());
 
             return "learn/alphabetical";
 
@@ -211,6 +257,61 @@ public class LearningController {
             log.error("Error loading custom learning mode", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/vocabulary/dictionaries";
+        }
+    }
+
+    /**
+     * 🎯 START CUSTOM VOCAB LEARNING SESSION
+     * Bắt đầu session học với danh sách từ vựng được chọn từ alphabetical mode
+     * Endpoint này nhận list các vocabId và tạo session học chỉ với những từ đã chọn
+     */
+    @PostMapping("/dictionary/{dictionaryId}/custom-session")
+    @ResponseBody
+    public ResponseEntity<?> startCustomVocabSession(
+            @PathVariable Integer dictionaryId,
+            @RequestBody List<Long> vocabIds,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            // Validate input
+            if (vocabIds == null || vocabIds.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Vui lòng chọn ít nhất 1 từ vựng"));
+            }
+
+            // Get current user
+            String userEmail = getCurrentUserId(authentication);
+            log.info("User {} starting custom vocab session with {} selected words", 
+                    userEmail, vocabIds.size());
+
+            User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+            
+            // Get dictionary
+            Dictionary dictionary = dictionaryService.findByIdOrThrow(dictionaryId);
+
+            // Convert Long to Integer for vocabIds
+            List<Integer> vocabIdInts = vocabIds.stream()
+                .map(Long::intValue)
+                .collect(Collectors.toList());
+
+            // Create learning session with selected vocab IDs
+            LearningSession session = learningService.createSession(
+                user, dictionary, "custom", vocabIdInts, vocabIds.size());
+
+            log.info("User {} created custom vocab session {} with {} words for dictionary {}", 
+                    userEmail, session.getSessionUuid(), vocabIds.size(), dictionary.getName());
+
+            // Return redirect URL
+            String redirectUrl = "/learn/session/flashcards?sessionId=" + session.getSessionUuid();
+            return ResponseEntity.ok(Map.of("redirectUrl", redirectUrl));
+
+        } catch (RuntimeException e) {
+            log.error("Error starting custom vocab session for user {} dictionary {} vocabIds {}", 
+                    getSafeUserEmail(authentication), dictionaryId, vocabIds, e);
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Có lỗi xảy ra: " + e.getMessage()));
         }
     }
 

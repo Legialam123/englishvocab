@@ -104,16 +104,26 @@
             cursor: default;
         }
 
+        .word-heading {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
         .word-main {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--primary-color);
+            display: inline-block;
         }
 
         .word-ipa {
             color: #64748b;
             font-style: italic;
             margin-left: 0.5rem;
+            margin-top: 0.35rem;
+            display: inline-block;
         }
 
         .word-pos {
@@ -408,11 +418,15 @@
                     <div class="word-card no-click-effect">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <div class="word-main" th:text="${custom.name}">awesome</div>
-                                <span class="word-ipa" th:text="${custom.formattedIpa}" th:if="${custom.ipa}">/ˈɔːsəm/</span>
-                      <span class="word-pos"
-                          th:text="${custom.pos}"
-                          th:if="${custom.pos != null and !#strings.isEmpty(custom.pos.trim())}">adj</span>
+                                <div class="word-heading">
+                                    <span class="word-main" th:text="${custom.name}">awesome</span>
+                                    <span class="word-pos"
+                                        th:text="${custom.pos}"
+                                        th:if="${custom.pos != null and !#strings.isEmpty(custom.pos.trim())}">adj
+                                    </span>
+                                </div>
+                                <span class="word-ipa" th:text="${custom.formattedIpa}"
+                                      th:if="${custom.ipa}">/ˈɔːsəm/</span>
                                 <div class="word-meaning" th:text="${custom.meaningVi}" th:if="${custom.meaningVi}">tuyệt vời</div>
                             </div>
                             <div class="text-end">

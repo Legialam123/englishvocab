@@ -17,7 +17,7 @@ public class OidcUserPrincipal extends CustomUserPrincipal implements OidcUser {
     private final OidcIdToken idToken;
     private final OidcUserInfo userInfo;
     
-    public OidcUserPrincipal(Long id, String username, String password, String fullname,
+    public OidcUserPrincipal(String id, String username, String password, String fullname,
                            String email, User.Role role, User.Status status,
                            Collection<? extends GrantedAuthority> authorities,
                            Map<String, Object> attributes,

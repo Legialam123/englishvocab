@@ -682,6 +682,9 @@
     
     <!-- Custom JavaScript -->
     <script th:inline="javascript">
+        // Dictionary ID from backend
+        const dictionaryId = /*[[${dictionary != null ? dictionary.dictionaryId : null}]]*/ null;
+        
         // Session variables - loaded from backend
         let currentCardIndex = 0;
         let sessionData = {
@@ -1218,7 +1221,20 @@
          * Continue learning (start new session)
          */
         function continueLearning() {
-            window.location.reload();
+            // Redirect to dictionary page to start a new session
+            if (dictionaryId) {
+                window.location.href = '/vocabulary/dictionary/' + dictionaryId;
+            } else {
+                // Fallback: try to get from session data
+                const dictId = sessionData.session?.dictionary?.dictionaryId;
+                if (dictId) {
+                    window.location.href = '/vocabulary/dictionary/' + dictId;
+                } else {
+                    // Last resort: go to dictionaries list
+                    alert('Không thể xác định từ điển. Chuyển về danh sách từ điển.');
+                    window.location.href = '/vocabulary/dictionaries';
+                }
+            }
         }
         
         /**

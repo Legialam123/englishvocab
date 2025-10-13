@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -19,51 +20,52 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class User {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    String id;
     
     @Column(unique = true, nullable = false)
     @NotBlank(message = "Username không được để trống")
     @Size(min = 3, max = 255, message = "Username phải có độ dài từ 3-255 ký tự") // Increased for email
-    private String username;
+    String username;
     
     @Column(nullable = true) // Nullable for Google users  
-    private String password;
+    String password;
     
     @Column(nullable = false)
-    private String fullname;
+    String fullname;
     
     @Column(unique = true, nullable = false)
     @Email(message = "Email không hợp lệ")
-    private String email;
+    String email;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private Role role = Role.USER;
+    Role role = Role.USER;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    Status status = Status.ACTIVE;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
 
     @Column(name = "google_id", unique = true)
-    private String googleId;
+    String googleId;
 
     @Column(name = "google_user", nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
-    private boolean googleUser = false;
+    boolean googleUser = false;
     
     public enum Role {
         USER, ADMIN

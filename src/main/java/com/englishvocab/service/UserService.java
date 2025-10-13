@@ -106,7 +106,7 @@ public class UserService {
      * Tìm user theo ID
      */
     @Transactional(readOnly = true)
-    public Optional<User> findById(Long id) {
+    public Optional<User> findById(String id) {
         return userRepository.findById(id);
     }
     
@@ -129,7 +129,7 @@ public class UserService {
     /**
      * Cập nhật thông tin user
      */
-    public User updateUser(Long id, User updatedUser) {
+    public User updateUser(String id, User updatedUser) {
         return userRepository.findById(id)
                 .map(user -> {
                     user.setFullname(updatedUser.getFullname());
@@ -145,7 +145,7 @@ public class UserService {
     /**
      * Cập nhật status user
      */
-    public User updateUserStatus(Long id, User.Status status) {
+    public User updateUserStatus(String id, User.Status status) {
         return userRepository.findById(id)
                 .map(user -> {
                     user.setStatus(status);
@@ -157,7 +157,7 @@ public class UserService {
     /**
      * Xóa user (soft delete bằng cách set status = DELETED)
      */
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         updateUserStatus(id, User.Status.DELETED);
         log.info("Đã xóa user với ID: {}", id);
     }
@@ -188,7 +188,7 @@ public class UserService {
      * Tìm user theo ID (cho admin) - throw exception nếu không tồn tại
      */
     @Transactional(readOnly = true)
-    public User findByIdOrThrow(Long id) {
+    public User findByIdOrThrow(String id) {
         return userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
     }
@@ -196,7 +196,7 @@ public class UserService {
     /**
      * Cập nhật user (admin only)
      */
-    public User adminUpdateUser(Long id, User updatedUser) {
+    public User adminUpdateUser(String id, User updatedUser) {
         User existingUser = findByIdOrThrow(id);
         
         // Validate unique username (excluding current user)
@@ -233,7 +233,7 @@ public class UserService {
     /**
      * Thay đổi role của user
      */
-    public User changeRole(Long userId, User.Role newRole) {
+    public User changeRole(String userId, User.Role newRole) {
         User user = findByIdOrThrow(userId);
         User.Role oldRole = user.getRole();
         user.setRole(newRole);
@@ -247,7 +247,7 @@ public class UserService {
     /**
      * Thay đổi status của user
      */
-    public User changeStatus(Long userId, User.Status newStatus) {
+    public User changeStatus(String userId, User.Status newStatus) {
         User user = findByIdOrThrow(userId);
         User.Status oldStatus = user.getStatus();
         user.setStatus(newStatus);
@@ -261,7 +261,7 @@ public class UserService {
     /**
      * Xóa user (admin only) - soft delete và validate
      */
-    public void adminDeleteUser(Long userId) {
+    public void adminDeleteUser(String userId) {
         User user = findByIdOrThrow(userId);
         
         // Prevent deleting admin users

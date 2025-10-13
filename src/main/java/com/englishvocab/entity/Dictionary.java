@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,52 +22,53 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Dictionary {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "dictionary_id")
-    private Integer dictionaryId;
+    Integer dictionaryId;
     
     @Column(nullable = false)
     @NotBlank(message = "Tên từ điển không được để trống")
     @Size(max = 100, message = "Tên từ điển không được vượt quá 100 ký tự")
-    private String name;
+    String name;
     
     @Column(name = "code", length = 50)
     @Size(max = 50, message = "Mã từ điển không được vượt quá 50 ký tự")
-    private String code;
+    String code;
     
     @Column(length = 100)
     @Size(max = 100, message = "Nhà xuất bản không được vượt quá 100 ký tự")
-    private String publisher;
+    String publisher;
     
     @Column(length = 10)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    Status status = Status.ACTIVE;
     
     @Column(name = "description", length = 150)
     @Size(max = 150, message = "Mô tả không được vượt quá 150 ký tự")
-    private String description;
+    String description;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
     
     // Relationships
     @OneToMany(mappedBy = "dictionary", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Vocab> vocabularies;
+    List<Vocab> vocabularies;
     
     @OneToMany(mappedBy = "dictionary", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<UserVocabList> userDictLists;
+    List<UserVocabList> userDictLists;
     
     public enum Status {
         ACTIVE, INACTIVE, ARCHIVED

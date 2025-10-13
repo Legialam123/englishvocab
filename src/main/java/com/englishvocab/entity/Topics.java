@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
@@ -16,30 +17,31 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class Topics {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "topic_id")
-    private Integer topicId;
+    Integer topicId;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Tên chủ đề không được để trống")
     @Size(max = 100, message = "Tên chủ đề không được vượt quá 100 ký tự")
-    private String name;
+    String name;
     
     @Column(length = 255)
     @Size(max = 255, message = "Mô tả không được vượt quá 255 ký tự")
-    private String description;
+    String description;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    Status status = Status.ACTIVE;
     
     // Relationships
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<VocabTopics> vocabTopics;
+    List<VocabTopics> vocabTopics;
     
     /**
      * Status enum for topics

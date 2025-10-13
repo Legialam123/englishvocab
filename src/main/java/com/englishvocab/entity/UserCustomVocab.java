@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -18,40 +19,41 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class UserCustomVocab {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "custom_vocab_id")
-    private Integer customVocabId;
+    Integer customVocabId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Từ vựng không được để trống")
     @Size(max = 100, message = "Từ vựng không được vượt quá 100 ký tự")
-    private String name; // The custom word
+    String name; // The custom word
     
     @Column(length = 100)
     @Size(max = 100, message = "IPA không được vượt quá 100 ký tự")
-    private String ipa;
+    String ipa;
     
     @Column(length = 20)
     @Size(max = 20, message = "Từ loại không được vượt quá 20 ký tự")
-    private String pos; // Part of Speech
+    String pos; // Part of Speech
     
     @Column(name = "meaning_vi", length = 50)
     @Size(max = 50, message = "Nghĩa tiếng Việt không được vượt quá 50 ký tự")
-    private String meaningVi;
+    String meaningVi;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "customVocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CustomVocabList> customVocabLists;
+    List<CustomVocabList> customVocabLists;
 
     /**
      * Convenience methods

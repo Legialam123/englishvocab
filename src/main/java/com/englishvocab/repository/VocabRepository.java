@@ -118,4 +118,18 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
      */
     @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary AND LOWER(v.word) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Vocab> findByDictionaryAndWordContainingIgnoreCase(@Param("dictionary") Dictionary dictionary, @Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * Tìm từ vựng theo dictionary và word bắt đầu bằng tập chữ cái (pagination)
+     */
+    @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary AND LOWER(SUBSTRING(v.word, 1, 1)) IN :startLetters ORDER BY LOWER(v.word)")
+    Page<Vocab> findByDictionaryAndWordStartingWithIn(@Param("dictionary") Dictionary dictionary,
+                                                      @Param("startLetters") List<String> startLetters,
+                                                      Pageable pageable);
+
+    /**
+     * Đếm số lượng từ vựng theo chữ cái đầu tiên trong dictionary
+     */
+    @Query("SELECT LOWER(SUBSTRING(v.word, 1, 1)) AS prefix, COUNT(v) FROM Vocab v WHERE v.dictionary = :dictionary GROUP BY LOWER(SUBSTRING(v.word, 1, 1))")
+    List<Object[]> countByDictionaryGroupedByFirstLetter(@Param("dictionary") Dictionary dictionary);
 }

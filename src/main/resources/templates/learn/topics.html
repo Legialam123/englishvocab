@@ -17,10 +17,36 @@
     <!-- Custom CSS -->
     <style>
         .learning-header {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .learning-header .breadcrumb {
+            background: transparent;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .learning-header .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .learning-header .breadcrumb-item a:hover {
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .learning-header .breadcrumb-item.active {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .learning-header .breadcrumb-item + .breadcrumb-item::before {
+            color: rgba(255, 255, 255, 0.7);
         }
         
         .topic-card {
@@ -143,6 +169,48 @@
             padding: 3rem 1rem;
             color: #6c757d;
         }
+
+        /* Warning badge for empty topics */
+        .badge.bg-warning {
+            cursor: help;
+        }
+
+        /* Alert messages in selected panel */
+        #selectedTopicsList .alert {
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Settings status badges */
+        .form-label .badge {
+            vertical-align: middle;
+            cursor: help;
+        }
+
+        /* Disabled select styling */
+        select:disabled {
+            background-color: #e9ecef;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Small helper text */
+        .form-label small.text-muted {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
@@ -171,8 +239,8 @@
                     <p class="mb-0 opacity-75">Học từ vựng theo chủ đề</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-light btn-sm">
-                        <i class="bi bi-arrow-left"></i> Quay lại từ điển
+                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại từ điển
                     </a>
                 </div>
             </div>
@@ -277,31 +345,27 @@
                     
                     <!-- Session Settings -->
                     <div class="border-top pt-3">
-                        <h6 class="mb-3"><i class="bi bi-gear"></i> Cài đặt session</h6>
-                        <div class="mb-3">
-                            <label class="form-label small">Số từ mỗi chủ đề</label>
-                            <select class="form-select form-select-sm" id="wordsPerTopic">
-                                <option value="5">5 từ</option>
-                                <option value="10" selected>10 từ</option>
-                                <option value="15">15 từ</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Độ khó</label>
-                            <select class="form-select form-select-sm" id="difficultyLevel">
-                                <option value="">Tất cả</option>
-                                <option value="BEGINNER">Beginner</option>
-                                <option value="INTERMEDIATE">Intermediate</option>
-                                <option value="ADVANCED">Advanced</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Thứ tự từ vựng</label>
-                            <select class="form-select form-select-sm" id="wordOrder">
-                                <option value="random" selected>Ngẫu nhiên</option>
-                                <option value="alphabetical">Theo alphabet</option>
-                                <option value="difficulty">Theo độ khó</option>
-                            </select>
+                        <h6 class="mb-3"><i class="bi bi-sliders text-primary"></i> Tùy chọn học tập</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label small">Số từ vựng</label>
+                                <select class="form-select form-select-sm" id="sessionSize">
+                                    <option value="10">10 từ</option>
+                                    <option value="20" selected>20 từ</option>
+                                    <option value="30">30 từ</option>
+                                    <option value="50">50 từ</option>
+                                    <option value="100">100 từ</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Độ khó</label>
+                                <select class="form-select form-select-sm" id="difficultyLevel">
+                                    <option value="">Tất cả</option>
+                                    <option value="BEGINNER">Beginner</option>
+                                    <option value="INTERMEDIATE">Intermediate</option>
+                                    <option value="ADVANCED">Advanced</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     
@@ -460,20 +524,28 @@
             } else {
                 let html = '';
                 let totalWords = 0;
-                const wordsPerTopic = parseInt(document.getElementById('wordsPerTopic').value);
+                let hasEmptyTopics = false;
+                const sessionSize = parseInt(document.getElementById('sessionSize').value);
                 
                 console.log('=== DEBUG: Calculating estimates ===');
-                console.log('wordsPerTopic:', wordsPerTopic);
+                console.log('sessionSize:', sessionSize);
                 console.log('selectedTopics:', Array.from(selectedTopics));
                 
                 selectedTopics.forEach(topicId => {
                     const topic = topicData[topicId];
                     console.log(`Topic ${topicId}:`, topic);
                     if (topic) {
-                        const words = Math.min(wordsPerTopic, topic.words);
-                        console.log(`  - topic.words: ${topic.words}, wordsPerTopic: ${wordsPerTopic}, min: ${words}`);
+                        const words = topic.words; // Get total words from this topic
+                        console.log(`  - topic.words: ${topic.words}`);
                         totalWords += words;
-                        html += `<div class="badge bg-light text-dark me-1 mb-1">${topic.name}</div>`;
+                        
+                        // Add badge with word count and warning for empty topics
+                        if (topic.words === 0) {
+                            html += `<div class="badge bg-warning text-dark me-1 mb-1" title="Chủ đề này không có từ vựng">${topic.name} ⚠️</div>`;
+                            hasEmptyTopics = true;
+                        } else {
+                            html += `<div class="badge bg-light text-dark me-1 mb-1">${topic.name} (${words})</div>`;
+                        }
                     } else {
                         console.log(`  - Topic not found in topicData!`);
                     }
@@ -481,10 +553,31 @@
                 
                 console.log('Total words calculated:', totalWords);
                 
+                // Add warning message if there are empty topics
+                if (hasEmptyTopics) {
+                    html += `<div class="alert alert-warning mt-2 mb-0 py-2 px-3" style="font-size: 0.85rem;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <strong>Chú ý:</strong> Một số chủ đề đã chọn không có từ vựng (⚠️)
+                    </div>`;
+                }
+                
+                // Add info message if total words is 0
+                if (totalWords === 0) {
+                    html += `<div class="alert alert-danger mt-2 mb-0 py-2 px-3" style="font-size: 0.85rem;">
+                        <i class="bi bi-x-circle-fill me-1"></i>
+                        <strong>Lỗi:</strong> Không có từ vựng nào để học. Vui lòng chọn chủ đề khác!
+                    </div>`;
+                }
+                
                 selectedList.innerHTML = html;
-                startBtn.disabled = false;
-                estimatedWords.textContent = totalWords;
-                estimatedTime.textContent = Math.ceil(totalWords * 0.5) + '-' + Math.ceil(totalWords * 0.75) + ' phút';
+                startBtn.disabled = (totalWords === 0); // Disable if no words
+                
+                // Limit to sessionSize if totalWords exceeds it
+                const displayWords = Math.min(totalWords, sessionSize);
+                estimatedWords.textContent = displayWords;
+                estimatedTime.textContent = displayWords > 0 
+                    ? Math.ceil(displayWords * 0.5) + '-' + Math.ceil(displayWords * 0.75) + ' phút'
+                    : '0 phút';
             }
         }
         
@@ -518,7 +611,46 @@
          * Start topic learning
          */
         function startTopicLearning() {
-            if (selectedTopics.size === 0) return;
+            if (selectedTopics.size === 0) {
+                alert('Vui lòng chọn ít nhất một chủ đề để bắt đầu học!');
+                return;
+            }
+            
+            // Calculate total words
+            let totalWords = 0;
+            let emptyTopics = [];
+            const sessionSize = parseInt(document.getElementById('sessionSize').value);
+            
+            selectedTopics.forEach(topicId => {
+                const topic = topicData[topicId];
+                if (topic) {
+                    totalWords += topic.words;
+                    
+                    // Track empty topics
+                    if (topic.words === 0) {
+                        emptyTopics.push(topic.name);
+                    }
+                }
+            });
+            
+            // Validation: Check if total words is 0
+            if (totalWords === 0) {
+                const topicNames = emptyTopics.join(', ');
+                alert(`❌ Không thể bắt đầu học!\n\n` +
+                      `Các chủ đề đã chọn không có từ vựng nào:\n${topicNames}\n\n` +
+                      `Vui lòng chọn chủ đề khác có chứa từ vựng.`);
+                return;
+            }
+            
+            // Show warning if some topics are empty but others have words
+            if (emptyTopics.length > 0 && totalWords > 0) {
+                const topicNames = emptyTopics.join(', ');
+                const proceed = confirm(`⚠️ Cảnh báo!\n\n` +
+                                       `Một số chủ đề không có từ vựng:\n${topicNames}\n\n` +
+                                       `Tổng số từ khả dụng: ${totalWords} từ\n\n` +
+                                       `Bạn có muốn tiếp tục với ${totalWords} từ không?`);
+                if (!proceed) return;
+            }
             
             // Update modal content
             const modalSelectedTopics = document.getElementById('modalSelectedTopics');
@@ -526,22 +658,25 @@
             const modalWordCount = document.getElementById('modalWordCount');
             const modalDuration = document.getElementById('modalDuration');
             
-            let html = '';
-            let totalWords = 0;
-            const wordsPerTopic = parseInt(document.getElementById('wordsPerTopic').value);
+            const displayWords = Math.min(totalWords, sessionSize);
             
+            let html = '';
             selectedTopics.forEach(topicId => {
                 const topic = topicData[topicId];
                 if (topic) {
-                    totalWords += Math.min(wordsPerTopic, topic.words);
-                    html += `<span class="badge bg-primary me-1 mb-1">${topic.name}</span>`;
+                    // Add warning badge for empty topics
+                    if (topic.words === 0) {
+                        html += `<span class="badge bg-warning text-dark me-1 mb-1">${topic.name} (0 từ)</span>`;
+                    } else {
+                        html += `<span class="badge bg-primary me-1 mb-1">${topic.name} (${topic.words} từ)</span>`;
+                    }
                 }
             });
             
             modalSelectedTopics.innerHTML = html;
             modalTopicCount.textContent = selectedTopics.size;
-            modalWordCount.textContent = totalWords;
-            modalDuration.textContent = Math.ceil(totalWords * 0.5) + '-' + Math.ceil(totalWords * 0.75);
+            modalWordCount.textContent = displayWords;
+            modalDuration.textContent = Math.ceil(displayWords * 0.5) + '-' + Math.ceil(displayWords * 0.75);
             
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('learningModal'));
@@ -565,7 +700,7 @@
             const formData = new FormData();
             formData.append('dictionaryId', dictionaryId);
             formData.append('learningMode', 'topics');
-            formData.append('sessionSize', document.getElementById('estimatedWords').textContent);
+            formData.append('sessionSize', document.getElementById('sessionSize').value);
             
             // Add selected topic IDs
             selectedTopics.forEach(topicId => {
@@ -573,9 +708,7 @@
             });
             
             // Add settings
-            formData.append('wordsPerTopic', document.getElementById('wordsPerTopic').value);
             formData.append('difficultyLevel', document.getElementById('difficultyLevel').value);
-            formData.append('wordOrder', document.getElementById('wordOrder').value);
             
             // Submit to start session
             const headers = {};
@@ -608,9 +741,16 @@
         }
         
         // Event listeners
-        document.getElementById('wordsPerTopic').addEventListener('change', updateSelectedTopicsPanel);
+        document.getElementById('sessionSize').addEventListener('change', updateSelectedTopicsPanel);
         document.getElementById('difficultyLevel').addEventListener('change', updateSelectedTopicsPanel);
-        document.getElementById('wordOrder').addEventListener('change', updateSelectedTopicsPanel);
+        
+        // Initialize Bootstrap tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
         /*]]>*/
     </script>
 </body>

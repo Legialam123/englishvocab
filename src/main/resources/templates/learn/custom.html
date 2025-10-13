@@ -17,10 +17,36 @@
     <!-- Custom CSS -->
     <style>
         .learning-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .learning-header .breadcrumb {
+            background: transparent;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .learning-header .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .learning-header .breadcrumb-item a:hover {
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .learning-header .breadcrumb-item.active {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .learning-header .breadcrumb-item + .breadcrumb-item::before {
+            color: rgba(255, 255, 255, 0.7);
         }
         
         .vocab-item {
@@ -183,6 +209,49 @@
             max-height: 200px;
             overflow-y: auto;
         }
+
+        /* Pagination Styles */
+        .pagination {
+            margin: 2rem 0;
+        }
+
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .pagination .page-link {
+            color: #667eea;
+            border: 2px solid #e9ecef;
+            border-radius: 0.5rem;
+            margin: 0 0.25rem;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .pagination .page-link:hover {
+            background-color: #f8f9fa;
+            border-color: #667eea;
+            color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: #6c757d;
+        }
+
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            font-weight: bold;
+            padding: 0.5rem 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -211,8 +280,8 @@
                     <p class="mb-0 opacity-75">Tự chọn từ vựng để học tập</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-light btn-sm">
-                        <i class="bi bi-arrow-left"></i> Quay lại từ điển
+                    <a th:href="@{/vocabulary/dictionary/{id}(id=${dictionary.dictionaryId})}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại từ điển
                     </a>
                 </div>
             </div>
@@ -368,11 +437,70 @@
                     </div>
                 </div>
 
-                <!-- Load More -->
-                <div class="text-center mt-4">
-                    <button class="btn btn-outline-primary" onclick="loadMoreVocab()">
-                        <i class="bi bi-arrow-down-circle"></i> Tải thêm từ vựng
-                    </button>
+                <!-- Pagination -->
+                <div th:if="${totalPages > 1}" class="row mt-4">
+                    <div class="col-12">
+                        <nav aria-label="Vocabulary pagination">
+                            <ul class="pagination justify-content-center">
+                                <!-- Previous Button -->
+                                <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled' : ''">
+                                    <a class="page-link" 
+                                       th:href="@{/learn/dictionary/{id}/custom(id=${dictionary.dictionaryId}, page=${currentPage - 1}, search=${search}, level=${level})}"
+                                       aria-label="Previous">
+                                        <span aria-hidden="true">&laquo; Trước</span>
+                                    </a>
+                                </li>
+
+                                <!-- First Page -->
+                                <li th:if="${currentPage > 3}" class="page-item">
+                                    <a class="page-link" 
+                                       th:href="@{/learn/dictionary/{id}/custom(id=${dictionary.dictionaryId}, page=1, search=${search}, level=${level})}">1</a>
+                                </li>
+                                <li th:if="${currentPage > 3}" class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+
+                                <!-- Page Numbers (show 5 pages around current) -->
+                                <li th:each="i : ${#numbers.sequence(currentPage - 2, currentPage + 2)}"
+                                    th:if="${i > 0 && i <= totalPages}"
+                                    class="page-item"
+                                    th:classappend="${i == currentPage} ? 'active' : ''">
+                                    <a class="page-link" 
+                                       th:href="@{/learn/dictionary/{id}/custom(id=${dictionary.dictionaryId}, page=${i}, search=${search}, level=${level})}"
+                                       th:text="${i}">1</a>
+                                </li>
+
+                                <!-- Last Page -->
+                                <li th:if="${currentPage < totalPages - 2}" class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                <li th:if="${currentPage < totalPages - 2}" class="page-item">
+                                    <a class="page-link" 
+                                       th:href="@{/learn/dictionary/{id}/custom(id=${dictionary.dictionaryId}, page=${totalPages}, search=${search}, level=${level})}"
+                                       th:text="${totalPages}">5</a>
+                                </li>
+
+                                <!-- Next Button -->
+                                <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled' : ''">
+                                    <a class="page-link" 
+                                       th:href="@{/learn/dictionary/{id}/custom(id=${dictionary.dictionaryId}, page=${currentPage + 1}, search=${search}, level=${level})}"
+                                       aria-label="Next">
+                                        <span aria-hidden="true">Tiếp &raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        
+                        <!-- Page Info -->
+                        <div class="text-center text-muted mb-3">
+                            <small>
+                                Trang <strong th:text="${currentPage}">1</strong> / <strong th:text="${totalPages}">5</strong>
+                                <span th:if="${vocabularies != null && !vocabularies.isEmpty()}">
+                                    - Hiển thị <strong th:text="${vocabularies.size()}">20</strong> từ
+                                </span>
+                            </small>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Empty State -->
@@ -386,46 +514,42 @@
             <!-- Selected Panel -->
             <div class="col-md-4">
                 <div class="selected-panel">
+                    <!-- Learning Options -->
                     <h6 class="mb-3">
-                        <i class="bi bi-collection text-success"></i> 
+                        <i class="bi bi-sliders text-primary"></i> Tùy chọn học tập
+                    </h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label small">Số từ vựng</label>
+                            <select class="form-select form-select-sm" id="sessionSize">
+                                <option value="10">10 từ</option>
+                                <option value="20" selected>20 từ</option>
+                                <option value="30">30 từ</option>
+                                <option value="50">50 từ</option>
+                                <option value="100">100 từ</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Độ khó</label>
+                            <select class="form-select form-select-sm" id="difficultyLevelOption">
+                                <option value="">Tất cả</option>
+                                <option value="BEGINNER">Beginner</option>
+                                <option value="INTERMEDIATE">Intermediate</option>
+                                <option value="ADVANCED">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <h6 class="mb-3">
+                        <i class="bi bi-heart text-danger"></i> 
                         Từ đã chọn 
                         <span class="badge bg-primary ms-2" id="selectedCount">0</span>
                     </h6>
                     
                     <div id="selectedVocabList" class="mb-3" style="max-height: 200px; overflow-y: auto;">
                         <p class="text-muted text-center">Chưa chọn từ nào</p>
-                    </div>
-                    
-                    <!-- Session Settings -->
-                    <div class="border-top pt-3">
-                        <h6 class="mb-3"><i class="bi bi-gear"></i> Cài đặt học tập</h6>
-                        <div class="mb-3">
-                            <label class="form-label small">Số từ tối đa</label>
-                            <select class="form-select form-select-sm" id="maxWords">
-                                <option value="0">Không giới hạn</option>
-                                <option value="20" selected>20 từ</option>
-                                <option value="30">30 từ</option>
-                                <option value="50">50 từ</option>
-                            </select>
-                            <small class="text-muted">Nếu chọn nhiều hơn, hệ thống sẽ chọn ngẫu nhiên</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Thứ tự học</label>
-                            <select class="form-select form-select-sm" id="learningOrder">
-                                <option value="selection" selected>Theo thứ tự chọn</option>
-                                <option value="random">Ngẫu nhiên</option>
-                                <option value="difficulty">Dễ → khó</option>
-                                <option value="alphabetical">Theo alphabet</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="prioritizeDifficult" checked>
-                                <label class="form-check-label small" for="prioritizeDifficult">
-                                    Ưu tiên từ khó nhớ
-                                </label>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- Summary -->
@@ -537,6 +661,17 @@
          */
         document.addEventListener('DOMContentLoaded', function() {
             updateVocabCount();
+            
+            // Smooth scroll to vocabulary section when navigating between pages
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('page')) {
+                setTimeout(() => {
+                    const vocabList = document.getElementById('vocabularyList');
+                    if (vocabList) {
+                        vocabList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }
         });
         
         /**
@@ -787,7 +922,7 @@
             const formData = new FormData();
             formData.append('dictionaryId', dictionaryId);
             formData.append('learningMode', 'custom');
-            formData.append('sessionSize', selectedVocabs.size);
+            formData.append('sessionSize', document.getElementById('sessionSize').value);
             
             // Add selected vocab IDs
             selectedVocabs.forEach((vocab, id) => {
@@ -795,8 +930,7 @@
             });
             
             // Add settings
-            formData.append('learningOrder', document.getElementById('learningOrder').value);
-            formData.append('prioritizeDifficult', document.getElementById('prioritizeDifficult').checked);
+            formData.append('difficultyLevel', document.getElementById('difficultyLevelOption').value);
             
             // Submit to start session
             const headers = {};
@@ -828,14 +962,6 @@
                 console.error('Error:', error);
                 alert('Có lỗi xảy ra khi bắt đầu session học tập. Vui lòng thử lại!');
             });
-        }
-        
-        /**
-         * Load more vocabulary (pagination)
-         */
-        function loadMoreVocab() {
-            // TODO: Implement AJAX pagination
-            alert('Chức năng tải thêm sẽ được implement trong version tiếp theo!');
         }
         
         /**

@@ -17,10 +17,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -302,6 +305,12 @@ public class VocabularyService {
                 .advanced(advanced)
                 .build();
     }
+
+    public int countByDictionary(Integer dictionaryId) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy từ điển với ID: " + dictionaryId));
+        return (int) vocabRepository.countByDictionary(dictionary);
+    }
     
     /**
      * Lấy danh sách từ điển có từ vựng
@@ -442,6 +451,28 @@ public class VocabularyService {
                 .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
         return vocabRepository.findByDictionaryAndWordStartingWith(dictionary, startLetter, pageable);
     }
+
+    /**
+     * Find vocabulary by dictionary and word starting with any of the provided letters
+     */
+    public Page<Vocab> findByDictionaryAndWordStartingWith(Integer dictionaryId, Collection<String> startLetters,
+                                                           Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+
+    List<String> normalizedLetters = startLetters.stream()
+        .filter(letter -> letter != null && !letter.isBlank())
+        .map(letter -> letter.substring(0, 1).toLowerCase(Locale.ROOT))
+        .distinct()
+        .sorted()
+        .collect(Collectors.toList());
+
+        if (normalizedLetters.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        return vocabRepository.findByDictionaryAndWordStartingWithIn(dictionary, normalizedLetters, pageable);
+    }
     
     /**
      * Find vocabulary by dictionary and level
@@ -499,5 +530,24 @@ public class VocabularyService {
         }
         
         return topicCounts;
+    }
+
+    /**
+     * Get vocabulary counts grouped by their first letter
+     */
+    public Map<String, Long> getVocabCountByFirstLetter(Integer dictionaryId) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+
+        Map<String, Long> letterCounts = new HashMap<>();
+        List<Object[]> results = vocabRepository.countByDictionaryGroupedByFirstLetter(dictionary);
+
+        for (Object[] row : results) {
+            String letter = (String) row[0];
+            Long count = (Long) row[1];
+            letterCounts.put(letter, count);
+        }
+
+        return letterCounts;
     }
 }

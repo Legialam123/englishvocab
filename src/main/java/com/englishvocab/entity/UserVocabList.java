@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
@@ -16,47 +17,48 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class UserVocabList {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_vocab_list_id")
-    private Integer userVocabListId;
+    Integer userVocabListId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dictionary_id", nullable = false)
-    private Dictionary dictionary;
+    Dictionary dictionary;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Tên danh sách không được để trống")
     @Size(max = 100, message = "Tên danh sách không được vượt quá 100 ký tự")
-    private String name;
+    String name;
     
     @Column(length = 150)
     @Size(max = 150, message = "Mô tả không được vượt quá 150 ký tự")
-    private String description;
+    String description;
     
     @Column(nullable = false, length = 10)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Visibility visibility = Visibility.PRIVATE;
+    Visibility visibility = Visibility.PRIVATE;
     
     @Column(nullable = false, length = 10)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    Status status = Status.ACTIVE;
     
     // Relationships
     @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<DictVocabList> dictVocabLists;
+    List<DictVocabList> dictVocabLists;
 
         // Relationships
     @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CustomVocabList> customVocabLists;
+    List<CustomVocabList> customVocabLists;
     
     public enum Visibility {
         PUBLIC, PRIVATE

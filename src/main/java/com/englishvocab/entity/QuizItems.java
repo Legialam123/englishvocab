@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
@@ -16,56 +17,57 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class QuizItems {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "quiz_item_id")
-    private Integer quizItemId;
+    Integer quizItemId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_vocab_id")
-    private UserCustomVocab customVocab;
+    UserCustomVocab customVocab;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)
-    private Quizzes quiz;
+    Quizzes quiz;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id")
-    private Vocab vocab;
+    Vocab vocab;
     
     @Column(nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Type type = Type.MULTIPLE_CHOICE;
+    Type type = Type.MULTIPLE_CHOICE;
     
     @Column(nullable = false, length = 200)
     @NotBlank(message = "Câu hỏi không được để trống")
     @Size(max = 200, message = "Câu hỏi không được vượt quá 200 ký tự")
-    private String prompt; // The question
+    String prompt; // The question
     
     @Column(length = 200)
     @Size(max = 200, message = "Lựa chọn không được vượt quá 200 ký tự")
-    private String option; // Options (JSON string for multiple choice)
+    String option; // Options (JSON string for multiple choice)
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Đáp án không được để trống")
     @Size(max = 100, message = "Đáp án không được vượt quá 100 ký tự")
-    private String answer; // Correct answer
+    String answer; // Correct answer
     
     @Column(length = 200)
     @Size(max = 200, message = "Giải thích không được vượt quá 200 ký tự")
-    private String explanation;
+    String explanation;
     
     @Column(length = 50)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Difficulty difficulty = Difficulty.MEDIUM;
+    Difficulty difficulty = Difficulty.MEDIUM;
     
     // Relationships
     @OneToMany(mappedBy = "quizItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuizItemResults> results;
+    List<QuizItemResults> results;
     
     public enum Type {
         MULTIPLE_CHOICE,    // Trắc nghiệm

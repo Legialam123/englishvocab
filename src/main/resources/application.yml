@@ -17,7 +17,7 @@ spring:
     database: POSTGRESQL
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate  # ✅ Chỉ validate, không tự động sửa schema
     show-sql: true
     properties:
       hibernate:
@@ -25,6 +25,12 @@ spring:
         jdbc:
           lob:
             '[non_contextual_creation]': true
+  
+  # ===== FLYWAY MIGRATION =====
+  flyway:
+    enabled: true
+    baseline-on-migrate: true  # Cho phép migrate trên DB có sẵn
+    locations: classpath:db/migration
 
   # ===== REDIS CONFIGURATION =====
   data:
@@ -84,6 +90,24 @@ spring:
   messages:
     basename: messages
     encoding: UTF-8
+
+  # ===== FILE UPLOAD CONFIGURATION =====
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+
+# ===== MEDIA CONFIGURATION =====
+media:
+  upload:
+    dir: uploads  # Thư mục lưu file
+  max:
+    file:
+      size: 10485760  # 10MB
+  user:
+    quota: 104857600  # 100MB per user
 
 # ===== SERVER CONFIGURATION =====
 server:

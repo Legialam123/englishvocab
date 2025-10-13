@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "senses")
@@ -15,26 +16,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class Senses {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "sense_id")
-    private Integer senseId;
+    Integer senseId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", nullable = false)
     @JsonIgnore
-    private Vocab vocab;
+    Vocab vocab;
     
     @Column(name = "meaning_vi", nullable = false, length = 50)
     @NotBlank(message = "Nghĩa tiếng Việt không được để trống")
     @Size(max = 50, message = "Nghĩa tiếng Việt không được vượt quá 50 ký tự")
-    private String meaningVi; // Vietnamese meaning
+    String meaningVi; // Vietnamese meaning
     
     @Column(name = "definition", length = 100)
     @Size(max = 100, message = "Định nghĩa không được vượt quá 100 ký tự")
-    private String definition; // English definition
+    String definition; // English definition
     
     /**
      * Convenience methods

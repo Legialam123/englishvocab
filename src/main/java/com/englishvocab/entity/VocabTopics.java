@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 
@@ -14,24 +15,25 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @IdClass(VocabTopics.VocabTopicId.class)
 public class VocabTopics {
     
     @Id
     @Column(name = "vocab_id")
-    private Integer vocabId;
+    Integer vocabId;
     
     @Id
     @Column(name = "topic_id")
-    private Integer topicId;
+    Integer topicId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", insertable = false, updatable = false)
-    private Vocab vocab;
+    Vocab vocab;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id", insertable = false, updatable = false)
-    private Topics topic;
+    Topics topic;
     
     /**
      * Composite Key Class
@@ -40,7 +42,7 @@ public class VocabTopics {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class VocabTopicId implements Serializable {
-        private Integer vocabId;
-        private Integer topicId;
+        Integer vocabId;
+        Integer topicId;
     }
 }

@@ -1,7 +1,5 @@
 package com.englishvocab.entity;
 
-import org.hibernate.annotations.ManyToAny;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "custom_vocab_list")
@@ -22,18 +21,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class CustomVocabList {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "custom_list_id")
-    private Integer customListId;
+    Integer customListId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_vocab_id", nullable = false)
-    private UserCustomVocab customVocab;
+    UserCustomVocab customVocab;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_vocab_list_id", nullable = false)
-    private UserVocabList userVocabList;
+    UserVocabList userVocabList;
 }

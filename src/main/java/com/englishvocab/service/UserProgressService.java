@@ -1,5 +1,6 @@
 package com.englishvocab.service;
 
+import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.User;
 import com.englishvocab.entity.Vocab;
 import com.englishvocab.entity.UserVocabProgress;
@@ -443,6 +444,18 @@ public class UserProgressService {
                 user.getUsername(), vocab.getWord(), e);
             throw new RuntimeException("Không thể cập nhật progress: " + e.getMessage());
         }
+    }
+
+    //Lấy số từ đã học của user trong 1 cuốn từ điển
+    @Transactional(readOnly = true)
+    public long countLearnedWordsInDictionary(User user, Dictionary dictionary) {
+        return progressRepository.countByUserAndVocab_Dictionary(user, dictionary);
+    }
+
+    //Lấy số từ cần review trong 1 cuốn từ điển
+    @Transactional(readOnly = true)
+    public long countWordsForReviewInDictionary(User user, Dictionary dictionary) {
+        return progressRepository.countDueForReviewInDictionary(user, LocalDateTime.now(), dictionary);
     }
     
     // ===== DATA TRANSFER OBJECTS =====

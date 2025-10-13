@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -25,85 +26,86 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LearningSession {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "session_id")
-    private Long sessionId;
+    Long sessionId;
     
     @Column(name = "session_uuid", unique = true, nullable = false, length = 36)
     @Builder.Default
-    private String sessionUuid = UUID.randomUUID().toString();
+    String sessionUuid = UUID.randomUUID().toString();
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnoreProperties({"password", "googleId", "hibernateLazyInitializer", "handler"})
-    private User user;
+    User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dictionary_id", nullable = false)
     @JsonIgnoreProperties({"vocabularies", "userDictLists"})
-    private Dictionary dictionary;
+    Dictionary dictionary;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "learning_mode", nullable = false, length = 20)
-    private LearningMode learningMode;
+    LearningMode learningMode;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    Status status = Status.ACTIVE;
     
     @Column(name = "target_words", nullable = false)
-    private Integer targetWords; // Số từ dự định học
+    Integer targetWords; // Số từ dự định học
     
     @Column(name = "actual_words")
     @Builder.Default
-    private Integer actualWords = 0; // Số từ thực tế đã học
+    Integer actualWords = 0; // Số từ thực tế đã học
     
     @Column(name = "correct_count")
     @Builder.Default
-    private Integer correctCount = 0;
+    Integer correctCount = 0;
     
     @Column(name = "wrong_count")
     @Builder.Default
-    private Integer wrongCount = 0;
+    Integer wrongCount = 0;
     
     @Column(name = "skip_count")
     @Builder.Default
-    private Integer skipCount = 0;
+    Integer skipCount = 0;
     
     @Column(name = "time_spent_sec")
     @Builder.Default
-    private Integer timeSpentSec = 0; // Tổng thời gian (giây)
+    Integer timeSpentSec = 0; // Tổng thời gian (giây)
     
     @Column(name = "started_at")
-    private LocalDateTime startedAt;
+    LocalDateTime startedAt;
     
     @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    LocalDateTime completedAt;
     
     @Column(name = "last_activity_at")
-    private LocalDateTime lastActivityAt;
+    LocalDateTime lastActivityAt;
     
     @Column(name = "expires_at")
-    private LocalDateTime expiresAt; // Session timeout
+    LocalDateTime expiresAt; // Session timeout
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
     
     // Relationships
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     @JsonIgnore
-    private List<SessionVocabulary> sessionVocabularies = new ArrayList<>();
+    List<SessionVocabulary> sessionVocabularies = new ArrayList<>();
     
     /**
      * Enum cho Learning Mode

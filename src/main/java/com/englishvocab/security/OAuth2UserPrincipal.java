@@ -13,7 +13,7 @@ public class OAuth2UserPrincipal extends CustomUserPrincipal implements OAuth2Us
     
     private final Map<String, Object> attributes;
     
-    public OAuth2UserPrincipal(Long id, String username, String password, String fullname,
+    public OAuth2UserPrincipal(String id, String username, String password, String fullname,
                              String email, User.Role role, User.Status status,
                              Collection<? extends GrantedAuthority> authorities,
                              Map<String, Object> attributes) {

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Media - Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Test Upload Media</h2>
+    
+    <!-- Upload Avatar -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Upload Avatar</h5>
+        </div>
+        <div class="card-body">
+            <form id="avatarForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="avatarFile" class="form-label">Chọn ảnh avatar</label>
+                    <input type="file" class="form-control" id="avatarFile" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload Avatar</button>
+            </form>
+            <div id="avatarResult" class="mt-3"></div>
+        </div>
+    </div>
+    
+    <!-- Upload Vocab Audio -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Upload Vocab Audio</h5>
+        </div>
+        <div class="card-body">
+            <form id="audioForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="vocabId" class="form-label">Vocab ID</label>
+                    <input type="number" class="form-control" id="vocabId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="audioFile" class="form-label">Chọn file audio</label>
+                    <input type="file" class="form-control" id="audioFile" accept="audio/*" required>
+                </div>
+                <button type="submit" class="btn btn-success">Upload Audio</button>
+            </form>
+            <div id="audioResult" class="mt-3"></div>
+        </div>
+    </div>
+    
+    <!-- Upload Vocab Image -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Upload Vocab Image</h5>
+        </div>
+        <div class="card-body">
+            <form id="imageForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="vocabIdImage" class="form-label">Vocab ID</label>
+                    <input type="number" class="form-control" id="vocabIdImage" required>
+                </div>
+                <div class="mb-3">
+                    <label for="imageFile" class="form-label">Chọn ảnh minh họa</label>
+                    <input type="file" class="form-control" id="imageFile" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-info">Upload Image</button>
+            </form>
+            <div id="imageResult" class="mt-3"></div>
+        </div>
+    </div>
+    
+    <!-- Storage Info -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Storage Info</h5>
+        </div>
+        <div class="card-body">
+            <button id="storageBtn" class="btn btn-secondary">Kiểm tra dung lượng</button>
+            <div id="storageInfo" class="mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Upload Avatar
+    document.getElementById('avatarForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', document.getElementById('avatarFile').files[0]);
+        
+        try {
+            const response = await fetch('/api/media/avatar/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById('avatarResult').innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Upload thành công!</strong><br>
+                    URL: <a href="${result.fullUrl}" target="_blank">${result.fullUrl}</a><br>
+                    <img src="${result.fullUrl}" alt="Avatar" class="img-thumbnail mt-2" style="max-width: 200px;">
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('avatarResult').innerHTML = `
+                <div class="alert alert-danger">Upload thất bại: ${error.message}</div>
+            `;
+        }
+    });
+    
+    // Upload Audio
+    document.getElementById('audioForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const vocabId = document.getElementById('vocabId').value;
+        const formData = new FormData();
+        formData.append('file', document.getElementById('audioFile').files[0]);
+        
+        try {
+            const response = await fetch(`/api/media/vocab/${vocabId}/audio`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById('audioResult').innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Upload thành công!</strong><br>
+                    URL: <a href="${result.fullUrl}" target="_blank">${result.fullUrl}</a><br>
+                    <audio controls class="mt-2">
+                        <source src="${result.fullUrl}" type="${result.mimeType}">
+                    </audio>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('audioResult').innerHTML = `
+                <div class="alert alert-danger">Upload thất bại: ${error.message}</div>
+            `;
+        }
+    });
+    
+    // Upload Image
+    document.getElementById('imageForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const vocabId = document.getElementById('vocabIdImage').value;
+        const formData = new FormData();
+        formData.append('file', document.getElementById('imageFile').files[0]);
+        
+        try {
+            const response = await fetch(`/api/media/vocab/${vocabId}/image`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById('imageResult').innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Upload thành công!</strong><br>
+                    URL: <a href="${result.fullUrl}" target="_blank">${result.fullUrl}</a><br>
+                    <img src="${result.fullUrl}" alt="Vocab Image" class="img-thumbnail mt-2" style="max-width: 300px;">
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('imageResult').innerHTML = `
+                <div class="alert alert-danger">Upload thất bại: ${error.message}</div>
+            `;
+        }
+    });
+    
+    // Storage Info
+    document.getElementById('storageBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/api/media/storage/info');
+            const result = await response.json();
+            document.getElementById('storageInfo').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Thông tin dung lượng:</strong><br>
+                    Đã dùng: ${(result.totalUsed / 1024 / 1024).toFixed(2)} MB<br>
+                    Quota: ${(result.quota / 1024 / 1024).toFixed(2)} MB<br>
+                    Còn lại: ${(result.remaining / 1024 / 1024).toFixed(2)} MB<br>
+                    Phần trăm: ${result.percentUsed.toFixed(2)}%<br>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: ${result.percentUsed}%" 
+                             aria-valuenow="${result.percentUsed}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            ${result.percentUsed.toFixed(2)}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('storageInfo').innerHTML = `
+                <div class="alert alert-danger">Lỗi: ${error.message}</div>
+            `;
+        }
+    });
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -20,57 +21,58 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "dictionary", "senses", "vocabTopics", "userProgress", "listVocabs"})
 public class Vocab {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "vocab_id")
-    private Integer vocabId;
+    Integer vocabId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     @JoinColumn(name = "dictionary_id", nullable = false)
-    private Dictionary dictionary;
+    Dictionary dictionary;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Từ vựng không được để trống")
     @Size(max = 100, message = "Từ vựng không được vượt quá 100 ký tự")
-    private String word; // The actual word/term
+    String word; // The actual word/term
     
     @Column(nullable = false, length = 20)
     @NotBlank(message = "Từ loại không được để trống")
     @Size(max = 20, message = "Từ loại không được vượt quá 20 ký tự")
-    private String pos; // Part of Speech (noun, verb, adj, etc.)
+    String pos; // Part of Speech (noun, verb, adj, etc.)
     
     @Column(length = 100)
     @Size(max = 100, message = "Phiên âm không được vượt quá 100 ký tự")
-    private String ipa; // International Phonetic Alphabet
+    String ipa; // International Phonetic Alphabet
     
     @Column(nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Level level = Level.BEGINNER;
+    Level level = Level.BEGINNER;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     // Relationships
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Senses> senses;
+    List<Senses> senses;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<VocabTopics> vocabTopics;
+    List<VocabTopics> vocabTopics;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<UserVocabProgress> userProgress;
+    List<UserVocabProgress> userProgress;
     
     @OneToMany(mappedBy = "vocab", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<DictVocabList> listVocabs;
+    List<DictVocabList> listVocabs;
     
     public enum Level {
         BEGINNER, INTERMEDIATE, ADVANCED, EXPERT

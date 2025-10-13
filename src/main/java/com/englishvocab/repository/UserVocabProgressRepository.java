@@ -1,5 +1,6 @@
 package com.englishvocab.repository;
 
+import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.User;
 import com.englishvocab.entity.UserVocabProgress;
 import com.englishvocab.entity.Vocab;
@@ -56,7 +57,18 @@ public interface UserVocabProgressRepository extends JpaRepository<UserVocabProg
      */
     @Query("SELECT COUNT(uvp) FROM UserVocabProgress uvp WHERE uvp.user = :user AND uvp.nextReviewAt <= :now")
     long countDueForReview(@Param("user") User user, @Param("now") LocalDateTime now);
-    
+
+    /**
+     * Đếm từ đã học của user trong 1 cuốn từ điển
+     */
+    long countByUserAndVocab_Dictionary(User user, Dictionary dictionary);
+
+    /**
+     * Đếm từ cần review trong 1 cuốn từ điển
+     */
+    @Query("SELECT COUNT(uvp) FROM UserVocabProgress uvp WHERE uvp.user = :user AND uvp.nextReviewAt <= :now AND uvp.vocab.dictionary = :dictionary")
+    long countDueForReviewInDictionary(@Param("user") User user, @Param("now") LocalDateTime now, @Param("dictionary") Dictionary dictionary);
+
     /**
      * Tìm từ khó nhớ (wrong count cao)
      */

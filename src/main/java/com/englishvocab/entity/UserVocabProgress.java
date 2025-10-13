@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,57 +17,58 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class UserVocabProgress {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "vocab_progress_id")
-    private Integer vocabProgressId;
+    Integer vocabProgressId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id", nullable = false)
-    private Vocab vocab;
+    Vocab vocab;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
     
     @Column(name = "custom_vocab_id")
-    private Integer customVocabId; // For custom vocabulary
+    Integer customVocabId; // For custom vocabulary
     
     @Column(name = "first_learned")
-    private LocalDateTime firstLearned;
+    LocalDateTime firstLearned;
     
     @Column(name = "last_reviewed")
-    private LocalDateTime lastReviewed;
+    LocalDateTime lastReviewed;
     
     @Column(name = "next_review_at")
-    private LocalDateTime nextReviewAt;
+    LocalDateTime nextReviewAt;
     
     @Column(nullable = false, columnDefinition = "integer default 1")
     @Builder.Default
-    private Integer box = 1; // Leitner Box (1-5)
+    Integer box = 1; // Leitner Box (1-5)
     
     @Column(nullable = false, columnDefinition = "integer default 0")
     @Builder.Default
-    private Integer streak = 0; // Consecutive correct answers
+    Integer streak = 0; // Consecutive correct answers
     
     @Column(nullable = false, length = 10)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Status status = Status.LEARNING;
+    Status status = Status.LEARNING;
     
     @Column(name = "wrong_count", nullable = false, columnDefinition = "integer default 0")
     @Builder.Default
-    private Integer wrongCount = 0;
+    Integer wrongCount = 0;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
     
     public enum Status {
         NEW,        // Chưa học

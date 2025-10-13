@@ -95,7 +95,7 @@ public class AdminUserController {
      * Xem chi tiết người dùng
      */
     @GetMapping("/{id}")
-    public String view(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String view(@PathVariable String id, Model model, RedirectAttributes redirectAttributes) {
         try {
             User user = userService.findByIdOrThrow(id);
             
@@ -115,7 +115,7 @@ public class AdminUserController {
      * Form chỉnh sửa người dùng
      */
     @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String editForm(@PathVariable String id, Model model, RedirectAttributes redirectAttributes) {
         try {
             User user = userService.findByIdOrThrow(id);
             
@@ -137,7 +137,7 @@ public class AdminUserController {
      * Cập nhật người dùng
      */
     @PostMapping("/{id}/edit")
-    public String update(@PathVariable Long id,
+    public String update(@PathVariable String id,
                         @Valid @ModelAttribute User user,
                         BindingResult bindingResult,
                         Model model,
@@ -174,7 +174,7 @@ public class AdminUserController {
      * Thay đổi role người dùng
      */
     @PostMapping("/{id}/change-role")
-    public String changeRole(@PathVariable Long id,
+    public String changeRole(@PathVariable String id,
                             @RequestParam User.Role newRole,
                             RedirectAttributes redirectAttributes) {
         try {
@@ -196,7 +196,7 @@ public class AdminUserController {
      * Thay đổi trạng thái người dùng
      */
     @PostMapping("/{id}/change-status")
-    public String changeStatus(@PathVariable Long id,
+    public String changeStatus(@PathVariable String id,
                               @RequestParam User.Status newStatus,
                               RedirectAttributes redirectAttributes) {
         try {
@@ -223,7 +223,7 @@ public class AdminUserController {
      * Xóa người dùng (soft delete)
      */
     @PostMapping("/{id}/delete")
-    public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String delete(@PathVariable String id, RedirectAttributes redirectAttributes) {
         try {
             User user = userService.findByIdOrThrow(id); // Get user info before deletion
             userService.adminDeleteUser(id);
@@ -243,7 +243,7 @@ public class AdminUserController {
      * Reset password người dùng
      */
     @PostMapping("/{id}/reset-password")
-    public String resetPassword(@PathVariable Long id,
+    public String resetPassword(@PathVariable String id,
                                @RequestParam String newPassword,
                                RedirectAttributes redirectAttributes) {
         try {
