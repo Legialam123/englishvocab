@@ -17,7 +17,7 @@ spring:
     database: POSTGRESQL
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate  # ✅ Chỉ validate, không tự động sửa schema
+      ddl-auto: update  # TEMPORARY: Let JPA create schema
     show-sql: true
     properties:
       hibernate:
@@ -28,9 +28,10 @@ spring:
   
   # ===== FLYWAY MIGRATION =====
   flyway:
-    enabled: true
+    enabled: false  # TEMPORARY: Disabled to let JPA create schema
     baseline-on-migrate: true  # Cho phép migrate trên DB có sẵn
     locations: classpath:db/migration
+    validate-on-migrate: true
 
   # ===== REDIS CONFIGURATION =====
   data:

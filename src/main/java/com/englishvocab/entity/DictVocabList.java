@@ -6,9 +6,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
+
+/**
+ * Junction table: Liên kết system Vocab với UserVocabList
+ * 1 vocab có thể thuộc nhiều user lists khác nhau
+ */
 @Entity
-@Table(name = "dict_vocab_list")
+@Table(name = "dict_vocab_list",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"vocab_id", "user_vocab_list_id"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +26,7 @@ public class DictVocabList {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "dict_list_id") // This should be composite key, but simplified
+    @Column(name = "dict_list_id")
     Integer dictListId;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -26,6 +34,21 @@ public class DictVocabList {
     Vocab vocab;
     
     @ManyToOne(fetch = FetchType.LAZY)  
-    @JoinColumn(name = "dict_list_id", insertable = false, updatable = false)
+    @JoinColumn(name = "user_vocab_list_id", nullable = false)
     UserVocabList userVocabList;
+    
+    @CreationTimestamp
+    @Column(name = "added_at", updatable = false)
+    LocalDateTime addedAt;
+    
+    /**
+     * Helper methods
+     */
+    public String getVocabWord() {
+        return vocab != null ? vocab.getWord() : "";
+    }
+    
+    public String getListName() {
+        return userVocabList != null ? userVocabList.getName() : "";
+    }
 }

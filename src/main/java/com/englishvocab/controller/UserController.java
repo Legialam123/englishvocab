@@ -2,6 +2,7 @@ package com.englishvocab.controller;
 
 import com.englishvocab.entity.User;
 import com.englishvocab.service.UserService;
+import com.englishvocab.service.MediaService;
 import com.englishvocab.repository.UserRepository;
 import com.englishvocab.security.CustomUserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MediaService mediaService;
     
     /**
      * Hiển thị trang profile
@@ -45,6 +47,10 @@ public class UserController {
             model.addAttribute("profileForm", new ProfileUpdateForm(currentUser));
             model.addAttribute("passwordForm", new PasswordChangeForm());
             model.addAttribute("preferencesForm", new PreferencesForm(currentUser));
+            
+            // Get avatar URL from MediaService
+            String avatarUrl = mediaService.getUserAvatarUrl(currentUser.getId());
+            model.addAttribute("avatarUrl", avatarUrl);
             
             // Statistics
             // TODO: Add user learning statistics here

@@ -13,7 +13,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-        <link th:href="@{/css/global.css}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Global CSS (includes pronunciation.css) -->
+    <link th:href="@{/css/global.css}" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
         body {
@@ -87,7 +90,7 @@
             font-size: 1.5rem;
             color: #3498db;
             font-style: italic;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
         
         .word-pos {
@@ -96,6 +99,7 @@
             border-radius: 20px;
             font-size: 1rem;
             color: #7f8c8d;
+            margin-top: 0.5rem;
             margin-bottom: 1rem;
         }
         
@@ -512,8 +516,10 @@
                             <div class="flashcard-side flashcard-front">
                                 <div class="word-main" id="frontWord">Loading...</div>
                                 <div class="word-ipa" id="frontIpa">/ˈloʊdɪŋ/</div>
-                                <button class="audio-btn" onclick="event.stopPropagation(); playAudio()">
-                                    <i class="bi bi-volume-up"></i>
+                                <button class="btn-autoplay pronunciation-btn-circle" 
+                                        onclick="event.stopPropagation(); playPronunciation()" 
+                                        id="frontPronounceBtn">
+                                    <i class="fas fa-volume-up"></i>
                                 </button>
                                 <div class="word-pos" id="frontPos">noun</div>
                                 <small class="text-muted">Click để xem nghĩa</small>
@@ -524,8 +530,10 @@
                                 <div class="word-main" id="backWord">Loading...</div>
                                 <div class="word-meaning" id="backMeaning">Đang tải...</div>
                                 <div class="word-definition" id="backDefinition">Loading definition...</div>
-                                <button class="audio-btn" onclick="event.stopPropagation(); playAudio()">
-                                    <i class="bi bi-volume-up"></i>
+                                <button class="btn-repeat pronunciation-btn-circle" 
+                                        onclick="event.stopPropagation(); playPronunciation()" 
+                                        id="backPronounceBtn">
+                                    <i class="fas fa-volume-up"></i>
                                 </button>
                                 <small class="text-muted">Bạn có biết từ này không?</small>
                             </div>
@@ -679,11 +687,37 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/PronunciationPlayer.js}"></script>
     
     <!-- Custom JavaScript -->
     <script th:inline="javascript">
         // Dictionary ID from backend
         const dictionaryId = /*[[${dictionary != null ? dictionary.dictionaryId : null}]]*/ null;
+        
+        // Initialize Pronunciation Player
+        let pronunciationPlayer;
+        let pronunciationReady = false;
+        
+        (async function() {
+            try {
+                pronunciationPlayer = new PronunciationPlayer();
+                await pronunciationPlayer.waitUntilReady();
+                pronunciationReady = pronunciationPlayer.isReady();
+                
+                if (pronunciationReady) {
+                    console.log('✅ Pronunciation ready for flashcards!');
+                } else {
+                    console.warn('⚠️ Pronunciation not available');
+                    // Disable pronunciation buttons
+                    document.querySelectorAll('#frontPronounceBtn, #backPronounceBtn').forEach(btn => {
+                        btn.style.opacity = '0.5';
+                        btn.disabled = true;
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Failed to initialize pronunciation:', error);
+            }
+        })();
         
         // Session variables - loaded from backend
         let currentCardIndex = 0;
@@ -693,7 +727,8 @@
             vocabulary: [], // SessionVocabulary[] from backend
             answers: [], // Track user answers
             startTime: new Date(),
-            isFlipped: false
+            isFlipped: false,
+            cardStartTime: null // Thời điểm bắt đầu card hiện tại
         };
         
         // Enhanced tracking with 3 levels
@@ -731,6 +766,11 @@
             // Check if we have session data from Thymeleaf
             const sessionFromThymeleaf = /*[[${session}]]*/ null;
             const vocabulariesFromThymeleaf = /*[[${vocabularies}]]*/ [];
+            
+            console.log('=== SESSION DATA FROM BACKEND ===');
+            console.log('Session:', sessionFromThymeleaf);
+            console.log('Vocabularies count:', vocabulariesFromThymeleaf ? vocabulariesFromThymeleaf.length : 0);
+            console.log('First vocab:', vocabulariesFromThymeleaf && vocabulariesFromThymeleaf.length > 0 ? vocabulariesFromThymeleaf[0] : null);
             
             if (sessionFromThymeleaf && vocabulariesFromThymeleaf) {
                 sessionData.session = sessionFromThymeleaf;
@@ -798,25 +838,23 @@
             }
             
             const sessionVocab = sessionData.vocabulary[index];
-            const vocab = sessionVocab.vocab;
             
-            // Get primary meaning from first sense
-            const meaningVi = vocab.senses && vocab.senses.length > 0 
-                ? vocab.senses[0].meaningVi 
-                : 'Chưa có nghĩa';
-            const definition = vocab.senses && vocab.senses.length > 0 
-                ? vocab.senses[0].definition 
-                : '';
+            // 🕒 Bắt đầu đếm thời gian cho card này
+            sessionData.cardStartTime = new Date();
             
-            // Update front side
-            document.getElementById('frontWord').textContent = vocab.word;
-            document.getElementById('frontIpa').textContent = vocab.ipa || '';
-            document.getElementById('frontPos').textContent = vocab.pos || 'word';
+            console.log('Loading card:', sessionVocab);
+            console.log('Word:', sessionVocab.word);
+            console.log('Meaning:', sessionVocab.meaning);
             
-            // Update back side
-            document.getElementById('backWord').textContent = vocab.word;
-            document.getElementById('backMeaning').textContent = meaningVi;
-            document.getElementById('backDefinition').textContent = definition;
+            // Update front side (using DTO fields directly)
+            document.getElementById('frontWord').textContent = sessionVocab.word || 'Loading...';
+            document.getElementById('frontIpa').textContent = sessionVocab.ipa || '';
+            document.getElementById('frontPos').textContent = sessionVocab.pos || 'word';
+            
+            // Update back side (using DTO fields directly)
+            document.getElementById('backWord').textContent = sessionVocab.word || 'Loading...';
+            document.getElementById('backMeaning').textContent = sessionVocab.meaning || 'Chưa có nghĩa';
+            document.getElementById('backDefinition').textContent = ''; // Definition is now included in meaning
             
             // Reset card state
             resetCardState();
@@ -878,7 +916,12 @@
          */
         function answerCard(answerLevel) {
             const sessionVocab = sessionData.vocabulary[currentCardIndex];
-            const vocabId = sessionVocab.vocab.vocabId;
+            const vocabId = sessionVocab.vocabId; // Get vocabId from DTO directly
+            
+            // 🕒 Tính thời gian trả lời card này (giây)
+            const timeSpent = sessionData.cardStartTime 
+                ? Math.floor((new Date() - sessionData.cardStartTime) / 1000) 
+                : 0;
             
             // Map answerLevel to backend AnswerType
             const answerTypeMap = {
@@ -892,11 +935,11 @@
             sessionData.answers.push({
                 vocabId: vocabId,
                 answerType: answerType,
-                timeSpent: 0 // Can calculate if needed
+                timeSpent: timeSpent
             });
             
             // Send to backend immediately via AJAX
-            recordAnswerToBackend(vocabId, answerType);
+            recordAnswerToBackend(vocabId, answerType, timeSpent);
             
             // Update counters based on answer level
             switch(answerLevel) {
@@ -919,18 +962,26 @@
             
             // Move to next card
             currentCardIndex++;
-            document.getElementById('currentCard').textContent = currentCardIndex + 1;
             
-            // Load next card or complete session
-            setTimeout(() => {
-                loadCard(currentCardIndex);
-            }, 500);
+            // Check if session is complete before updating UI
+            if (currentCardIndex >= sessionData.vocabulary.length) {
+                // Don't update currentCard display, just complete
+                setTimeout(() => {
+                    completeSession();
+                }, 500);
+            } else {
+                // Update display and load next card
+                document.getElementById('currentCard').textContent = currentCardIndex + 1;
+                setTimeout(() => {
+                    loadCard(currentCardIndex);
+                }, 500);
+            }
         }
         
         /**
          * Record answer to backend via AJAX
          */
-        function recordAnswerToBackend(vocabId, answerType) {
+        function recordAnswerToBackend(vocabId, answerType, timeSpent) {
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
@@ -950,7 +1001,7 @@
                 sessionId: sessionId,
                 vocabId: vocabId,
                 answerType: answerType,
-                timeSpent: 0
+                timeSpent: timeSpent || 0
             });
             
             fetch('/learn/session/answer', {
@@ -1111,20 +1162,59 @@
         }
         
         /**
-         * Play pronunciation audio
+         * Play pronunciation audio using Web Speech API
          */
-        function playAudio() {
+        async function playPronunciation() {
+            if (!pronunciationPlayer || !pronunciationReady) {
+                console.warn('⚠️ Pronunciation player not ready');
+                return;
+            }
+            
             const word = sessionData.vocabulary[currentCardIndex].word;
             
-            // Use Web Speech API for text-to-speech
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(word);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.8;
-                speechSynthesis.speak(utterance);
-            } else {
-                console.log('Text-to-speech not supported');
+            // Get active button (front or back)
+            const frontBtn = document.getElementById('frontPronounceBtn');
+            const backBtn = document.getElementById('backPronounceBtn');
+            const activeBtn = sessionData.isFlipped ? backBtn : frontBtn;
+            
+            // Disable button during speech
+            if (activeBtn) {
+                activeBtn.disabled = true;
+                activeBtn.classList.add('playing');
             }
+            
+            try {
+                // Speak the word
+                await pronunciationPlayer.speak(word, {
+                    onEnd: () => {
+                        if (activeBtn) {
+                            activeBtn.classList.remove('playing');
+                            activeBtn.disabled = false;
+                        }
+                    },
+                    onError: (error) => {
+                        if (activeBtn) {
+                            activeBtn.classList.remove('playing');
+                            activeBtn.classList.add('error');
+                            activeBtn.disabled = false;
+                            setTimeout(() => {
+                                activeBtn.classList.remove('error');
+                            }, 500);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Failed to play pronunciation:', error);
+                if (activeBtn) {
+                    activeBtn.classList.remove('playing');
+                    activeBtn.disabled = false;
+                }
+            }
+        }
+        
+        // Deprecated: Keep for backwards compatibility
+        function playAudio() {
+            playPronunciation();
         }
         
         /**

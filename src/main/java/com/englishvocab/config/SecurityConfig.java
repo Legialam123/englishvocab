@@ -83,7 +83,7 @@ public class SecurityConfig {
         http
             // Tắt CSRF cho các API (nếu cần)
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/auth/api/**")
+                .ignoringRequestMatchers("/auth/api/**", "/api/**")
             )
 
             // Cấu hình authorization

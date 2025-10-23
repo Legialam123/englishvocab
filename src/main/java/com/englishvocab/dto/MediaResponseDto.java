@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MediaResponseDto {
     
-    private Long mediaId;
+    private Integer mediaId;
     private MediaType mediaType;
     private String fileName;
     private String fullUrl;
@@ -27,7 +27,7 @@ public class MediaResponseDto {
     private Boolean isPrimary;
     private String description;
     private String metadata;
-    private Long uploaderId;
+    private String uploaderId;  // Changed to String (UUID)
     private String uploaderName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

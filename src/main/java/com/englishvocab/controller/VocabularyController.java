@@ -5,10 +5,13 @@ import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.Vocab;
 import com.englishvocab.entity.UserCustomVocab;
 import com.englishvocab.entity.UserVocabProgress;
+import com.englishvocab.entity.UserVocabList;
+import com.englishvocab.repository.CustomVocabListRepository;
 import com.englishvocab.service.DictionaryService;
 import com.englishvocab.service.VocabularyService;
 import com.englishvocab.service.UserCustomVocabService;
 import com.englishvocab.service.UserProgressService;
+import com.englishvocab.service.UserVocabListService;
 import com.englishvocab.security.CustomUserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +43,8 @@ public class VocabularyController {
     private final VocabularyService vocabularyService;
     private final UserCustomVocabService userCustomVocabService;
     private final UserProgressService userProgressService;
+    private final UserVocabListService userVocabListService;
+    private final CustomVocabListRepository customVocabListRepository;
     
     /**
      * Trang chính - Danh sách từ vựng đã học
@@ -62,17 +67,26 @@ public class VocabularyController {
             // Lấy từ vựng cá nhân của user
             List<UserCustomVocab> customWords = userCustomVocabService.findByUser(currentUser);
             
+            // Lấy danh sách vocabulary lists gần đây (top 6)
+            List<UserVocabList> recentLists = userVocabListService.getActiveLists(currentUser)
+                    .stream()
+                    .limit(6)
+                    .toList();
+            
             // Statistics
             long totalLearned = userProgressService.countLearnedWords(currentUser);
             long totalCustom = userCustomVocabService.countByUser(currentUser);
             long wordsToReview = userProgressService.countWordsForReview(currentUser);
+            long totalLists = userVocabListService.countUserLists(currentUser);
             
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("learnedWords", learnedWords);
             model.addAttribute("customWords", customWords);
+            model.addAttribute("recentLists", recentLists);
             model.addAttribute("totalLearned", totalLearned);
             model.addAttribute("totalCustom", totalCustom);
             model.addAttribute("wordsToReview", wordsToReview);
+            model.addAttribute("totalLists", totalLists);
             
             log.info("User {} accessed vocabulary page with {} learned words", 
                     currentUser.getUsername(), totalLearned);
@@ -163,10 +177,14 @@ public class VocabularyController {
             // Get user's progress for these words
             // TODO: Add progress indicators for each word
             
+            // Get user's active lists for "Add to List" feature
+            List<UserVocabList> userLists = userVocabListService.getActiveLists(currentUser);
+            
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("dictionary", dictionary);
             model.addAttribute("levels", Vocab.Level.values());
             model.addAttribute("selectedLevel", level);
+            model.addAttribute("userLists", userLists);
             
             log.info("User {} viewing dictionary: {} ({})", 
                     currentUser.getUsername(), dictionary.getName(), dictionaryId);
@@ -187,8 +205,12 @@ public class VocabularyController {
     public String addForm(Authentication authentication, Model model) {
         User currentUser = getCurrentUser(authentication);
         
+        // Get user's active lists for multi-select
+        List<UserVocabList> userLists = userVocabListService.getActiveLists(currentUser);
+        
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("customVocabForm", new CustomVocabForm());
+        model.addAttribute("userLists", userLists);
         
         log.info("User {} accessing add custom vocabulary form", currentUser.getUsername());
         
@@ -201,6 +223,7 @@ public class VocabularyController {
     @PostMapping("/add")
     public String addCustomVocab(
             @Valid @ModelAttribute("customVocabForm") CustomVocabForm form,
+            @RequestParam(required = false) List<Integer> listIds,
             BindingResult result,
             Authentication authentication,
             RedirectAttributes redirectAttributes,
@@ -211,6 +234,9 @@ public class VocabularyController {
             
             if (result.hasErrors()) {
                 model.addAttribute("currentUser", currentUser);
+                // Re-add userLists in case of error
+                List<UserVocabList> userLists = userVocabListService.getActiveLists(currentUser);
+                model.addAttribute("userLists", userLists);
                 return "vocabulary/add";
             }
             
@@ -218,6 +244,9 @@ public class VocabularyController {
             if (userCustomVocabService.existsByUserAndWord(currentUser, form.getWord())) {
                 result.rejectValue("word", "error.word", "Bạn đã thêm từ này rồi");
                 model.addAttribute("currentUser", currentUser);
+                // Re-add userLists in case of error
+                List<UserVocabList> userLists = userVocabListService.getActiveLists(currentUser);
+                model.addAttribute("userLists", userLists);
                 return "vocabulary/add";
             }
             
@@ -230,10 +259,23 @@ public class VocabularyController {
                     .meaningVi(form.getMeaningVi())
                     .build();
             
-            userCustomVocabService.save(customVocab);
+            customVocab = userCustomVocabService.save(customVocab);
             
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Đã thêm từ vựng '" + form.getWord() + "' thành công!");
+            // Add to selected lists if any
+            if (listIds != null && !listIds.isEmpty()) {
+                for (Integer listId : listIds) {
+                    try {
+                        userVocabListService.addCustomVocab(listId, customVocab.getCustomVocabId(), currentUser);
+                    } catch (Exception e) {
+                        log.warn("Failed to add custom vocab to list {}: {}", listId, e.getMessage());
+                    }
+                }
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Đã thêm từ vựng '" + form.getWord() + "' và thêm vào " + listIds.size() + " danh sách!");
+            } else {
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Đã thêm từ vựng '" + form.getWord() + "' thành công!");
+            }
             
             log.info("User {} added custom vocabulary: {}", currentUser.getUsername(), form.getWord());
             
@@ -274,10 +316,21 @@ public class VocabularyController {
             form.setPos(customVocab.getPos());
             form.setMeaningVi(customVocab.getMeaningVi());
 
+            // Get user's active lists
+            var userLists = userVocabListService.getActiveLists(currentUser);
+            
+            // Get lists that this custom vocab is already in
+            var listsContainingVocab = customVocabListRepository.findByCustomVocabAndUserId(customVocab, currentUser.getId());
+            var selectedListIds = listsContainingVocab.stream()
+                    .map(cvl -> cvl.getUserVocabList().getUserVocabListId())
+                    .collect(java.util.stream.Collectors.toList());
+
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("customVocab", customVocab);
             model.addAttribute("customVocabId", customVocabId);
             model.addAttribute("customVocabForm", form);
+            model.addAttribute("userLists", userLists);
+            model.addAttribute("selectedListIds", selectedListIds);
 
             return "vocabulary/edit";
 
@@ -295,6 +348,7 @@ public class VocabularyController {
     public String updateCustomVocab(
             @PathVariable Integer customVocabId,
             @Valid @ModelAttribute("customVocabForm") CustomVocabForm form,
+            @RequestParam(required = false) List<Integer> listIds,
             BindingResult result,
             Authentication authentication,
             RedirectAttributes redirectAttributes,
@@ -322,6 +376,9 @@ public class VocabularyController {
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("customVocab", existingVocab);
             model.addAttribute("customVocabId", customVocabId);
+            // Re-load lists for error case
+            var userLists = userVocabListService.getActiveLists(currentUser);
+            model.addAttribute("userLists", userLists);
             return "vocabulary/edit";
         }
 
@@ -336,6 +393,30 @@ public class VocabularyController {
                     .build();
 
             userCustomVocabService.update(customVocabId, vocabToUpdate);
+            
+            // Update list associations
+            // First, get current lists
+            var currentListsContainingVocab = customVocabListRepository.findByCustomVocabAndUserId(existingVocab, currentUser.getId());
+            var currentListIds = currentListsContainingVocab.stream()
+                    .map(cvl -> cvl.getUserVocabList().getUserVocabListId())
+                    .collect(java.util.stream.Collectors.toSet());
+            
+            // Determine new list IDs
+            var newListIds = (listIds != null) ? new java.util.HashSet<>(listIds) : new java.util.HashSet<Integer>();
+            
+            // Remove from lists that are no longer selected
+            for (Integer listId : currentListIds) {
+                if (!newListIds.contains(listId)) {
+                    userVocabListService.removeCustomVocab(listId, customVocabId, currentUser);
+                }
+            }
+            
+            // Add to newly selected lists
+            for (Integer listId : newListIds) {
+                if (!currentListIds.contains(listId)) {
+                    userVocabListService.addCustomVocab(listId, customVocabId, currentUser);
+                }
+            }
 
             redirectAttributes.addFlashAttribute("successMessage",
                     "Đã cập nhật từ vựng '" + form.getWord() + "' thành công!");
@@ -348,6 +429,9 @@ public class VocabularyController {
             model.addAttribute("customVocab", existingVocab);
             model.addAttribute("customVocabId", customVocabId);
             model.addAttribute("errorMessage", e.getMessage());
+            // Re-load lists for error case
+            var userLists = userVocabListService.getActiveLists(currentUser);
+            model.addAttribute("userLists", userLists);
             return "vocabulary/edit";
         }
     }

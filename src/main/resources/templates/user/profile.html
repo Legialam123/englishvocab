@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>Profile - English Vocab</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -40,11 +45,51 @@
             height: 120px;
             background: rgba(255, 255, 255, 0.2);
             border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 3rem;
-            margin: 0 auto 1rem;
+            margin: 0 auto 0;
+            position: relative;
+            overflow: visible;  /* Changed to visible so camera button is not clipped */
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;  /* This keeps the image circular */
+        }
+
+        /* Camera button - positioned at bottom right */
+        .camera-btn {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border: 3px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .camera-btn:hover {
+            background: #6366f1;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .camera-btn i {
+            color: white;
+            font-size: 1.1rem;
         }
 
         .nav-tabs .nav-link {
@@ -201,6 +246,17 @@
                 font-size: 2rem;
             }
 
+            .camera-btn {
+                width: 32px;
+                height: 32px;
+                bottom: -6px;
+                right: -6px;
+            }
+
+            .camera-btn i {
+                font-size: 0.9rem;
+            }
+
             .nav-tabs .nav-link {
                 padding: 0.75rem 1rem;
                 font-size: 0.9rem;
@@ -233,8 +289,29 @@
             <div class="row align-items-center">
                 <div class="col-md-3 text-center">
                     <div class="profile-avatar rounded-circle">
-                        <i class="bi bi-person-fill"></i>
+                        <!-- Display current avatar or default icon -->
+                        <img th:if="${avatarUrl != null and avatarUrl != '/images/default-avatar.png'}" 
+                             th:src="${avatarUrl}" 
+                             alt="Avatar"
+                             id="avatarPreview">
+                        <i th:if="${avatarUrl == null or avatarUrl == '/images/default-avatar.png'}" 
+                           class="bi bi-person-fill"></i>
+                        
+                        <!-- Camera button at bottom right -->
+                        <div class="camera-btn" onclick="document.getElementById('avatarInput').click()" 
+                             title="Thay đổi ảnh đại diện">
+                            <i class="bi bi-camera-fill"></i>
+                        </div>
                     </div>
+                    
+                    <!-- Hidden file input -->
+                    <form id="avatarForm" th:action="@{/api/media/avatar/upload}" method="post" enctype="multipart/form-data" style="display: none;">
+                        <input type="file" 
+                               id="avatarInput" 
+                               name="file" 
+                               accept="image/*"
+                               onchange="uploadAvatar(this)">
+                    </form>
                 </div>
                 <div class="col-md-6 text-center text-md-start">
                     <h2 class="mb-1" th:text="${user.fullname}">Tên người dùng</h2>
@@ -612,6 +689,115 @@
                 });
             });
         });
+
+        // Avatar upload functionality
+        function uploadAvatar(input) {
+            const file = input.files[0];
+            
+            if (!file) {
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn file ảnh!');
+                input.value = '';
+                return;
+            }
+
+            // Validate file size (max 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                alert('Kích thước file không được vượt quá 10MB!');
+                input.value = '';
+                return;
+            }
+
+            // Preview image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('avatarPreview');
+                if (preview) {
+                    preview.src = e.target.result;
+                } else {
+                    // Create img if not exists
+                    const avatar = document.querySelector('.profile-avatar');
+                    const icon = avatar.querySelector('i.bi-person-fill');
+                    if (icon) {
+                        icon.remove();
+                    }
+                    const img = document.createElement('img');
+                    img.id = 'avatarPreview';
+                    img.src = e.target.result;
+                    img.alt = 'Avatar';
+                    avatar.insertBefore(img, avatar.firstChild);
+                }
+            };
+            reader.readAsDataURL(file);
+
+            // Upload via AJAX
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading
+            const cameraBtn = document.querySelector('.camera-btn i');
+            const originalIcon = cameraBtn.className;
+            cameraBtn.className = 'bi bi-hourglass-split';
+
+            fetch('/api/media/avatar/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Success
+                cameraBtn.className = originalIcon;
+                
+                // Show success message
+                showNotification('success', 'Cập nhật ảnh đại diện thành công!');
+                
+                // Reload page after 1 second
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            })
+            .catch(error => {
+                // Error
+                cameraBtn.className = originalIcon;
+                showNotification('error', 'Lỗi khi tải ảnh lên. Vui lòng thử lại!');
+                console.error('Upload error:', error);
+            });
+        }
+
+        // Show notification helper
+        function showNotification(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass} alert-dismissible fade show`;
+            alert.innerHTML = `
+                <i class="bi bi-${icon} me-2"></i>
+                <span>${message}</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(alert, container.firstChild);
+            
+            // Auto dismiss after 3 seconds
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
     </script>
 </body>
 </html>

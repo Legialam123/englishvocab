@@ -2,12 +2,15 @@ package com.englishvocab.controller;
 
 import com.englishvocab.dto.SessionResultDTO;
 import com.englishvocab.dto.SessionResultRequest;
+import com.englishvocab.dto.SessionVocabularyDTO;
+import com.englishvocab.dto.VocabWithProgressDTO;
 import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.LearningSession;
 import com.englishvocab.entity.SessionVocabulary;
 import com.englishvocab.entity.Topics;
 import com.englishvocab.entity.User;
 import com.englishvocab.entity.Vocab;
+import com.englishvocab.entity.UserVocabProgress;
 import com.englishvocab.security.CustomUserPrincipal;
 import com.englishvocab.repository.UserRepository;
 import com.englishvocab.service.DictionaryService;
@@ -26,6 +29,9 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -87,12 +93,13 @@ public class LearningController {
             .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
             Pageable pageable = PageRequest.of(page - 1, size);
-            Page<Vocab> vocabularies = vocabularyService.findByDictionaryOrderByWordAsc(dictionaryId, pageable);
+            Page<Vocab> vocabularies;
 
             List<String> activeLetterWindow = null;
-
             String lettersDisplay = null;
+            List<String> requestedLetters = null;
 
+            // Process letters filter
             if (letters != null && !letters.isBlank()) {
                 String sanitizedLetters = letters.replaceAll("[^a-zA-Z]", "");
                 if (!sanitizedLetters.isEmpty()) {
@@ -101,36 +108,70 @@ public class LearningController {
                             .mapToObj(character -> String.valueOf((char) character))
                             .collect(Collectors.joining(", "));
                 }
-                List<String> requestedLetters = sanitizedLetters.chars()
+                requestedLetters = sanitizedLetters.chars()
                         .mapToObj(character -> String.valueOf((char) character).toLowerCase(Locale.ROOT))
                         .collect(Collectors.toList());
 
                 if (!requestedLetters.isEmpty()) {
-                    vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, requestedLetters, pageable);
                     activeLetterWindow = requestedLetters.stream()
                             .map(letter -> letter.toUpperCase(Locale.ROOT))
                             .collect(Collectors.toList());
                 }
             }
 
+            // Process single startLetter filter
             if (activeLetterWindow == null && startLetter != null && !startLetter.isEmpty()) {
-                vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, startLetter, pageable);
+                requestedLetters = List.of(startLetter.toLowerCase());
                 activeLetterWindow = List.of(startLetter.substring(0, 1).toUpperCase(Locale.ROOT));
             }
 
-            if (level != null && !level.isEmpty()) {
+            // Apply combined filters
+            if (requestedLetters != null && !requestedLetters.isEmpty() && level != null && !level.isEmpty()) {
+                // Both letter and level filters
+                vocabularies = vocabularyService.findByDictionaryAndWordStartingWithAndLevel(dictionaryId, requestedLetters, level, pageable);
+            } else if (requestedLetters != null && !requestedLetters.isEmpty()) {
+                // Only letter filter
+                vocabularies = vocabularyService.findByDictionaryAndWordStartingWith(dictionaryId, requestedLetters, pageable);
+            } else if (level != null && !level.isEmpty()) {
+                // Only level filter
                 vocabularies = vocabularyService.findByDictionaryAndLevel(dictionaryId, level, pageable);
+            } else {
+                // No filters
+                vocabularies = vocabularyService.findByDictionaryOrderByWordAsc(dictionaryId, pageable);
             }
 
-            long total = vocabularyService.countByDictionary(dictionary.getDictionaryId());
+            // Calculate total based on applied filters
+            long total;
+            if (requestedLetters != null && !requestedLetters.isEmpty() && level != null && !level.isEmpty()) {
+                // Count with both filters
+                total = vocabularyService.countByDictionaryAndWordStartingWithAndLevel(dictionaryId, requestedLetters, level);
+            } else if (requestedLetters != null && !requestedLetters.isEmpty()) {
+                // Count with letter filter only
+                total = vocabularyService.countByDictionaryAndWordStartingWith(dictionaryId, requestedLetters);
+            } else if (level != null && !level.isEmpty()) {
+                // Count with level filter only
+                total = vocabularyService.countByDictionaryAndLevel(dictionaryId, level);
+            } else {
+                // Count all
+                total = vocabularyService.countByDictionary(dictionary.getDictionaryId());
+            }
+
             long learned = userProgressService.countLearnedWordsInDictionary(user, dictionary);
             long review = userProgressService.countWordsForReviewInDictionary(user, dictionary);
             long inProgress = Math.max(total - learned - review, 0);
             double percent = total == 0 ? 0 : (learned * 100.0 / total);
 
+            // Tạo DTO với progress information cho mỗi vocab
+            List<VocabWithProgressDTO> vocabsWithProgress = vocabularies.getContent().stream()
+                .map(vocab -> {
+                    UserVocabProgress progress = userProgressService.findUserProgress(user, vocab);
+                    return VocabWithProgressDTO.of(vocab, progress);
+                })
+                .collect(Collectors.toList());
+
             model.addAttribute("inProgressCount", inProgress);
             model.addAttribute("progressPercent", percent);
-            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("vocabularies", vocabsWithProgress);
             model.addAttribute("totalVocab", total);
             model.addAttribute("learnedVocab", learned);
             model.addAttribute("reviewVocab", review);
@@ -226,6 +267,8 @@ public class LearningController {
             // Get current user
             String currentUserId = getCurrentUserId(authentication);
             model.addAttribute("currentUserId", currentUserId);
+            User user = userRepository.findByEmail(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
             // Load vocabulary with advanced filtering from database
             Pageable pageable = PageRequest.of(page - 1, size);
@@ -236,8 +279,16 @@ public class LearningController {
             List<Topics> availableTopics = topicsService.findActiveTopics();
             model.addAttribute("availableTopics", availableTopics);
             
+            // Tạo DTO với progress information cho mỗi vocab
+            List<VocabWithProgressDTO> vocabsWithProgress = vocabularies.getContent().stream()
+                .map(vocab -> {
+                    UserVocabProgress progress = userProgressService.findUserProgress(user, vocab);
+                    return VocabWithProgressDTO.of(vocab, progress);
+                })
+                .collect(Collectors.toList());
+            
             // Add vocabulary data to model
-            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("vocabularies", vocabsWithProgress);
             model.addAttribute("totalPages", vocabularies.getTotalPages());
             model.addAttribute("currentPage", page);
             model.addAttribute("pageSize", size);
@@ -326,6 +377,8 @@ public class LearningController {
             @RequestParam String learningMode,
             @RequestParam(required = false) List<Integer> selectedVocabIds,
             @RequestParam(required = false) List<Integer> topicIds,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String startLetter,
             @RequestParam(defaultValue = "20") int sessionSize,
             Authentication authentication,
             Model model,
@@ -335,8 +388,8 @@ public class LearningController {
             // Get current user
             String userEmail = getCurrentUserId(authentication);
             if (log.isDebugEnabled()) {
-                log.debug("Start session request from user={} dictionaryId={} mode={} sessionSize={} selectedVocabIds={} topicIds={}",
-                        userEmail, dictionaryId, learningMode, sessionSize, selectedVocabIds, topicIds);
+                log.debug("Start session request from user={} dictionaryId={} mode={} sessionSize={} level={} startLetter={} selectedVocabIds={} topicIds={}",
+                        userEmail, dictionaryId, learningMode, sessionSize, level, startLetter, selectedVocabIds, topicIds);
             }
 
             User user = userRepository.findByEmail(userEmail)
@@ -345,12 +398,12 @@ public class LearningController {
             // Get dictionary
             Dictionary dictionary = dictionaryService.findByIdOrThrow(dictionaryId);
 
-            // Create learning session (cached in Redis)
+            // Create learning session (cached in Redis) with level and startLetter filters
             LearningSession session = learningService.createSession(
-                user, dictionary, learningMode, selectedVocabIds, sessionSize);
+                user, dictionary, learningMode, selectedVocabIds, sessionSize, level, startLetter);
 
-            log.info("User {} started learning session {} for dictionary {} in {} mode", 
-                    userEmail, session.getSessionUuid(), dictionary.getName(), learningMode);
+            log.info("User {} started learning session {} for dictionary {} in {} mode with level={} startLetter={}", 
+                    userEmail, session.getSessionUuid(), dictionary.getName(), learningMode, level, startLetter);
 
             // Redirect to flashcard session
             return "redirect:/learn/session/flashcards?sessionId=" + session.getSessionUuid();
@@ -389,12 +442,18 @@ public class LearningController {
             Page<SessionVocabulary> vocabularies = learningService.getSessionVocabularies(
                 sessionId, PageRequest.of(0, 100));
             
+            // Convert to DTOs to avoid LazyInitializationException
+            List<SessionVocabularyDTO> vocabularyDTOs = vocabularies.getContent().stream()
+                .map(SessionVocabularyDTO::from)
+                .collect(Collectors.toList());
+            
             model.addAttribute("session", session);
-            model.addAttribute("vocabularies", vocabularies.getContent());
+            model.addAttribute("vocabularies", vocabularyDTOs);
             model.addAttribute("dictionary", session.getDictionary());
             model.addAttribute("pageTitle", "Học từ vựng - Flashcards");
 
-            log.info("User {} accessing flashcard session {}", userEmail, sessionId);
+            log.info("User {} accessing flashcard session {} with {} vocabularies", 
+                userEmail, sessionId, vocabularyDTOs.size());
 
             return "learn/flashcards";
 
@@ -544,6 +603,17 @@ public class LearningController {
             
             // Get statistics
             Map<String, Object> stats = learningService.getSessionStatistics(sessionId);
+            
+            // Debug logging
+            log.info("📊 Session Results - SessionID: {}", sessionId);
+            log.info("   - Session from DB: targetWords={}, actualWords={}, correct={}, wrong={}, skip={}, time={}",
+                session.getTargetWords(), session.getActualWords(), 
+                session.getCorrectCount(), session.getWrongCount(), 
+                session.getSkipCount(), session.getTimeSpentSec());
+            log.info("   - Stats Map: {}", stats);
+            log.info("   - Result DTO: totalWords={}, correct={}, wrong={}, skip={}",
+                result.getTotalWords(), result.getCorrectCount(), 
+                result.getWrongCount(), result.getSkipCount());
 
             model.addAttribute("result", result);
             model.addAttribute("stats", stats);

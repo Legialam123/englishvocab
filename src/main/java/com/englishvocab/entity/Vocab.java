@@ -88,6 +88,23 @@ public class Vocab {
         return "";
     }
     
+    public String getPrimarySense() {
+        return getPrimaryMeaning();
+    }
+    
+    public String getDefinition() {
+        if (senses != null && !senses.isEmpty()) {
+            return senses.get(0).getDefinition();
+        }
+        return null;
+    }
+    
+    public String getExample() {
+        // Example is not stored in Senses entity currently
+        // Return null for now, can be added later if needed
+        return null;
+    }
+    
     public String getDisplayWord() {
         return word != null ? word : "";
     }

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Chỉnh sửa ' + ${list.name} + ' - English Vocab'">Chỉnh sửa danh sách - English Vocab</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --bg-light: #f8fafc;
+            --warning-color: #f59e0b;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-control:disabled, .form-select:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+        }
+
+        .form-text {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .invalid-feedback {
+            display: block;
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .is-invalid {
+            border-color: #ef4444 !important;
+        }
+
+        .radio-card {
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 0.75rem;
+        }
+
+        .radio-card:hover {
+            border-color: var(--primary-color);
+            background-color: #f8fafc;
+        }
+
+        .radio-card input[type="radio"]:checked + label {
+            font-weight: 600;
+        }
+
+        .radio-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid var(--warning-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box i {
+            color: var(--warning-color);
+        }
+
+        .locked-info {
+            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+            border: 1px solid #9ca3af;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary/lists">
+                        <i class="fas fa-list-ul"></i> Danh sách
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="#" th:href="@{'/vocabulary/lists/' + ${list.userVocabListId}}" th:text="${list.name}">List Name</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <h1 class="mb-2">
+                <i class="fas fa-edit me-2"></i>
+                Chỉnh sửa danh sách
+            </h1>
+            <p class="mb-0 opacity-75" th:text="${list.name}">List name</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Error Message -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Form -->
+        <div class="form-card">
+            <form th:action="@{'/vocabulary/lists/' + ${listId} + '/edit'}" th:object="${updateListRequest}" method="post">
+                <!-- List Name -->
+                <div class="mb-4">
+                    <label for="name" class="form-label">
+                        <i class="fas fa-heading me-2"></i>Tên danh sách
+                        <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="name" 
+                           th:field="*{name}"
+                           th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''"
+                           placeholder="Ví dụ: IELTS Reading Vocabulary"
+                           maxlength="100"
+                           required>
+                    <div class="form-text">Tên danh sách phải là duy nhất và không quá 100 ký tự</div>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
+                        Name error
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <label for="description" class="form-label">
+                        <i class="fas fa-align-left me-2"></i>Mô tả (tùy chọn)
+                    </label>
+                    <textarea class="form-control" 
+                              id="description" 
+                              th:field="*{description}"
+                              th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
+                              rows="3" 
+                              placeholder="Mô tả ngắn gọn về danh sách này..."
+                              maxlength="255"></textarea>
+                    <div class="form-text">Tối đa 255 ký tự</div>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">
+                        Description error
+                    </div>
+                </div>
+
+                <!-- Visibility -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="fas fa-eye me-2"></i>Quyền hiển thị
+                    </label>
+                    
+                    <div class="radio-card" onclick="selectRadio('visibilityPrivate')">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="radio" 
+                                   th:field="*{visibility}" 
+                                   value="PRIVATE" 
+                                   id="visibilityPrivate">
+                            <label class="form-check-label" for="visibilityPrivate">
+                                <i class="fas fa-lock me-2 text-secondary"></i>
+                                <strong>Riêng tư</strong>
+                                <div class="text-muted small mt-1">Chỉ bạn có thể xem danh sách này</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="radio-card" onclick="selectRadio('visibilityPublic')">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="radio" 
+                                   th:field="*{visibility}" 
+                                   value="PUBLIC" 
+                                   id="visibilityPublic">
+                            <label class="form-check-label" for="visibilityPublic">
+                                <i class="fas fa-globe me-2 text-success"></i>
+                                <strong>Công khai</strong>
+                                <div class="text-muted small mt-1">Mọi người có thể xem danh sách này</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="fas fa-toggle-on me-2"></i>Trạng thái
+                    </label>
+                    
+                    <div class="radio-card" onclick="selectRadio('statusActive')">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="radio" 
+                                   th:field="*{status}" 
+                                   value="ACTIVE" 
+                                   id="statusActive">
+                            <label class="form-check-label" for="statusActive">
+                                <i class="fas fa-check-circle me-2 text-success"></i>
+                                <strong>Hoạt động</strong>
+                                <div class="text-muted small mt-1">Danh sách đang được sử dụng</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="radio-card" onclick="selectRadio('statusInactive')">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="radio" 
+                                   th:field="*{status}" 
+                                   value="INACTIVE" 
+                                   id="statusInactive">
+                            <label class="form-check-label" for="statusInactive">
+                                <i class="fas fa-pause-circle me-2 text-warning"></i>
+                                <strong>Tạm ngưng</strong>
+                                <div class="text-muted small mt-1">Tạm thời ẩn danh sách này</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="radio-card" onclick="selectRadio('statusArchived')">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="radio" 
+                                   th:field="*{status}" 
+                                   value="ARCHIVED" 
+                                   id="statusArchived">
+                            <label class="form-check-label" for="statusArchived">
+                                <i class="fas fa-archive me-2 text-secondary"></i>
+                                <strong>Lưu trữ</strong>
+                                <div class="text-muted small mt-1">Lưu trữ danh sách này</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="d-flex gap-3 justify-content-end mt-4">
+                    <a th:href="@{'/vocabulary/lists/' + ${listId}}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Hủy
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Radio card selection visual feedback
+        function selectRadio(radioId) {
+            const radio = document.getElementById(radioId);
+            radio.checked = true;
+            
+            // Update visual feedback for same group
+            const groupName = radio.getAttribute('name');
+            document.querySelectorAll(`input[name="${groupName}"]`).forEach(r => {
+                r.closest('.radio-card').classList.remove('selected');
+            });
+            radio.closest('.radio-card').classList.add('selected');
+        }
+
+        // Initialize selected state
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                radio.closest('.radio-card').classList.add('selected');
+            });
+
+            // Character counter for name
+            const nameInput = document.getElementById('name');
+            const descInput = document.getElementById('description');
+
+            if (nameInput) {
+                nameInput.addEventListener('input', function() {
+                    const remaining = 100 - this.value.length;
+                    const helpText = this.nextElementSibling;
+                    if (helpText && helpText.classList.contains('form-text')) {
+                        if (remaining < 20) {
+                            helpText.textContent = `Còn ${remaining} ký tự`;
+                            helpText.style.color = remaining < 10 ? '#ef4444' : '#f59e0b';
+                        } else {
+                            helpText.textContent = 'Tên danh sách phải là duy nhất và không quá 100 ký tự';
+                            helpText.style.color = '';
+                        }
+                    }
+                });
+            }
+
+            if (descInput) {
+                descInput.addEventListener('input', function() {
+                    const remaining = 255 - this.value.length;
+                    const helpText = this.nextElementSibling;
+                    if (helpText && helpText.classList.contains('form-text')) {
+                        if (remaining < 50) {
+                            helpText.textContent = `Còn ${remaining} ký tự`;
+                            helpText.style.color = remaining < 20 ? '#ef4444' : '#f59e0b';
+                        } else {
+                            helpText.textContent = 'Tối đa 255 ký tự';
+                            helpText.style.color = '';
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+

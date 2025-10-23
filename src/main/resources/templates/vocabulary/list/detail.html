@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${list.name} + ' - English Vocab'">Chi tiết danh sách - English Vocab</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --bg-light: #f8fafc;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-green {
+            color: #065f46;
+            background-color: #d1fae5;
+            border: 1px solid #a7f3d0;
+        }
+
+        .btn-green:hover {
+            color: #064e3b;
+            background-color: #a7f3d0;
+            border-color: #6ee7b7;
+        }
+
+        .btn-green:focus, .btn-green:active {
+            color: #064e3b;
+            background-color: #6ee7b7;
+            border-color: #34d399;
+        }
+
+        .info-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-item i {
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        .vocab-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .vocab-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .vocab-word {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .vocab-ipa {
+            color: #64748b;
+            font-style: italic;
+            margin-left: 0.5rem;
+        }
+
+        .vocab-pos {
+            display: inline-block;
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            color: #4338ca;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .vocab-meaning {
+            color: var(--text-color);
+            margin-top: 0.75rem;
+            line-height: 1.6;
+        }
+
+        .vocab-definition {
+            color: #64748b;
+            font-style: italic;
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            border-left: 3px solid var(--border-color);
+        }
+
+        .vocab-type-badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .badge-system {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+
+        .badge-custom {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+
+        .badge-level {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+        
+        .badge-level.level-beginner {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+        }
+        
+        .badge-level.level-intermediate {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+        
+        .badge-level.level-advanced {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+
+        .btn-remove {
+            color: var(--danger-color);
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove:hover {
+            background: var(--danger-color);
+            color: white;
+            border-color: var(--danger-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 0.75rem;
+            border: 2px dashed var(--border-color);
+        }
+
+        .empty-state i {
+            font-size: 5rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem 0.75rem 3rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 1rem 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 1.5rem 0;
+            }
+            
+            .vocab-card {
+                padding: 1rem;
+            }
+            
+            .info-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumb Navigation -->
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/dashboard">
+                        <i class="bi bi-house-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/vocabulary/lists">
+                        <i class="fas fa-list-ul"></i> Danh sách
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${list.name}">Chi tiết</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2" th:text="${list.name}">IELTS Reading Vocabulary</h1>
+                    <p class="mb-0 opacity-75" th:text="${list.description}">Vocabulary for IELTS reading section</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="/vocabulary/lists" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                    <a href="/vocabulary/add" class="btn btn-green me-2">
+                        <i class="fas fa-plus me-1"></i>Thêm từ vựng
+                    </a>
+                    <a th:href="@{'/learn/list/' + ${list.userVocabListId} + '/flashcards'}" 
+                       class="btn btn-warning"
+                       th:if="${vocabItems != null and !vocabItems.isEmpty()}">
+                        <i class="fas fa-play me-1"></i>Học ngay
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}">Success message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <span th:text="${errorMessage}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Search Box -->
+        <div class="search-box" th:if="${vocabItems != null and !vocabItems.isEmpty()}">
+            <i class="fas fa-search"></i>
+            <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm từ vựng...">
+        </div>
+
+        <!-- Vocabulary List -->
+        <div class="row" th:if="${vocabItems != null and !vocabItems.isEmpty()}">
+            <div class="col-lg-6" th:each="item : ${vocabItems}">
+                <div class="vocab-card" th:data-word="${item.word}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <!-- Word Header -->
+                            <div class="d-flex align-items-baseline flex-wrap gap-2">
+                                <span class="vocab-word" th:text="${item.word}">accommodate</span>
+                                <button class="pronunciation-btn" 
+                                        th:attr="data-word=${item.word}"
+                                        title="Phát âm"
+                                        style="margin-left: 0.5rem;">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                                <span class="vocab-pos" th:if="${item.pos != null and !#strings.isEmpty(item.pos)}" 
+                                      th:text="${item.pos}">verb</span>
+                            </div>
+                            <span class="vocab-ipa" th:if="${item.ipa != null}" th:text="'/' + ${item.ipa} + '/'">/əˈkɒmədeɪt/</span>
+
+                            <!-- Meaning -->
+                            <div class="vocab-meaning" th:if="${item.meaning != null}" th:text="${item.meaning}">
+                                chứa được, cung cấp chỗ ở
+                            </div>
+
+                            <!-- Badges - with min-height to ensure consistent spacing -->
+                            <div class="mt-3 d-flex align-items-center gap-2" style="min-height: 36px;">
+                                <span class="vocab-type-badge badge-system" th:if="${item.type == 'SYSTEM'}">
+                                    <i class="fas fa-database me-1"></i>Từ điển
+                                </span>
+                                <span class="vocab-type-badge badge-level" 
+                                      th:if="${item.level != null}" 
+                                      th:text="${item.level}"
+                                      th:classappend="${item.level == 'BEGINNER' ? 'level-beginner' : (item.level == 'INTERMEDIATE' ? 'level-intermediate' : (item.level == 'ADVANCED' ? 'level-advanced' : ''))}">
+                                    B2
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Remove Button and Date -->
+                        <div class="ms-3 d-flex flex-column align-items-end" style="align-self: stretch;">
+                            <!-- Remove Button - Top -->
+                            <div>
+                                <form th:if="${item.type == 'SYSTEM'}" 
+                                      th:action="@{'/vocabulary/lists/' + ${list.userVocabListId} + '/remove-system/' + ${item.vocabId}}" 
+                                      method="post"
+                                      onsubmit="return confirm('Xóa từ này khỏi danh sách?')">
+                                    <button type="submit" class="btn btn-remove btn-sm">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                                <form th:if="${item.type == 'CUSTOM'}" 
+                                      th:action="@{'/vocabulary/lists/' + ${list.userVocabListId} + '/remove-custom/' + ${item.customVocabId}}" 
+                                      method="post"
+                                      onsubmit="return confirm('Xóa từ này khỏi danh sách?')">
+                                    <button type="submit" class="btn btn-remove btn-sm">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <!-- Spacer to push date to bottom -->
+                            <div style="flex-grow: 1;"></div>
+                            <!-- Added Date - Bottom -->
+                            <span class="text-muted small text-end" th:if="${item.addedAt != null}" style="white-space: nowrap;">
+                                <i class="far fa-clock me-1"></i><span th:text="${#temporals.format(item.addedAt, 'dd/MM/yyyy')}">20/10/2025</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" th:if="${vocabItems == null or vocabItems.isEmpty()}">
+            <i class="fas fa-book-open"></i>
+            <h3>Chưa có từ vựng nào</h3>
+            <p class="text-muted mb-4">Thêm từ vựng vào danh sách để bắt đầu học!</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="/vocabulary/dictionaries" class="btn btn-sm btn-outline-primary" 
+                   style="padding: 0.25rem 0.75rem; font-size: 0.85rem; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <i class="fas fa-search me-2" style="font-size: 0.75rem;"></i>Duyệt từ điển
+                </a>
+                <a href="/vocabulary/add" class="btn btn-sm btn-primary"
+                   style="padding: 0.25rem 0.75rem; font-size: 0.85rem; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <i class="fas fa-plus me-1" style="font-size: 0.75rem;"></i>Thêm từ vựng
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/PronunciationPlayer.js}"></script>
+    <script>
+        // Search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const vocabCards = document.querySelectorAll('.vocab-card');
+                    
+                    vocabCards.forEach(card => {
+                        const word = card.dataset.word?.toLowerCase() || '';
+                        const text = card.textContent.toLowerCase();
+                        
+                        if (word.includes(searchTerm) || text.includes(searchTerm)) {
+                            card.style.display = '';
+                            card.closest('.col-lg-6').style.display = '';
+                        } else {
+                            card.style.display = 'none';
+                            card.closest('.col-lg-6').style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Initialize Pronunciation Player
+            let pronunciationPlayer;
+            
+            (async function() {
+                if (window.pronunciationPlayerInitialized) return;
+                window.pronunciationPlayerInitialized = true;
+                
+                try {
+                    pronunciationPlayer = new PronunciationPlayer();
+                    await pronunciationPlayer.waitUntilReady();
+                    
+                    if (!pronunciationPlayer.isReady()) {
+                        document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                            btn.style.opacity = '0.5';
+                            btn.disabled = true;
+                        });
+                        return;
+                    }
+                    
+                    let currentPlayingButton = null;
+                    
+                    document.querySelectorAll('.pronunciation-btn').forEach(button => {
+                        const newButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newButton, button);
+                        
+                        newButton.addEventListener('click', async function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const word = this.dataset.word;
+                            if (!word) return;
+                            
+                            if (currentPlayingButton && currentPlayingButton !== this) {
+                                currentPlayingButton.classList.remove('playing');
+                                currentPlayingButton.disabled = false;
+                            }
+                            
+                            if (this.disabled && currentPlayingButton === this) return;
+                            
+                            currentPlayingButton = this;
+                            this.disabled = true;
+                            this.classList.add('playing');
+                            
+                            try {
+                                await pronunciationPlayer.speak(word, {
+                                    onEnd: () => {
+                                        this.classList.remove('playing');
+                                        this.disabled = false;
+                                        if (currentPlayingButton === this) {
+                                            currentPlayingButton = null;
+                                        }
+                                    },
+                                    onError: () => {
+                                        this.classList.remove('playing');
+                                        this.disabled = false;
+                                        if (currentPlayingButton === this) {
+                                            currentPlayingButton = null;
+                                        }
+                                    }
+                                });
+                            } catch (error) {
+                                console.error('Pronunciation error:', error);
+                                this.classList.remove('playing');
+                                this.disabled = false;
+                                if (currentPlayingButton === this) {
+                                    currentPlayingButton = null;
+                                }
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('Failed to initialize pronunciation:', error);
+                    document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                }
+            })();
+        });
+
+        // Card hover animation
+        document.querySelectorAll('.vocab-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transition = 'all 0.3s ease';
+            });
+        });
+    </script>
+</body>
+</html>
+
+

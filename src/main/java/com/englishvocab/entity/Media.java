@@ -25,7 +25,7 @@ public class Media {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long mediaId;
+    Integer mediaId;  // Changed from Long to Integer for consistency with other entities
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

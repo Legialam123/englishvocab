@@ -280,6 +280,71 @@
                 padding: 0.75rem;
             }
         }
+
+        /* Add to List Button */
+        .add-to-list-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .add-to-list-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .add-to-list-btn i {
+            margin-right: 0.25rem;
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 1rem 1rem 0 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .list-checkbox-item {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .list-checkbox-item:hover {
+            background-color: #f8fafc;
+            border-color: var(--primary-color);
+        }
+
+        .list-checkbox-item input[type="checkbox"] {
+            cursor: pointer;
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+
+        .list-checkbox-item label {
+            cursor: pointer;
+            margin-bottom: 0;
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
@@ -452,19 +517,37 @@
                     <!-- For search results (List) -->
                     <div th:if="${isSearch}" class="col-md-6" th:each="vocab : ${vocabularies}">
                         <div class="word-card">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="word-heading">
+                            <div class="d-flex justify-content-between">
+                                <div class="flex-grow-1 d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="word-header">
                                             <span class="word-main" th:text="${vocab.word}">hello</span>
+                                            <button class="pronunciation-btn ms-2" 
+                                                    th:attr="data-word=${vocab.word}"
+                                                    title="Phát âm">
+                                                <i class="fas fa-volume-up"></i>
+                                            </button>
                                             <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos != null and !#strings.isEmpty(vocab.pos)}">interjection</span>
                                         </div>
-                                        <span class="word-level" th:text="${vocab.level}" th:if="${vocab.level}">BEGINNER</span>
+                                        <div class="ms-2" th:if="${userLists != null and !userLists.isEmpty()}">
+                                            <button class="add-to-list-btn" 
+                                                    th:attr="data-vocab-id=${vocab.vocabId},data-vocab-word=${vocab.word}"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#addToListModal"
+                                                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                                                <i class="bi bi-plus-circle"></i> List
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="word-tags" th:if="${vocab.ipa != null and !#strings.isEmpty(vocab.ipa)}">
                                         <span class="word-ipa" th:text="${vocab.formattedIpa}">/'hɛloʊ/</span>
                                     </div>
                                     <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
+                                    <div class="mt-auto pt-2 text-end" th:if="${vocab.level != null}">
+                                        <span class="badge" 
+                                              th:classappend="${vocab.level.name() == 'BEGINNER' ? 'bg-success' : (vocab.level.name() == 'INTERMEDIATE' ? 'bg-primary' : 'bg-warning')}"
+                                              th:text="${vocab.level.name()}">BEGINNER</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -473,19 +556,37 @@
                     <!-- For paginated results (Page) -->
                     <div th:unless="${isSearch}" class="col-md-6" th:each="vocab : ${vocabularies.content}">
                         <div class="word-card">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="word-heading">
+                            <div class="d-flex justify-content-between">
+                                <div class="flex-grow-1 d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="word-header">
                                             <span class="word-main" th:text="${vocab.word}">hello</span>
+                                            <button class="pronunciation-btn ms-2" 
+                                                    th:attr="data-word=${vocab.word}"
+                                                    title="Phát âm">
+                                                <i class="fas fa-volume-up"></i>
+                                            </button>
                                             <span class="word-pos" th:text="${vocab.pos}" th:if="${vocab.pos != null and !#strings.isEmpty(vocab.pos)}">interjection</span>
                                         </div>
-                                        <span class="word-level" th:text="${vocab.level}" th:if="${vocab.level}">BEGINNER</span>
+                                        <div class="ms-2" th:if="${userLists != null and !userLists.isEmpty()}">
+                                            <button class="add-to-list-btn" 
+                                                    th:attr="data-vocab-id=${vocab.vocabId},data-vocab-word=${vocab.word}"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#addToListModal"
+                                                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                                                <i class="bi bi-plus-circle"></i> List
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="word-tags" th:if="${vocab.ipa != null and !#strings.isEmpty(vocab.ipa)}">
                                         <span class="word-ipa" th:text="${vocab.formattedIpa}">/'hɛloʊ/</span>
                                     </div>
                                     <div class="word-meaning" th:text="${vocab.primaryMeaning}">xin chào</div>
+                                    <div class="mt-auto pt-2 text-end" th:if="${vocab.level != null}">
+                                        <span class="badge" 
+                                              th:classappend="${vocab.level.name() == 'BEGINNER' ? 'bg-success' : (vocab.level.name() == 'INTERMEDIATE' ? 'bg-primary' : 'bg-warning')}"
+                                              th:text="${vocab.level.name()}">BEGINNER</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -536,6 +637,54 @@
         </div>
     </div>
 
+    <!-- Add to List Modal -->
+    <div class="modal fade" id="addToListModal" tabindex="-1" aria-labelledby="addToListModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addToListModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Thêm "<span id="selectedWord"></span>" vào danh sách
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div th:if="${userLists == null or userLists.isEmpty()}" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Bạn chưa có danh sách nào.</p>
+                        <a href="/vocabulary/lists/create" class="btn btn-primary">
+                            <i class="bi bi-plus-lg"></i> Tạo danh sách mới
+                        </a>
+                    </div>
+                    <div th:if="${userLists != null and !userLists.isEmpty()}">
+                        <p class="text-muted mb-3">Chọn các danh sách bạn muốn thêm từ vựng này vào:</p>
+                        <div id="listCheckboxes">
+                            <div th:each="list : ${userLists}" class="list-checkbox-item d-flex align-items-center">
+                                <input type="checkbox" 
+                                       th:id="'list-' + ${list.userVocabListId}" 
+                                       th:value="${list.userVocabListId}"
+                                       class="me-3">
+                                <label th:for="'list-' + ${list.userVocabListId}" class="d-flex flex-column">
+                                    <strong th:text="${list.name}">List Name</strong>
+                                    <small class="text-muted" th:text="${list.description}">List description</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3 d-none" id="addListInfo">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span id="addListMessage"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" th:if="${userLists != null and !userLists.isEmpty()}">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddToList">
+                        <i class="bi bi-check-circle me-2"></i>Thêm vào danh sách
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script th:inline="javascript">
@@ -576,7 +725,184 @@
                     card.style.transform = 'translateY(0)';
                 }, index * 150);
             });
+            
+            // Initialize Pronunciation Player
+            (async function() {
+                try {
+                    const pronunciationPlayer = new PronunciationPlayer();
+                    
+                    // Wait for voices to load
+                    await pronunciationPlayer.waitUntilReady();
+                    
+                    if (!pronunciationPlayer.isReady()) {
+                        console.warn('⚠️ Pronunciation not available in this browser');
+                        document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                            btn.style.opacity = '0.5';
+                            btn.disabled = true;
+                            btn.title = 'Phát âm không khả dụng';
+                        });
+                        return;
+                    }
+                    
+                    console.log('✅ Pronunciation player ready!');
+                    
+                    // Track currently playing button
+                    let currentPlayingButton = null;
+                    
+                    // Add click handlers to all pronunciation buttons
+                    document.querySelectorAll('.pronunciation-btn').forEach(button => {
+                        button.addEventListener('click', async function(e) {
+                            e.stopPropagation(); // Prevent card click
+                            const word = this.dataset.word;
+                            
+                            if (!word) return;
+                            
+                            // Reset previous playing button if exists
+                            if (currentPlayingButton && currentPlayingButton !== this) {
+                                currentPlayingButton.classList.remove('playing');
+                                currentPlayingButton.disabled = false;
+                            }
+                            
+                            // Skip if this button is already playing
+                            if (this.disabled && currentPlayingButton === this) {
+                                return;
+                            }
+                            
+                            // Set as current playing button
+                            currentPlayingButton = this;
+                            
+                            // Disable button during speech
+                            this.disabled = true;
+                            this.classList.add('playing');
+                            
+                            try {
+                                // Speak the word
+                                await pronunciationPlayer.speak(word, {
+                                    onEnd: () => {
+                                        this.classList.remove('playing');
+                                        this.disabled = false;
+                                        if (currentPlayingButton === this) {
+                                            currentPlayingButton = null;
+                                        }
+                                    },
+                                    onError: (error) => {
+                                        this.classList.remove('playing');
+                                        this.classList.add('error');
+                                        this.disabled = false;
+                                        if (currentPlayingButton === this) {
+                                            currentPlayingButton = null;
+                                        }
+                                        setTimeout(() => {
+                                            this.classList.remove('error');
+                                        }, 500);
+                                    }
+                                });
+                            } catch (error) {
+                                console.error('Failed to play pronunciation:', error);
+                                this.classList.remove('playing');
+                                this.disabled = false;
+                                if (currentPlayingButton === this) {
+                                    currentPlayingButton = null;
+                                }
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('❌ Failed to initialize pronunciation player:', error);
+                    // Hide pronunciation buttons if not supported
+                    document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                }
+            })();
+
+            // Add to List functionality
+            let selectedVocabId = null;
+            let selectedVocabWord = null;
+
+            // Handle "Add to List" button click
+            document.querySelectorAll('.add-to-list-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectedVocabId = this.getAttribute('data-vocab-id');
+                    selectedVocabWord = this.getAttribute('data-vocab-word');
+                    
+                    // Update modal title with word
+                    document.getElementById('selectedWord').textContent = selectedVocabWord;
+                    
+                    // Reset checkboxes
+                    document.querySelectorAll('#listCheckboxes input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    
+                    // Hide info message
+                    document.getElementById('addListInfo')?.classList.add('d-none');
+                });
+            });
+
+            // Handle confirm add to list
+            document.getElementById('confirmAddToList')?.addEventListener('click', async function() {
+                const checkedBoxes = document.querySelectorAll('#listCheckboxes input[type="checkbox"]:checked');
+                
+                if (checkedBoxes.length === 0) {
+                    showListMessage('Vui lòng chọn ít nhất một danh sách', 'warning');
+                    return;
+                }
+                
+                const listIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+                
+                // Disable button during request
+                const confirmBtn = this;
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang thêm...';
+                
+                try {
+                    const response = await fetch('/api/vocab-lists/add-system-vocab', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            vocabId: parseInt(selectedVocabId),
+                            listIds: listIds
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showListMessage(result.message, 'success');
+                        
+                        // Close modal after 1.5 seconds
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addToListModal'));
+                            modal.hide();
+                        }, 1500);
+                    } else {
+                        showListMessage(result.message, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error adding to list:', error);
+                    showListMessage('Có lỗi xảy ra. Vui lòng thử lại.', 'danger');
+                } finally {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
+                }
+            });
+
+            function showListMessage(message, type) {
+                const infoDiv = document.getElementById('addListInfo');
+                const messageSpan = document.getElementById('addListMessage');
+                
+                if (infoDiv && messageSpan) {
+                    infoDiv.className = `alert alert-${type} mt-3`;
+                    messageSpan.textContent = message;
+                    infoDiv.classList.remove('d-none');
+                }
+            }
         });
     </script>
+    <script th:src="@{/js/PronunciationPlayer.js}"></script>
 </body>
 </html>
+

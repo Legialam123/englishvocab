@@ -58,58 +58,84 @@ public class MediaServiceImpl implements MediaService {
     );
     
     @Override
+    @Transactional
     public MediaResponseDto uploadMedia(MediaUploadDto uploadDto, String currentUserId) throws IOException {
         MultipartFile file = uploadDto.getFile();
+        String savedFilePath = null;
         
-        // Validate file
-        validateFile(file, uploadDto.getMediaType());
-        
-        // Check storage quota
-        if (!checkUserStorageQuota(currentUserId, file.getSize())) {
-            throw new RuntimeException("Bạn đã vượt quá dung lượng lưu trữ cho phép (100MB)");
+        try {
+            // Validate file
+            validateFile(file, uploadDto.getMediaType());
+            
+            // Check storage quota
+            if (!checkUserStorageQuota(currentUserId, file.getSize())) {
+                throw new RuntimeException("Bạn đã vượt quá dung lượng lưu trữ cho phép (100MB)");
+            }
+            
+            // Get user by ID (UUID String from CustomUserPrincipal)
+            User uploader = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+            
+            // Nếu isPrimary = true, set tất cả media cũ thành not primary
+            if (Boolean.TRUE.equals(uploadDto.getIsPrimary())) {
+                mediaRepository.unsetAllPrimaryForEntity(
+                    uploadDto.getEntityType(), 
+                    uploadDto.getEntityId()
+                );
+            }
+            
+            // Nếu là avatar, xóa avatar cũ
+            if (uploadDto.getMediaType() == MediaType.PROFILE_AVATAR) {
+                deleteOldMediaForEntity(uploadDto.getEntityType(), uploadDto.getEntityId(), MediaType.PROFILE_AVATAR);
+            }
+            
+            // Save file to disk
+            savedFilePath = saveFile(file, uploadDto.getMediaType());
+            
+            // Create media entity
+            Media media = Media.builder()
+                .mediaType(uploadDto.getMediaType())
+                .fileName(file.getOriginalFilename())
+                .filePath(savedFilePath)
+                .fileSize(file.getSize())
+                .mimeType(file.getContentType())
+                .uploader(uploader)
+                .entityType(uploadDto.getEntityType())
+                .entityId(uploadDto.getEntityId())
+                .isPrimary(uploadDto.getIsPrimary() != null ? uploadDto.getIsPrimary() : false)
+                .description(uploadDto.getDescription())
+                .metadata(uploadDto.getMetadata())
+                .build();
+            
+            // Save to database
+            media = mediaRepository.save(media);
+            
+            log.info("Uploaded media: {} for {} ID: {}", media.getFileName(), 
+                uploadDto.getEntityType(), uploadDto.getEntityId());
+            
+            // Convert to DTO
+            return convertToDto(media);
+            
+        } catch (Exception e) {
+            // Rollback: Delete file if it was saved but database operation failed
+            if (savedFilePath != null) {
+                try {
+                    deleteFileFromDisk(savedFilePath);
+                    log.warn("Rolled back file upload: {} due to error: {}", savedFilePath, e.getMessage());
+                } catch (IOException cleanupEx) {
+                    log.error("Failed to cleanup file after error: {}", savedFilePath, cleanupEx);
+                }
+            }
+            
+            // Re-throw the exception
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new RuntimeException("Error uploading media", e);
+            }
         }
-        
-        // Get user
-        User uploader = userRepository.findById(currentUserId)
-            .orElseThrow(() -> new RuntimeException("User không tồn tại"));
-        
-        // Nếu isPrimary = true, set tất cả media cũ thành not primary
-        if (Boolean.TRUE.equals(uploadDto.getIsPrimary())) {
-            mediaRepository.unsetAllPrimaryForEntity(
-                uploadDto.getEntityType(), 
-                uploadDto.getEntityId()
-            );
-        }
-        
-        // Nếu là avatar, xóa avatar cũ
-        if (uploadDto.getMediaType() == MediaType.PROFILE_AVATAR) {
-            deleteOldMediaForEntity(uploadDto.getEntityType(), uploadDto.getEntityId(), MediaType.PROFILE_AVATAR);
-        }
-        
-        // Save file to disk
-        String filePath = saveFile(file, uploadDto.getMediaType());
-        
-        // Create media entity
-        Media media = Media.builder()
-            .mediaType(uploadDto.getMediaType())
-            .fileName(file.getOriginalFilename())
-            .filePath(filePath)
-            .fileSize(file.getSize())
-            .mimeType(file.getContentType())
-            .uploader(uploader)
-            .entityType(uploadDto.getEntityType())
-            .entityId(uploadDto.getEntityId())
-            .isPrimary(uploadDto.getIsPrimary() != null ? uploadDto.getIsPrimary() : false)
-            .description(uploadDto.getDescription())
-            .metadata(uploadDto.getMetadata())
-            .build();
-        
-        media = mediaRepository.save(media);
-        
-        log.info("Uploaded media: {} for {} ID: {}", media.getFileName(), 
-            uploadDto.getEntityType(), uploadDto.getEntityId());
-        
-        return convertToDto(media);
     }
     
     @Override
@@ -254,7 +280,7 @@ public class MediaServiceImpl implements MediaService {
             .isPrimary(media.getIsPrimary())
             .description(media.getDescription())
             .metadata(media.getMetadata())
-            .uploaderId(Long.parseLong(media.getUploader().getId()))
+            .uploaderId(media.getUploader().getId())  // No parsing needed - both are String (UUID)
             .uploaderName(media.getUploader().getUsername())
             .createdAt(media.getCreatedAt())
             .updatedAt(media.getUpdatedAt())
@@ -320,5 +346,48 @@ public class MediaServiceImpl implements MediaService {
             deleteFileFromDisk(oldMedia.getFilePath());
             mediaRepository.delete(oldMedia);
         }
+    }
+    
+    @Override
+    public int cleanupOrphanedFiles() throws IOException {
+        Path uploadPath = Paths.get(uploadDir);
+        
+        if (!Files.exists(uploadPath)) {
+            log.warn("Upload directory does not exist: {}", uploadDir);
+            return 0;
+        }
+        
+        // Get all files from uploads directory
+        List<String> filesOnDisk = Files.list(uploadPath)
+            .filter(Files::isRegularFile)
+            .map(path -> path.getFileName().toString())
+            .toList();
+        
+        // Get all file paths from database
+        List<String> filesInDatabase = mediaRepository.findAll().stream()
+            .map(Media::getFilePath)
+            .toList();
+        
+        // Find orphaned files (in disk but not in database)
+        List<String> orphanedFiles = filesOnDisk.stream()
+            .filter(file -> !filesInDatabase.contains(file))
+            .toList();
+        
+        // Delete orphaned files
+        int deletedCount = 0;
+        for (String orphanedFile : orphanedFiles) {
+            try {
+                deleteFileFromDisk(orphanedFile);
+                deletedCount++;
+                log.info("Deleted orphaned file: {}", orphanedFile);
+            } catch (IOException e) {
+                log.error("Failed to delete orphaned file: {}", orphanedFile, e);
+            }
+        }
+        
+        log.info("Cleanup completed: {} orphaned files deleted out of {} total files on disk", 
+            deletedCount, filesOnDisk.size());
+        
+        return deletedCount;
     }
 }

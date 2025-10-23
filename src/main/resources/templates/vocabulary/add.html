@@ -166,6 +166,85 @@
             margin-top: 0.5rem;
         }
 
+        /* Dropdown custom styles */
+        .dropdown-menu {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8fafc;
+        }
+
+        .dropdown-item .form-check {
+            margin: 0;
+            padding: 0;
+            padding-left: 0 !important;  /* Override Bootstrap default padding-left */
+            min-height: auto;
+        }
+
+        .dropdown-item .form-check-input {
+            cursor: pointer;
+            width: 1.125rem;
+            height: 1.125rem;
+            border: 2px solid #cbd5e1;
+            margin-left: 0 !important;  /* Remove default margin */
+            float: none;
+            position: relative;
+        }
+
+        .dropdown-item .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .dropdown-item .form-check-label {
+            cursor: pointer;
+            user-select: none;
+            line-height: 1.5;
+            padding-left: 0;
+        }
+
+        #listDropdown {
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            overflow: hidden;
+            background-color: white !important;
+        }
+
+        #listDropdown:hover {
+            background-color: white !important;
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.15);
+        }
+
+        #listDropdown:focus {
+            border-color: var(--primary-color);
+            background-color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+
+        #button-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        #selected-count {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            flex-shrink: 0;
+        }
+
         @media (max-width: 768px) {
             .form-card {
                 padding: 1.5rem 1rem;
@@ -304,6 +383,77 @@
                             <div class="help-text">Nghĩa chính của từ bằng tiếng Việt</div>
                         </div>
 
+                        <!-- Add to Lists -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-list me-2"></i>Thêm vào danh sách
+                            </label>
+                            
+                            <div class="dropdown" th:if="${userLists != null and !userLists.isEmpty()}">
+                                <button class="btn btn-outline-primary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                                        type="button" 
+                                        id="listDropdown"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        style="background-color: white;">
+                                    <span id="button-text" class="text-truncate" style="max-width: calc(100% - 60px);">
+                                        <i class="fas fa-folder me-2"></i>
+                                        Chọn danh sách
+                                    </span>
+                                    <span class="d-flex align-items-center">
+                                        <span class="badge bg-primary ms-2" id="selected-count" style="display: none;">0</span>
+                                    </span>
+                                </button>
+                                
+                                <ul class="dropdown-menu w-100 shadow" style="max-height: 300px; overflow-y: auto;">
+                                    <li class="dropdown-item-text text-muted small px-3 py-2 bg-light">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Chọn các danh sách bạn muốn thêm từ vào
+                                    </li>
+                                    <li><hr class="dropdown-divider m-0"></li>
+                                    
+                                    <!-- Loop through user lists -->
+                                    <li th:each="list : ${userLists}">
+                                        <div class="dropdown-item" style="white-space: normal; padding: 0.5rem 1rem;">
+                                            <div class="form-check d-flex align-items-start">
+                                                <input class="form-check-input mt-1 flex-shrink-0" 
+                                                       type="checkbox" 
+                                                       th:id="'list-' + ${list.userVocabListId}" 
+                                                       th:value="${list.userVocabListId}"
+                                                       name="listIds"
+                                                       onchange="updateSelectedCount()"
+                                                       style="margin-top: 0.25rem;">
+                                                <label class="form-check-label w-100 cursor-pointer ms-2" 
+                                                       th:for="'list-' + ${list.userVocabListId}"
+                                                       style="cursor: pointer;">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div class="flex-grow-1">
+                                                            <strong th:text="${list.name}">List Name</strong>
+                                                            <small class="text-muted d-block" 
+                                                                   th:if="${list.description != null and !#strings.isEmpty(list.description)}" 
+                                                                   th:text="${list.description}"
+                                                                   style="font-size: 0.85rem;">Description</small>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Empty state when no lists -->
+                            <div th:if="${userLists == null or userLists.isEmpty()}" 
+                                 class="alert alert-info d-flex align-items-center" 
+                                 role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <div>
+                                    Bạn chưa có danh sách nào. 
+                                    <a href="/vocabulary/lists/create" class="alert-link">Tạo danh sách mới</a>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Preview -->
                         <div id="preview-container" class="preview-card" style="display: none;">
                             <h6 class="mb-3">
@@ -331,31 +481,6 @@
                     </form>
                 </div>
 
-                <!-- Tips Card -->
-                <div class="form-card">
-                    <h5 class="mb-3">
-                        <i class="fas fa-lightbulb text-warning me-2"></i>
-                        Mẹo nhỏ
-                    </h5>
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Sử dụng <strong>Cambridge Dictionary</strong> hoặc <strong>Oxford Dictionary</strong> để tra phiên âm chính xác
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Ghi nghĩa ngắn gọn, dễ nhớ nhất
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Chọn từ loại giúp hiểu cách sử dụng từ trong câu
-                        </li>
-                        <li class="mb-0">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Sau khi thêm, từ sẽ xuất hiện trong danh sách "Từ vựng cá nhân"
-                        </li>
-                    </ul>
-                </div>
             </div>
         </div>
     </div>
@@ -363,6 +488,48 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Update selected lists display and count badge
+        function updateSelectedCount() {
+            const checkedBoxes = document.querySelectorAll('input[name="listIds"]:checked');
+            const count = checkedBoxes.length;
+            const buttonText = document.getElementById('button-text');
+            const badge = document.getElementById('selected-count');
+            
+            if (count === 0) {
+                // Không chọn gì: hiển thị placeholder
+                buttonText.innerHTML = '<i class="fas fa-folder me-2"></i>Chọn danh sách';
+                badge.style.display = 'none';
+            } else if (count === 1) {
+                // 1 danh sách: hiển thị tên đầy đủ
+                const listName = checkedBoxes[0].closest('.form-check').querySelector('strong').textContent;
+                buttonText.innerHTML = `<i class="fas fa-folder me-2"></i>${listName}`;
+                badge.style.display = 'none';
+            } else {
+                // 2+ danh sách: hiển thị tên với badge
+                const names = Array.from(checkedBoxes).map(cb => 
+                    cb.closest('.form-check').querySelector('strong').textContent
+                );
+                
+                // Lấy 2 tên đầu tiên
+                const displayText = names.slice(0, 2).join(', ');
+                
+                // Kiểm tra độ dài
+                if (displayText.length > 35) {
+                    // Truncate nếu quá dài
+                    buttonText.innerHTML = `<i class="fas fa-folder me-2"></i>${displayText.substring(0, 32)}...`;
+                } else if (count > 2) {
+                    // Có nhiều hơn 2 danh sách
+                    buttonText.innerHTML = `<i class="fas fa-folder me-2"></i>${displayText}...`;
+                } else {
+                    // Hiển thị đầy đủ 2 tên
+                    buttonText.innerHTML = `<i class="fas fa-folder me-2"></i>${displayText}`;
+                }
+                
+                badge.style.display = 'inline-block';
+                badge.textContent = count;
+            }
+        }
+
         // Update preview as user types
         function updatePreview() {
             const word = document.getElementById('word').value.trim();

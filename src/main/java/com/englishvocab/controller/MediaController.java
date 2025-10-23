@@ -2,6 +2,7 @@ package com.englishvocab.controller;
 
 import com.englishvocab.dto.MediaResponseDto;
 import com.englishvocab.entity.Media.EntityType;
+import com.englishvocab.security.CustomUserPrincipal;
 import com.englishvocab.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -33,10 +34,17 @@ public class MediaController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         try {
-            String userId = authentication.getName();  // userId is String (UUID)
+            // Get user ID from CustomUserPrincipal (UUID String)
+            CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+            String userId = principal.getId();
+            
+            System.out.println("DEBUG: Uploading avatar for userId: " + userId + " (type: " + userId.getClass().getName() + ")");
+            
             MediaResponseDto response = mediaService.uploadUserAvatar(file, userId);
             return ResponseEntity.ok(response);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("ERROR in uploadAvatar: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -50,7 +58,8 @@ public class MediaController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         try {
-            String userId = authentication.getName();
+            CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+            String userId = principal.getId();
             MediaResponseDto response = mediaService.uploadVocabAudio(file, vocabId, userId);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
@@ -67,7 +76,8 @@ public class MediaController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         try {
-            String userId = authentication.getName();
+            CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+            String userId = principal.getId();
             MediaResponseDto response = mediaService.uploadVocabImage(file, vocabId, userId);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
@@ -124,7 +134,8 @@ public class MediaController {
             @PathVariable Long mediaId,
             Authentication authentication) {
         try {
-            String userId = authentication.getName();  // userId is String (UUID)
+            CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+            String userId = principal.getId();
             mediaService.deleteMedia(mediaId, userId);
             
             Map<String, String> response = new HashMap<>();
@@ -140,7 +151,8 @@ public class MediaController {
      */
     @GetMapping("/storage/info")
     public ResponseEntity<Map<String, Object>> getStorageInfo(Authentication authentication) {
-        String userId = authentication.getName();  // userId is String (UUID)
+        CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+        String userId = principal.getId();
         Long totalUsed = mediaService.getTotalStorageUsed(userId);
         
         Map<String, Object> response = new HashMap<>();
@@ -150,5 +162,36 @@ public class MediaController {
         response.put("percentUsed", (totalUsed * 100.0) / 104857600L);
         
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Admin endpoint: Cleanup orphaned files
+     * DELETE /api/media/cleanup/orphaned
+     */
+    @DeleteMapping("/cleanup/orphaned")
+    public ResponseEntity<Map<String, Object>> cleanupOrphanedFiles(Authentication authentication) {
+        try {
+            // Check if user is admin
+            CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+            if (principal.getRole() != com.englishvocab.entity.User.Role.ADMIN) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            int deletedCount = mediaService.cleanupOrphanedFiles();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Cleanup completed successfully");
+            response.put("deletedFiles", deletedCount);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("ERROR in cleanupOrphanedFiles: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to cleanup orphaned files");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 }

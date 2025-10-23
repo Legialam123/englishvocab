@@ -255,11 +255,11 @@
                 </div>
                 <div class="col-md-4 text-md-end">
                     <div class="mt-3 mt-md-0">
-                        <a href="/vocabulary/add" class="btn btn-light me-2">
-                            <i class="fas fa-plus me-1"></i>Thêm từ mới
+                        <a href="/vocabulary/lists/create" class="btn btn-light me-2">
+                            <i class="fas fa-folder-plus me-1"></i>Tạo danh sách
                         </a>
-                        <a href="/vocabulary/dictionaries" class="btn btn-outline-light">
-                            <i class="fas fa-search me-1"></i>Duyệt từ điển
+                        <a href="/vocabulary/lists" class="btn btn-outline-light">
+                            <i class="fas fa-list me-1"></i>Danh sách của tôi
                         </a>
                     </div>
                 </div>
@@ -284,6 +284,12 @@
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
                 <div class="stats-card">
+                    <div class="stats-number text-primary" th:text="${totalLists}">0</div>
+                    <div class="stats-label">Danh sách</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
                     <div class="stats-number" th:text="${totalLearned}">0</div>
                     <div class="stats-label">Từ đã học</div>
                 </div>
@@ -300,12 +306,6 @@
                     <div class="stats-label">Từ cá nhân</div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="stats-card">
-                    <div class="stats-number text-info">0%</div>
-                    <div class="stats-label">Độ chính xác</div>
-                </div>
-            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -314,7 +314,7 @@
                 <div class="section-card h-100">
                     <h3 class="section-title">
                         <i class="fas fa-play-circle text-primary"></i>
-                        Bắt đầu học tập
+                        Bắt đầu ôn tập
                     </h3>
                     <p class="text-muted mb-3">Tiếp tục hành trình học từ vựng của bạn</p>
                     <div class="d-grid gap-2">
@@ -359,6 +359,57 @@
             </div>
         </div>
 
+        <!-- Vocabulary Lists Section -->
+        <div class="section-card" th:if="${recentLists != null and !recentLists.isEmpty()}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="section-title mb-0">
+                    <i class="fas fa-folder-open text-primary"></i>
+                    Danh sách từ vựng
+                </h3>
+                <a href="/vocabulary/lists" class="btn btn-sm btn-outline-primary">
+                    Xem tất cả →
+                </a>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 col-lg-4" th:each="list : ${recentLists}">
+                    <a th:href="@{'/vocabulary/lists/' + ${list.userVocabListId}}" 
+                       class="text-decoration-none">
+                        <div class="word-card" style="height: 100%;">
+                            <div class="d-flex flex-column h-100">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="word-main mb-0" th:text="${list.name}">TOEIC Business</h5>
+                                    </div>
+                                    
+                                    <p class="text-muted small mb-3" 
+                                       th:text="${list.description}" 
+                                       th:if="${list.description != null and !#strings.isEmpty(list.description)}"
+                                       style="max-height: 2.4em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                        Từ vựng kinh doanh cho TOEIC
+                                    </p>
+                                    
+                                    <div class="d-flex gap-3 small text-muted">
+                                        <span>
+                                            <i class="fas fa-book me-1"></i>
+                                            <span th:text="${list.dictVocabLists.size() + list.customVocabLists.size()}">45</span> từ
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 pt-3" style="border-top: 1px solid #e2e8f0;">
+                                    <small class="text-muted">
+                                        <i class="far fa-calendar me-1"></i>
+                                        <span th:text="${#temporals.format(list.createdAt, 'dd/MM/yyyy')}">22/10/2025</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Learned Words -->
         <div class="section-card" th:if="${learnedWords != null and learnedWords.hasContent()}">
             <h3 class="section-title">
@@ -371,15 +422,44 @@
                     <div class="word-card">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <div class="word-main" th:text="${progress.vocab.word}">hello</div>
+                                <div class="word-heading">
+                                    <span class="word-main" th:text="${progress.vocab.word}">hello</span>
+                                    <button class="pronunciation-btn ms-2" 
+                                            th:attr="data-word=${progress.vocab.word}"
+                                            title="Phát âm">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <span class="word-pos"
+                                        th:text="${progress.vocab.pos}"
+                                        th:if="${progress.vocab.pos != null and !#strings.isEmpty(progress.vocab.pos.trim())}">n
+                                    </span>
+                                </div>
+                                <span class="word-ipa" th:text="${progress.vocab.ipa}"
+                                      th:if="${progress.vocab.ipa}">/həˈloʊ/</span>
                                 <div class="word-meaning" th:text="${progress.vocab.primaryMeaning}">xin chào</div>
-                                <div class="mt-2">
-                                    <span class="badge bg-primary" th:text="|Box ${progress.box}|">Box 2</span>
-                                    <span class="badge bg-success ms-1" th:text="|Streak ${progress.streak}|">Streak 3</span>
+                                
+                                <!-- Progress Indicator -->
+                                <div class="progress-indicator mt-2" style="max-width: 100%;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted">Tiến độ học tập</small>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar" 
+                                             th:classappend="${progress.box == 1 ? 'bg-secondary' : (progress.box <= 2 ? 'bg-warning' : 'bg-success')}"
+                                             role="progressbar"
+                                             th:style="'width: ' + ${progress.box * 20} + '%'"
+                                             th:attr="aria-valuenow=${progress.box * 20}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted" 
+                                           th:text="${progress.box == 1 ? 'Đang học (20%)' : (progress.box == 2 ? 'Đang học (40%)' : (progress.box == 3 ? 'Đang ôn (60%)' : (progress.box == 4 ? 'Thành thạo (80%)' : 'Hoàn thành (100%)')))}">
+                                        Đang học
+                                    </small>
                                 </div>
                             </div>
                             <div class="text-end">
-                                <div class="text-muted small" th:text="${#temporals.format(progress.lastReviewed, 'dd/MM')}">25/09</div>
                                 <div class="text-success small" th:if="${progress.status.name() == 'MASTERED'}">
                                     <i class="fas fa-check-circle"></i> Mastered
                                 </div>
@@ -420,6 +500,11 @@
                             <div class="flex-grow-1">
                                 <div class="word-heading">
                                     <span class="word-main" th:text="${custom.name}">awesome</span>
+                                    <button class="pronunciation-btn ms-2" 
+                                            th:attr="data-word=${custom.name}"
+                                            title="Phát âm">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
                                     <span class="word-pos"
                                         th:text="${custom.pos}"
                                         th:if="${custom.pos != null and !#strings.isEmpty(custom.pos.trim())}">adj
@@ -430,7 +515,6 @@
                                 <div class="word-meaning" th:text="${custom.meaningVi}" th:if="${custom.meaningVi}">tuyệt vời</div>
                             </div>
                             <div class="text-end">
-                                <div class="text-muted small" th:text="${#temporals.format(custom.createdAt, 'dd/MM')}">24/09</div>
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         <i class="fas fa-ellipsis-h"></i>
@@ -460,17 +544,17 @@
         </div>
 
         <!-- Empty State -->
-        <div th:if="${(learnedWords == null or !learnedWords.hasContent()) and (customWords == null or customWords.isEmpty())}" class="section-card">
+            <div th:if="${(learnedWords == null or !learnedWords.hasContent()) and (customWords == null or customWords.isEmpty()) and (recentLists == null or recentLists.isEmpty())}" class="section-card">
             <div class="empty-state">
-                <i class="fas fa-book-open"></i>
-                <h3>Chưa có từ vựng nào</h3>
-                <p class="text-muted mb-4">Bắt đầu hành trình học từ vựng của bạn ngay hôm nay!</p>
+                <i class="fas fa-folder-open"></i>
+                <h3>Chưa có danh sách từ vựng nào</h3>
+                <p class="text-muted mb-4">Bắt đầu bằng cách tạo danh sách từ vựng đầu tiên!</p>
                 <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="/vocabulary/lists/create" class="btn btn-primary" style="height: 42px; padding: 8px 18px; background-color: #4f46e5; border-color: #4f46e5; white-space: nowrap; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; min-width: 160px;">
+                        <i class="fas fa-folder-plus me-2" style="font-size: 0.9rem; line-height: 1;"></i>Tạo danh sách mới
+                    </a>
                     <a href="/vocabulary/dictionaries" class="btn btn-outline-primary" style="height: 42px; padding: 8px 18px; background-color: #e3f2fd; border-color: #2196f3; color: #1976d2; white-space: nowrap; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; min-width: 140px;">
                         <i class="fas fa-search me-2" style="font-size: 0.9rem; line-height: 1;"></i>Duyệt từ điển
-                    </a>
-                    <a href="/vocabulary/add" class="btn btn-primary" style="height: 42px; padding: 8px 18px; background-color: #1976d2; border-color: #1976d2; white-space: nowrap; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; min-width: 140px;">
-                        <i class="fas fa-plus me-2" style="font-size: 0.9rem; line-height: 1;"></i>Thêm từ mới
                     </a>
                 </div>
             </div>
@@ -479,9 +563,122 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/PronunciationPlayer.js}"></script>
     <script>
-        // Progress animation on load
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Pronunciation Player (with duplicate check)
+        let pronunciationPlayer;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Skip if already initialized
+            if (window.pronunciationPlayerInitialized) {
+                console.log('⏭️ Pronunciation already initialized, skipping...');
+                return;
+            }
+            
+            window.pronunciationPlayerInitialized = true;
+            
+            // Initialize pronunciation player
+            try {
+                pronunciationPlayer = new PronunciationPlayer();
+                
+                // Wait for voices to load
+                await pronunciationPlayer.waitUntilReady();
+                
+                if (!pronunciationPlayer.isReady()) {
+                    console.warn('⚠️ Pronunciation not available in this browser');
+                    document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                        btn.style.opacity = '0.5';
+                        btn.disabled = true;
+                        btn.title = 'Phát âm không khả dụng';
+                    });
+                    return;
+                }
+                
+                console.log('✅ Pronunciation player ready!');
+                
+                // Track currently playing button
+                let currentPlayingButton = null;
+                
+                // Add click handlers to all pronunciation buttons (ONCE only)
+                document.querySelectorAll('.pronunciation-btn').forEach(button => {
+                    // Remove existing listeners (if any)
+                    const newButton = button.cloneNode(true);
+                    button.parentNode.replaceChild(newButton, button);
+                    
+                    newButton.addEventListener('click', async function(e) {
+                        e.stopPropagation(); // Prevent card click
+                        e.preventDefault(); // Prevent default action
+                        
+                        const word = this.dataset.word;
+                        
+                        if (!word) {
+                            console.warn('No word data found');
+                            return;
+                        }
+                        
+                        // Reset previous playing button if exists
+                        if (currentPlayingButton && currentPlayingButton !== this) {
+                            console.log('🔄 Resetting previous button...');
+                            currentPlayingButton.classList.remove('playing');
+                            currentPlayingButton.disabled = false;
+                        }
+                        
+                        // Skip if this button is already playing
+                        if (this.disabled && currentPlayingButton === this) {
+                            console.log('⏭️ Already playing this word...');
+                            return;
+                        }
+                        
+                        console.log(`🎯 Playing: "${word}"`);
+                        
+                        // Set as current playing button
+                        currentPlayingButton = this;
+                        
+                        // Disable button during speech
+                        this.disabled = true;
+                        this.classList.add('playing');
+                        
+                        try {
+                            // Speak the word
+                            await pronunciationPlayer.speak(word, {
+                                onEnd: () => {
+                                    this.classList.remove('playing');
+                                    this.disabled = false;
+                                    if (currentPlayingButton === this) {
+                                        currentPlayingButton = null;
+                                    }
+                                },
+                                onError: (error) => {
+                                    this.classList.remove('playing');
+                                    this.classList.add('error');
+                                    this.disabled = false;
+                                    if (currentPlayingButton === this) {
+                                        currentPlayingButton = null;
+                                    }
+                                    setTimeout(() => {
+                                        this.classList.remove('error');
+                                    }, 500);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('Failed to play pronunciation:', error);
+                            this.classList.remove('playing');
+                            this.disabled = false;
+                            if (currentPlayingButton === this) {
+                                currentPlayingButton = null;
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('❌ Failed to initialize pronunciation player:', error);
+                // Hide pronunciation buttons if not supported
+                document.querySelectorAll('.pronunciation-btn').forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
+            
+            // Progress animation on load
             const progressBars = document.querySelectorAll('.progress-bar-fill');
             progressBars.forEach(bar => {
                 const width = bar.style.width;

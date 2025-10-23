@@ -66,10 +66,6 @@ public class Dictionary {
     @JsonIgnore
     List<Vocab> vocabularies;
     
-    @OneToMany(mappedBy = "dictionary", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    List<UserVocabList> userDictLists;
-    
     public enum Status {
         ACTIVE, INACTIVE, ARCHIVED
     }

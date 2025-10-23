@@ -39,7 +39,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     // Đếm số lượng media theo user
     long countByUploader_Id(String userId);
     
-    // Tính tổng dung lượng file của user
+    // Tính tổng dung lượng file của user (by user ID)
     @Query("SELECT COALESCE(SUM(m.fileSize), 0) FROM Media m WHERE m.uploader.id = :userId")
     Long getTotalFileSizeByUser(@Param("userId") String userId);
 

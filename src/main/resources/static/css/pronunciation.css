@@ -1,0 +1,618 @@
+/* ========================================
+   PRONUNCIATION FEATURE STYLES
+   Web Speech API Integration
+   ======================================== */
+
+/* ========================================
+   CSS VARIABLES
+   ======================================== */
+:root {
+    --pronunciation-primary: #667eea;
+    --pronunciation-hover: #764ba2;
+    --pronunciation-active: #5568d3;
+    --pronunciation-error: #dc3545;
+    --pronunciation-success: #28a745;
+    --pronunciation-disabled: #6c757d;
+    --pronunciation-bg: #f8f9fa;
+    --pronunciation-border: #dee2e6;
+}
+
+/* ========================================
+   PRONUNCIATION BUTTONS
+   ======================================== */
+
+/* Small pronunciation button (for cards) */
+.pronunciation-btn {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: visible;
+}
+
+.pronunciation-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.pronunciation-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.pronunciation-btn:disabled {
+    background: var(--pronunciation-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.pronunciation-btn i {
+    font-size: 16px;
+}
+
+/* Large pronunciation button (for detail page) */
+.btn-play-large {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.btn-play-large:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-play-large:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-play-large i {
+    font-size: 24px;
+}
+
+/* Circle pronunciation button (for flashcards) */
+.pronunciation-btn-circle,
+.pronunciation-btn-large {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    border: none;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1rem auto;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.pronunciation-btn-circle:hover:not(:disabled),
+.pronunciation-btn-large:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.pronunciation-btn-circle:active:not(:disabled),
+.pronunciation-btn-large:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.pronunciation-btn-circle i,
+.pronunciation-btn-large i {
+    font-size: 24px;
+}
+
+.pronunciation-btn-circle.playing,
+.pronunciation-btn-large.playing {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+/* ========================================
+   PLAYING STATE ANIMATIONS
+   ======================================== */
+
+/* Pulse animation when playing */
+.pronunciation-btn.playing,
+.btn-play-large.playing {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.6);
+    }
+}
+
+/* Pulse animation for large button */
+.btn-play-large.playing {
+    animation: pulseLarge 1s ease-in-out infinite;
+}
+
+@keyframes pulseLarge {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    }
+    50% {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 24px rgba(102, 126, 234, 0.6);
+    }
+}
+
+/* ========================================
+   ERROR STATE
+   ======================================== */
+
+.pronunciation-btn.error,
+.btn-play-large.error {
+    background: var(--pronunciation-error);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.pronunciation-btn.loading i,
+.btn-play-large.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   PRONUNCIATION SECTION
+   ======================================== */
+
+.pronunciation-section {
+    background: var(--pronunciation-bg);
+    border: 1px solid var(--pronunciation-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.pronunciation-section .word-display {
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.pronunciation-section .word-display h2 {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--pronunciation-primary);
+    margin-bottom: 16px;
+}
+
+/* ========================================
+   ACCENT SELECTOR
+   ======================================== */
+
+.accent-selector {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.accent-selector button {
+    background: white;
+    border: 2px solid var(--pronunciation-border);
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.accent-selector button:hover:not(:disabled) {
+    border-color: var(--pronunciation-primary);
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.accent-selector button.active {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    color: white;
+    border-color: var(--pronunciation-primary);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.accent-selector button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   SPEED CONTROL
+   ======================================== */
+
+.speed-control {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.speed-control button {
+    background: white;
+    border: 2px solid var(--pronunciation-border);
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.speed-control button:hover:not(:disabled) {
+    border-color: var(--pronunciation-primary);
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.speed-control button.active {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    color: white;
+    border-color: var(--pronunciation-primary);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.speed-control button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   PHONETIC DISPLAY
+   ======================================== */
+
+.phonetics {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+}
+
+.phonetic-item {
+    background: white;
+    border: 1px solid var(--pronunciation-border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.accent-badge {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.ipa {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    color: var(--pronunciation-primary);
+    font-weight: 500;
+}
+
+.phonetic-item button {
+    background: transparent;
+    border: none;
+    color: var(--pronunciation-primary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.phonetic-item button:hover {
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.1);
+}
+
+/* ========================================
+   CONTROLS LABELS
+   ======================================== */
+
+.pronunciation-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.pronunciation-controls > div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pronunciation-controls label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   FLASHCARD BUTTONS
+   ======================================== */
+
+.btn-autoplay,
+.btn-repeat {
+    background: linear-gradient(135deg, var(--pronunciation-primary), var(--pronunciation-hover));
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-autoplay:hover:not(:disabled),
+.btn-repeat:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.btn-autoplay:active:not(:disabled),
+.btn-repeat:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-repeat {
+    background: linear-gradient(135deg, var(--pronunciation-success), #20c997);
+}
+
+.btn-repeat:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5);
+}
+
+/* ========================================
+   ERROR MESSAGE
+   ======================================== */
+
+.pronunciation-error-message {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #856404;
+}
+
+.pronunciation-error-message i {
+    color: #ffc107;
+    font-size: 18px;
+}
+
+.pronunciation-error-message.error {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.pronunciation-error-message.error i {
+    color: #dc3545;
+}
+
+/* ========================================
+   TOOLTIP
+   ======================================== */
+
+.pronunciation-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-bottom: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.pronunciation-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #333;
+}
+
+.pronunciation-btn:hover .pronunciation-tooltip {
+    opacity: 1;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .pronunciation-section {
+        padding: 16px;
+    }
+
+    .pronunciation-section .word-display h2 {
+        font-size: 36px;
+    }
+
+    .btn-play-large {
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+
+    .btn-play-large i {
+        font-size: 20px;
+    }
+
+    .accent-selector,
+    .speed-control {
+        width: 100%;
+    }
+
+    .accent-selector button,
+    .speed-control button {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .phonetics {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .phonetic-item {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .pronunciation-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .pronunciation-btn i {
+        font-size: 14px;
+    }
+
+    .pronunciation-section .word-display h2 {
+        font-size: 28px;
+    }
+
+    .btn-play-large {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .accent-selector button,
+    .speed-control button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+.pronunciation-btn:focus,
+.btn-play-large:focus,
+.accent-selector button:focus,
+.speed-control button:focus {
+    outline: 3px solid rgba(102, 126, 234, 0.5);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .pronunciation-btn,
+    .btn-play-large,
+    .accent-selector button.active,
+    .speed-control button.active {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .pronunciation-btn,
+    .btn-play-large,
+    .accent-selector button,
+    .speed-control button {
+        transition: none;
+    }
+
+    .pronunciation-btn.playing,
+    .btn-play-large.playing {
+        animation: none;
+    }
+
+    .pronunciation-btn.error,
+    .btn-play-large.error {
+        animation: none;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+    .pronunciation-btn,
+    .btn-play-large,
+    .pronunciation-section,
+    .accent-selector,
+    .speed-control {
+        display: none;
+    }
+}

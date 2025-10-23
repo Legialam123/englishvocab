@@ -43,6 +43,15 @@ public class LearningService {
     public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                         String learningMode, List<Integer> vocabularyIds, 
                                         Integer maxVocabularies) {
+        return createSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null);
+    }
+    
+    /**
+     * Tạo learning session mới với auto-expire sau 30 phút (với level và startLetter filters)
+     */
+    public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
+                                        String learningMode, List<Integer> vocabularyIds, 
+                                        Integer maxVocabularies, String level, String startLetter) {
         LearningSession.LearningMode requestedMode = parseLearningMode(learningMode);
 
         if (hasActiveSession(user)) {
@@ -80,13 +89,13 @@ public class LearningService {
             sessionRepository.saveAll(activeSessions);
         }
 
-        // Select vocabularies theo priority
+        // Select vocabularies theo priority with level and startLetter filters
         List<Vocab> vocabularies = selectVocabulariesForSession(
-            user, dictionary, learningMode, vocabularyIds, maxVocabularies);
+            user, dictionary, learningMode, vocabularyIds, maxVocabularies, level, startLetter);
 
         if (vocabularies.isEmpty()) {
-            log.warn("No vocabularies found for user {} dictionary {} mode {} with requestedIds {}",
-                    user.getEmail(), dictionary.getDictionaryId(), requestedMode, vocabularyIds);
+            log.warn("No vocabularies found for user {} dictionary {} mode {} with requestedIds {} level {} startLetter {}",
+                    user.getEmail(), dictionary.getDictionaryId(), requestedMode, vocabularyIds, level, startLetter);
             throw new RuntimeException("Không tìm thấy từ vựng phù hợp!");
         }
 
@@ -138,11 +147,20 @@ public class LearningService {
     }
 
     /**
-     * Select vocabularies với priority: Review > New > Random
+     * Select vocabularies với priority: Review > New > Random (without filters)
      */
     private List<Vocab> selectVocabulariesForSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                                      String learningMode, List<Integer> vocabularyIds, 
                                                      Integer maxVocabularies) {
+        return selectVocabulariesForSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null);
+    }
+    
+    /**
+     * Select vocabularies với priority: Review > New > Random (with level and startLetter filters)
+     */
+    private List<Vocab> selectVocabulariesForSession(User user, com.englishvocab.entity.Dictionary dictionary, 
+                                                     String learningMode, List<Integer> vocabularyIds, 
+                                                     Integer maxVocabularies, String level, String startLetter) {
         List<Vocab> selected = new ArrayList<>();
 
         switch (learningMode.toLowerCase()) {
@@ -164,8 +182,23 @@ public class LearningService {
                 break;
 
             case "alphabetical":
-                // A-Z order
-                selected = vocabularyService.getVocabulariesByDictionary(dictionary, maxVocabularies);
+                // A-Z order with level and startLetter filters
+                if (level != null && !level.isEmpty() && startLetter != null && !startLetter.isEmpty()) {
+                    // Both filters
+                    selected = vocabularyService.getVocabulariesByDictionaryAndLevelAndLetter(
+                        dictionary, level, startLetter, maxVocabularies);
+                } else if (level != null && !level.isEmpty()) {
+                    // Only level filter
+                    selected = vocabularyService.getVocabulariesByDictionaryAndLevel(
+                        dictionary, level, maxVocabularies);
+                } else if (startLetter != null && !startLetter.isEmpty()) {
+                    // Only letter filter
+                    selected = vocabularyService.getVocabulariesByDictionaryAndLetter(
+                        dictionary, startLetter, maxVocabularies);
+                } else {
+                    // No filters
+                    selected = vocabularyService.getVocabulariesByDictionary(dictionary, maxVocabularies);
+                }
                 break;
 
             case "random":
@@ -175,15 +208,22 @@ public class LearningService {
                 break;
         }
 
-        // Nếu không đủ, fill với từ random
-        if (selected.size() < maxVocabularies) {
+        // For alphabetical mode with filters, don't fill with random words
+        // Just use what we got from the filter
+        boolean hasFilters = (level != null && !level.isEmpty()) || (startLetter != null && !startLetter.isEmpty());
+        boolean isAlphabetical = "alphabetical".equalsIgnoreCase(learningMode);
+        
+        // Only fill with random if not alphabetical mode or no filters
+        if (!isAlphabetical && selected.size() < maxVocabularies) {
             List<Vocab> additional = vocabularyService.getRandomVocabularies(
                 dictionary, maxVocabularies - selected.size());
             selected.addAll(additional);
         }
 
-        // Shuffle để tránh predictable
-        Collections.shuffle(selected);
+        // Shuffle để tránh predictable (trừ alphabetical mode)
+        if (!isAlphabetical) {
+            Collections.shuffle(selected);
+        }
 
         return selected.stream()
             .limit(maxVocabularies)
@@ -245,6 +285,13 @@ public class LearningService {
             case WRONG -> session.incrementWrong();
             case SKIP -> session.incrementSkip();
         }
+        
+        // 🕒 Cộng dồn thời gian vào session
+        if (timeSpentSec != null && timeSpentSec > 0) {
+            Integer currentTime = session.getTimeSpentSec() != null ? session.getTimeSpentSec() : 0;
+            session.setTimeSpentSec(currentTime + timeSpentSec);
+        }
+        
         session = sessionRepository.save(session);
 
         return session;
@@ -294,13 +341,10 @@ public class LearningService {
         LearningSession session = sessionRepository.findBySessionUuid(sessionUuid)
             .orElseThrow(() -> new RuntimeException("Session không tồn tại"));
 
-        // Process remaining answers từ request
-        if (request != null && request.getAnswers() != null) {
-            for (SessionResultRequest.VocabAnswer answer : request.getAnswers()) {
-                SessionVocabulary.AnswerType answerType = SessionVocabulary.AnswerType.valueOf(answer.getAnswerType());
-                recordAnswer(sessionUuid, answer.getVocabId(), 
-                           answerType, answer.getTimeSpent());
-            }
+        // ⚠️ KHÔNG xử lý lại answers ở đây vì frontend đã gọi recordAnswer() real-time
+        // Chỉ cập nhật thời gian tổng từ request nếu có
+        if (request != null && request.getDuration() != null && request.getDuration() > 0) {
+            session.setTimeSpentSec(request.getDuration());
         }
 
         // Complete session
@@ -355,6 +399,16 @@ public class LearningService {
 
         List<SessionVocabulary> allVocabs = sessionVocabRepository
             .findBySessionOrderByOrderIndex(session);
+
+        // Eager load vocab and senses to avoid LazyInitializationException
+        allVocabs.forEach(sv -> {
+            if (sv.getVocab() != null) {
+                sv.getVocab().getWord(); // trigger lazy load
+                if (sv.getVocab().getSenses() != null) {
+                    sv.getVocab().getSenses().size(); // trigger lazy load of senses
+                }
+            }
+        });
 
         // Manual pagination
         int start = (int) pageable.getOffset();

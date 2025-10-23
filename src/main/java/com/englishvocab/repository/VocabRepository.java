@@ -48,6 +48,40 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
     Page<Vocab> findByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level, Pageable pageable);
     
     /**
+     * Đếm từ vựng theo từ điển và level
+     */
+    long countByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level);
+    
+    /**
+     * Đếm từ vựng theo từ điển và từ bắt đầu bằng chữ cái
+     */
+    long countByDictionaryAndWordStartingWithIgnoreCase(Dictionary dictionary, String letter);
+    
+    /**
+     * Tìm từ vựng theo từ điển, từ bắt đầu bằng chữ cái, và level
+     */
+    @Query("SELECT v FROM Vocab v WHERE v.dictionary = :dictionary " +
+           "AND (LOWER(SUBSTRING(v.word, 1, 1)) IN :letters) " +
+           "AND v.level = :level " +
+           "ORDER BY v.word ASC")
+    Page<Vocab> findByDictionaryAndWordStartingWithAndLevel(
+        @Param("dictionary") Dictionary dictionary, 
+        @Param("letters") List<String> letters, 
+        @Param("level") Vocab.Level level, 
+        Pageable pageable);
+    
+    /**
+     * Đếm từ vựng theo từ điển, từ bắt đầu bằng chữ cái, và level
+     */
+    @Query("SELECT COUNT(v) FROM Vocab v WHERE v.dictionary = :dictionary " +
+           "AND (LOWER(SUBSTRING(v.word, 1, 1)) IN :letters) " +
+           "AND v.level = :level")
+    long countByDictionaryAndWordStartingWithAndLevel(
+        @Param("dictionary") Dictionary dictionary, 
+        @Param("letters") List<String> letters, 
+        @Param("level") Vocab.Level level);
+    
+    /**
      * Tìm từ vựng theo word (search)
      */
     @Query("SELECT v FROM Vocab v WHERE LOWER(v.word) LIKE LOWER(CONCAT('%', :keyword, '%'))")
@@ -80,11 +114,6 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
      * Đếm từ vựng theo level
      */
     long countByLevel(Vocab.Level level);
-    
-    /**
-     * Đếm từ vựng theo dictionary và level
-     */
-    long countByDictionaryAndLevel(Dictionary dictionary, Vocab.Level level);
     
     /**
      * Tìm từ vựng theo exact word

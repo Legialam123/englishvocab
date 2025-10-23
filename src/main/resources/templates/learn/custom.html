@@ -381,9 +381,9 @@
 
                 <!-- Vocabulary List -->
                 <div id="vocabularyList">
-                    <!-- Sample Vocabulary Items -->
-                    <div class="vocab-item card mb-2" th:each="vocab, iterStat : ${vocabularies}" 
-                         th:attr="data-vocab-id=${vocab.vocabId}, data-level=${vocab.level.name()}, data-status='new'"
+                    <!-- Vocabulary Items with Real Progress -->
+                    <div class="vocab-item card mb-2" th:each="vocabDTO : ${vocabularies}" 
+                         th:attr="data-vocab-id=${vocabDTO.vocab.vocabId}, data-level=${vocabDTO.vocab.level.name()}, data-status=${vocabDTO.status}"
                          onclick="toggleVocabSelection(this)">
                         <div class="selection-checkbox">
                             <i class="bi bi-check" style="display: none;"></i>
@@ -391,29 +391,29 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-6">
-                                    <div class="vocab-word" th:text="${vocab.word}">word</div>
-                                    <div class="vocab-ipa" th:if="${vocab.ipa}" th:text="${vocab.ipa}">/ipa/</div>
+                                    <div class="vocab-word" th:text="${vocabDTO.vocab.word}">word</div>
+                                    <div class="vocab-ipa" th:if="${vocabDTO.vocab.ipa}" th:text="${vocabDTO.vocab.ipa}">/ipa/</div>
                                     <div class="d-flex gap-2 mt-2">
-                                        <span class="vocab-pos" th:text="${vocab.pos}">pos</span>
+                                        <span class="vocab-pos" th:text="${vocabDTO.vocab.pos}">pos</span>
                                         <span class="badge level-badge" 
-                                              th:class="'badge level-badge bg-' + (${vocab.level.name() == 'BEGINNER'} ? 'success' : 
-                                                                                 (${vocab.level.name() == 'INTERMEDIATE'} ? 'warning' : 'danger'))"
-                                              th:text="${vocab.level.name()}">LEVEL</span>
+                                              th:class="'badge level-badge bg-' + (${vocabDTO.vocab.level.name() == 'BEGINNER'} ? 'success' : 
+                                                                                 (${vocabDTO.vocab.level.name() == 'INTERMEDIATE'} ? 'warning' : 'danger'))"
+                                              th:text="${vocabDTO.vocab.level.name()}">LEVEL</span>
                                     </div>
                                 </div>
                                 <div class="col-md-5">
                                     <div class="vocab-meaning">
-                                        <strong>Nghĩa:</strong> <span th:text="${vocab.senses[0].meaningVi}">meaning</span>
-                                        <div th:if="${vocab.senses[0].definition}" class="small text-muted mt-1" th:text="${vocab.senses[0].definition}">definition</div>
+                                        <strong>Nghĩa:</strong> <span th:text="${vocabDTO.vocab.senses[0].meaningVi}">meaning</span>
+                                        <div th:if="${vocabDTO.vocab.senses[0].definition}" class="small text-muted mt-1" th:text="${vocabDTO.vocab.senses[0].definition}">definition</div>
                                     </div>
                                     <div class="progress-indicator">
                                         <div class="progress-bar-custom" 
-                                             th:class="'progress-bar-custom progress-' + (${iterStat.index % 4 == 1} ? 'new' : (${iterStat.index % 4 == 2} ? 'learning' : 'mastered'))"
-                                             th:style="'width: ' + (${iterStat.index % 4 == 1} ? '0%' : (${iterStat.index % 4 == 2} ? '60%' : '100%'))">
+                                             th:classappend="${vocabDTO.proficiency == 0 ? 'progress-new' : (vocabDTO.proficiency < 50 ? 'progress-learning' : 'progress-mastered')}"
+                                             th:style="'width: ' + ${vocabDTO.proficiency} + '%'">
                                         </div>
                                     </div>
                                     <small class="text-muted mt-1" 
-                                           th:text="${iterStat.index % 4 == 1 ? 'Chưa học' : (iterStat.index % 4 == 2 ? 'Đang học (box 2)' : 'Đã thành thạo')}">
+                                           th:text="${vocabDTO.proficiency == 0 ? 'Chưa học' : (vocabDTO.proficiency < 50 ? 'Đang học (' + vocabDTO.proficiency + '%)' : 'Đã thành thạo (' + vocabDTO.proficiency + '%)')}">
                                         Chưa học
                                     </small>
                                 </div>

@@ -269,6 +269,66 @@ public class VocabularyService {
     }
     
     /**
+     * Lấy vocabularies từ dictionary theo level
+     */
+    public List<Vocab> getVocabulariesByDictionaryAndLevel(com.englishvocab.entity.Dictionary dictionary, 
+                                                           String level, Integer limit) {
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        List<Vocab> allVocabs = vocabRepository.findByDictionaryAndLevel(dictionary, vocabLevel);
+        
+        // Sort by word alphabetically for alphabetical mode
+        allVocabs.sort(java.util.Comparator.comparing(Vocab::getWord));
+        
+        if (limit != null && limit > 0 && allVocabs.size() > limit) {
+            return allVocabs.subList(0, limit);
+        }
+        
+        return allVocabs;
+    }
+    
+    /**
+     * Lấy vocabularies từ dictionary theo startLetter
+     */
+    public List<Vocab> getVocabulariesByDictionaryAndLetter(com.englishvocab.entity.Dictionary dictionary, 
+                                                            String startLetter, Integer limit) {
+        List<Vocab> allVocabs = vocabRepository.findByDictionaryOrderByWordAsc(dictionary);
+        
+        // Filter by first letter
+        String lowerLetter = startLetter.toLowerCase();
+        List<Vocab> filtered = allVocabs.stream()
+            .filter(v -> v.getWord().toLowerCase().startsWith(lowerLetter))
+            .collect(java.util.stream.Collectors.toList());
+        
+        if (limit != null && limit > 0 && filtered.size() > limit) {
+            return filtered.subList(0, limit);
+        }
+        
+        return filtered;
+    }
+    
+    /**
+     * Lấy vocabularies từ dictionary theo level và startLetter
+     */
+    public List<Vocab> getVocabulariesByDictionaryAndLevelAndLetter(com.englishvocab.entity.Dictionary dictionary, 
+                                                                    String level, String startLetter, Integer limit) {
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        List<Vocab> allVocabs = vocabRepository.findByDictionaryAndLevel(dictionary, vocabLevel);
+        
+        // Filter by first letter
+        String lowerLetter = startLetter.toLowerCase();
+        List<Vocab> filtered = allVocabs.stream()
+            .filter(v -> v.getWord().toLowerCase().startsWith(lowerLetter))
+            .sorted(java.util.Comparator.comparing(Vocab::getWord))
+            .collect(java.util.stream.Collectors.toList());
+        
+        if (limit != null && limit > 0 && filtered.size() > limit) {
+            return filtered.subList(0, limit);
+        }
+        
+        return filtered;
+    }
+    
+    /**
      * Thống kê từ vựng
      */
     public VocabStats getStatistics() {
@@ -482,6 +542,51 @@ public class VocabularyService {
                 .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
         Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
         return vocabRepository.findByDictionaryAndLevel(dictionary, vocabLevel, pageable);
+    }
+    
+    /**
+     * Count vocabulary by dictionary and level
+     */
+    public long countByDictionaryAndLevel(Integer dictionaryId, String level) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        return vocabRepository.countByDictionaryAndLevel(dictionary, vocabLevel);
+    }
+    
+    /**
+     * Count vocabulary by dictionary and word starting with letters
+     */
+    public long countByDictionaryAndWordStartingWith(Integer dictionaryId, List<String> letters) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        
+        return letters.stream()
+                .mapToLong(letter -> vocabRepository.countByDictionaryAndWordStartingWithIgnoreCase(dictionary, letter))
+                .sum();
+    }
+    
+    /**
+     * Find vocabulary by dictionary, word starting with letters, and level
+     */
+    public Page<Vocab> findByDictionaryAndWordStartingWithAndLevel(Integer dictionaryId, List<String> letters, 
+                                                                    String level, Pageable pageable) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        
+        return vocabRepository.findByDictionaryAndWordStartingWithAndLevel(dictionary, letters, vocabLevel, pageable);
+    }
+    
+    /**
+     * Count vocabulary by dictionary, word starting with letters, and level
+     */
+    public long countByDictionaryAndWordStartingWithAndLevel(Integer dictionaryId, List<String> letters, String level) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        
+        return vocabRepository.countByDictionaryAndWordStartingWithAndLevel(dictionary, letters, vocabLevel);
     }
     
     /**

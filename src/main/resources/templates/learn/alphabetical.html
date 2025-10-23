@@ -13,6 +13,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link th:href="@{/css/global.css}" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
@@ -361,6 +363,26 @@
             font-size: 0.8rem;
         }
         
+        /* Progress Indicator Styles */
+        .progress-indicator {
+            margin-top: 0.75rem;
+        }
+        
+        .progress-indicator .progress {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-indicator .progress-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .progress-indicator small {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: inline-block;
+        }
+        
         .start-learning-btn {
             background: linear-gradient(45deg, #28a745, #20c997);
             border: none;
@@ -664,18 +686,25 @@
                 <!-- Real Vocabulary Cards from Database -->
                 <div class="row" id="vocabularyContainer">
                     <!-- Real vocabulary data from database -->
-                    <div class="col-md-6 col-lg-4 mb-3" th:each="vocab : ${vocabularies}">
+                    <div class="col-md-6 col-lg-4 mb-3" th:each="vocabDTO : ${vocabularies}">
                         <div class="card vocab-card h-100" 
-                             th:id="'card-' + ${vocab.vocabId}"
-                             th:data-vocab-id="${vocab.vocabId}"
-                             th:data-vocab-word="${vocab.word}"
-                             th:data-vocab-pos="${vocab.pos}"
-                             th:data-vocab-meaning="${vocab.senses[0].meaningVi}">
+                             th:id="'card-' + ${vocabDTO.vocab.vocabId}"
+                             th:data-vocab-id="${vocabDTO.vocab.vocabId}"
+                             th:data-vocab-word="${vocabDTO.vocab.word}"
+                             th:data-vocab-pos="${vocabDTO.vocab.pos}"
+                             th:data-vocab-meaning="${vocabDTO.vocab.senses[0].meaningVi}">
                             <div class="card-body">
                                 <div class="vocab-heading mb-2">
                                     <div class="vocab-heading-left">
-                                        <span class="vocab-word" th:text="${vocab.word}">word</span>
-                                        <span class="vocab-pos" th:text="${vocab.pos}">pos</span>
+                                        <span class="vocab-word" th:text="${vocabDTO.vocab.word}">word</span>
+                                        <span class="vocab-pos" th:text="${vocabDTO.vocab.pos}">pos</span>
+                                        <!-- Pronunciation Button -->
+                                        <button class="btn btn-sm btn-outline-primary pronunciation-btn" 
+                                                th:attr="data-word=${vocabDTO.vocab.word}"
+                                                onclick="playWordPronunciation(this)"
+                                                title="Phát âm">
+                                            <i class="fas fa-volume-up"></i>
+                                        </button>
                                     </div>
                                     <div class="vocab-heading-right">
                                         <button class="btn btn-sm btn-outline-primary select-vocab-btn" 
@@ -685,14 +714,35 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="vocab-ipa" th:if="${vocab.ipa}" th:text="${vocab.ipa}">/ipa/</div>
+                                <div class="vocab-ipa" th:if="${vocabDTO.vocab.ipa}" th:text="${vocabDTO.vocab.ipa}">/ipa/</div>
                                 <div class="vocab-meaning">
-                                    <span th:text="${vocab.senses[0].meaningVi}">meaning</span>
-                                    <div th:if="${vocab.senses[0].definition}" class="small text-muted mt-1" th:text="${vocab.senses[0].definition}">definition</div>
+                                    <span th:text="${vocabDTO.vocab.senses[0].meaningVi}">meaning</span>
+                                    <div th:if="${vocabDTO.vocab.senses[0].definition}" class="small text-muted mt-1" th:text="${vocabDTO.vocab.senses[0].definition}">definition</div>
                                 </div>
-                                <div class="d-flex justify-content-end mt-3">
-                                    <span th:class="'badge level-badge ' + (${vocab.level.name() == 'BEGINNER'} ? 'bg-success' : (${vocab.level.name() == 'INTERMEDIATE'} ? 'bg-primary' : 'bg-warning'))"
-                                          th:text="${vocab.level.name()}">LEVEL</span>
+                                
+                                <!-- Progress Indicator -->
+                                <div class="progress-indicator mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted">Tiến độ học tập</small>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar" 
+                                             th:classappend="${vocabDTO.proficiency == 0 ? 'bg-secondary' : (vocabDTO.proficiency < 50 ? 'bg-warning' : 'bg-success')}"
+                                             role="progressbar"
+                                             th:style="'width: ' + ${vocabDTO.proficiency} + '%'"
+                                             th:attr="aria-valuenow=${vocabDTO.proficiency}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted" 
+                                               th:text="${vocabDTO.proficiency == 0 ? 'Chưa học' : (vocabDTO.proficiency < 50 ? 'Đang học (' + vocabDTO.proficiency + '%)' : 'Đã thành thạo (' + vocabDTO.proficiency + '%)')}">
+                                            Chưa học
+                                        </small>
+                                        <span th:class="'badge level-badge bg-' + ${vocabDTO.vocab.level.name() == 'BEGINNER' ? 'success' : (vocabDTO.vocab.level.name() == 'INTERMEDIATE' ? 'primary' : 'warning')}"
+                                              th:text="${vocabDTO.vocab.level.name()}">LEVEL</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -819,10 +869,15 @@
                             <p>Bạn sắp bắt đầu một session học từ vựng theo thứ tự A-Z:</p>
                             <ul>
                                 <li><strong>Từ điển:</strong> <span th:text="${dictionary.name}">Dictionary Name</span></li>
-                                <li><strong>Số lượng từ:</strong> <span id="modalSessionSize">20</span> từ</li>
+                                <li><strong>Số lượng từ vựng:</strong> <span id="modalActualSize" class="text-success fw-bold">-</span> từ</li>
                                 <li><strong>Chế độ:</strong> Alphabetical (A-Z)</li>
+                                <li id="filterInfoRow" style="display: none;"><strong>Bộ lọc:</strong> <span id="modalFilterInfo"></span></li>
                                 <li><strong>Ước tính thời gian:</strong> <span id="modalEstimatedTime">10-15</span> phút</li>
                             </ul>
+                            <div id="warningMessage" class="alert alert-warning" style="display: none;">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                <span id="warningText"></span>
+                            </div>
                         </div>
                         <div id="customLearningInfo" style="display: none;">
                             <p>Bạn sắp bắt đầu học <strong><span id="customSessionCount">0</span> từ đã chọn</strong>:</p>
@@ -865,6 +920,84 @@
         const activeLetterWindow = /*[[${activeLetterWindow}]]*/ [];
         const startLetterFromServer = /*[[${startLetter}]]*/ null;
         
+        // ==========================================
+        // Pronunciation Feature using Web Speech API
+        // ==========================================
+        let speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        
+        /**
+         * Play pronunciation for a word
+         */
+        function playWordPronunciation(button) {
+            const word = button.getAttribute('data-word');
+            
+            if (!word) {
+                console.error('No word found for pronunciation');
+                return;
+            }
+            
+            // Stop any currently playing speech
+            if (currentUtterance && speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+            
+            // Visual feedback - button state
+            button.classList.add('playing');
+            button.disabled = true;
+            
+            try {
+                // Create new utterance
+                currentUtterance = new SpeechSynthesisUtterance(word);
+                currentUtterance.lang = 'en-US';
+                currentUtterance.rate = 0.9; // Slightly slower for learning
+                currentUtterance.pitch = 1.0;
+                currentUtterance.volume = 1.0;
+                
+                // Handle completion
+                currentUtterance.onend = function() {
+                    button.classList.remove('playing');
+                    button.disabled = false;
+                };
+                
+                // Handle errors
+                currentUtterance.onerror = function(event) {
+                    console.error('Speech synthesis error:', event);
+                    button.classList.remove('playing');
+                    button.classList.add('error');
+                    button.disabled = false;
+                    
+                    setTimeout(() => {
+                        button.classList.remove('error');
+                    }, 1000);
+                };
+                
+                // Speak the word
+                speechSynthesis.speak(currentUtterance);
+                
+            } catch (error) {
+                console.error('Failed to play pronunciation:', error);
+                button.classList.remove('playing');
+                button.classList.add('error');
+                button.disabled = false;
+                
+                setTimeout(() => {
+                    button.classList.remove('error');
+                }, 1000);
+            }
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+        });
+        
+        // ==========================================
+        // End Pronunciation Feature
+        // ==========================================
+        
         // Scroll to top when page loads (for pagination navigation)
         window.addEventListener('DOMContentLoaded', function() {
             // Smooth scroll to vocabulary section when navigating between pages
@@ -887,6 +1020,38 @@
         const previewCount = document.getElementById('previewCount');
         const applyFilterBtn = document.getElementById('applyLetterFilter');
         const clearFilterBtn = document.getElementById('clearLetterFilterBtn');
+        const levelFilterDropdown = document.getElementById('levelFilter');
+
+        // Initialize level filter from URL
+        function initializeLevelFilterFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const levelParam = urlParams.get('level');
+            
+            if (levelParam && levelFilterDropdown) {
+                levelFilterDropdown.value = levelParam;
+            }
+        }
+
+        // Add event listener for level filter
+        if (levelFilterDropdown) {
+            initializeLevelFilterFromURL();
+            
+            levelFilterDropdown.addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                const selectedLevel = this.value;
+                
+                if (selectedLevel) {
+                    url.searchParams.set('level', selectedLevel);
+                } else {
+                    url.searchParams.delete('level');
+                }
+                
+                // Reset to page 1 when changing filter
+                url.searchParams.delete('page');
+                
+                window.location.href = url.toString();
+            });
+        }
 
         // Initialize filter
         if (filterLetterFrom && filterLetterTo) {
@@ -1083,17 +1248,121 @@
          * Start learning session
          */
         function startLearningSession() {
-            // Update modal with current settings
-            const sessionSize = document.getElementById('sessionSize').value;
+            // Get current settings
+            const sessionSize = parseInt(document.getElementById('sessionSize').value);
             const level = document.getElementById('levelFilter').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const letters = urlParams.get('letters') || '';
+            const startLetter = urlParams.get('startLetter') || '';
             
-            document.getElementById('modalSessionSize').textContent = sessionSize;
+            // Get actual vocabulary count from current page
+            const totalVocabOnPage = /*[[${vocabularies.size()}]]*/ 0;
+            const totalPages = /*[[${totalPages}]]*/ 1;
+            const pageSize = /*[[${pageSize}]]*/ 20;
+            
+            // Estimate total available (this is approximate if on paginated view)
+            const estimatedTotal = totalPages > 1 ? (totalPages - 1) * pageSize + totalVocabOnPage : totalVocabOnPage;
+            const actualSize = Math.min(sessionSize, estimatedTotal);
+            
+            // Update modal - only show actual size
+            document.getElementById('modalActualSize').textContent = actualSize;
             document.getElementById('modalEstimatedTime').textContent = 
-                Math.ceil(sessionSize * 0.5) + '-' + Math.ceil(sessionSize * 0.75);
+                Math.ceil(actualSize * 0.5) + '-' + Math.ceil(actualSize * 0.75);
+            
+            // Show filter info including session size and level
+            const filterInfoRow = document.getElementById('filterInfoRow');
+            const filterInfo = document.getElementById('modalFilterInfo');
+            let filterText = [];
+            
+            // Add session size to filter info
+            filterText.push('Số từ yêu cầu: ' + sessionSize);
+            
+            if (letters) {
+                filterText.push('Chữ cái: ' + letters.toUpperCase());
+            } else if (startLetter) {
+                filterText.push('Bắt đầu bằng: ' + startLetter.toUpperCase());
+            }
+            
+            if (level) {
+                const levelNames = {
+                    'BEGINNER': 'Beginner',
+                    'INTERMEDIATE': 'Intermediate',
+                    'ADVANCED': 'Advanced'
+                };
+                filterText.push('Độ khó: ' + (levelNames[level] || level));
+            }
+            
+            if (filterText.length > 0) {
+                filterInfo.textContent = filterText.join(' | ');
+                filterInfoRow.style.display = 'list-item';
+            } else {
+                filterInfoRow.style.display = 'none';
+            }
+            
+            // Show warning if not enough vocabulary
+            const warningMessage = document.getElementById('warningMessage');
+            const warningText = document.getElementById('warningText');
+            
+            if (estimatedTotal === 0) {
+                warningText.textContent = 'Không có từ vựng nào phù hợp với bộ lọc hiện tại. Vui lòng thay đổi bộ lọc.';
+                warningMessage.style.display = 'block';
+                document.getElementById('confirmLearningBtn').disabled = true;
+            } else if (actualSize < sessionSize) {
+                warningText.textContent = `Chỉ có ${estimatedTotal} từ khả dụng, ít hơn ${sessionSize} từ bạn yêu cầu. Bạn sẽ học ${actualSize} từ.`;
+                warningMessage.style.display = 'block';
+                document.getElementById('confirmLearningBtn').disabled = false;
+            } else {
+                warningMessage.style.display = 'none';
+                document.getElementById('confirmLearningBtn').disabled = false;
+            }
             
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('learningModal'));
             modal.show();
+        }
+        
+        /**
+         * Calculate available vocabulary count based on filters
+         */
+        function calculateAvailableVocabCount(level, letters, startLetter) {
+            // Get total vocab count from server-side variable
+            const totalVocab = /*[[${totalVocab}]]*/ 0;
+            
+            // If no filters, return total
+            if (!level && !letters && !startLetter) {
+                return totalVocab;
+            }
+            
+            // Calculate based on letter counts
+            let count = 0;
+            
+            if (letters && letterCounts) {
+                // Sum up counts for selected letters
+                for (let i = 0; i < letters.length; i++) {
+                    const letter = letters[i].toLowerCase();
+                    count += letterCounts[letter] || 0;
+                }
+            } else if (startLetter && letterCounts) {
+                // Get count for start letter
+                count = letterCounts[startLetter.toLowerCase()] || 0;
+            } else {
+                // No letter filter, use total
+                count = totalVocab;
+            }
+            
+            // If level filter is applied, estimate (assume roughly equal distribution)
+            // This is an approximation - for exact count would need server-side query
+            if (level) {
+                // Rough estimate: Beginner 40%, Intermediate 40%, Advanced 20%
+                const levelMultipliers = {
+                    'BEGINNER': 0.4,
+                    'INTERMEDIATE': 0.4,
+                    'ADVANCED': 0.2
+                };
+                count = Math.ceil(count * (levelMultipliers[level] || 0.33));
+            }
+            
+            return count;
         }
         
         /**

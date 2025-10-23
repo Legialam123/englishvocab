@@ -8,9 +8,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Entity đại diện cho danh sách từ vựng cá nhân của user.
+ * User có thể tạo nhiều lists với tên riêng.
+ * Mỗi list có thể chứa:
+ * - System vocab: Từ vựng từ dictionaries (qua DictVocabList)
+ * - Custom vocab: Từ vựng tự thêm (qua CustomVocabList)
+ * 
+ * Không ràng buộc với dictionary cụ thể - user tự do mix vocab từ nhiều nguồn.
+ */
 @Entity
 @Table(name = "user_dict_list")
 @Data
@@ -28,10 +40,6 @@ public class UserVocabList {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dictionary_id", nullable = false)
-    Dictionary dictionary;
     
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Tên danh sách không được để trống")
@@ -52,20 +60,30 @@ public class UserVocabList {
     @Builder.Default
     Status status = Status.ACTIVE;
     
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    LocalDateTime createdAt;
+    
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
+    
     // Relationships
-    @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     List<DictVocabList> dictVocabLists;
 
-        // Relationships
-    @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "userVocabList", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     List<CustomVocabList> customVocabLists;
     
     public enum Visibility {
-        PUBLIC, PRIVATE
+        PUBLIC,  // Ai cũng có thể xem
+        PRIVATE  // Chỉ owner xem được
     }
     
     public enum Status {
-        ACTIVE, INACTIVE, ARCHIVED
+        ACTIVE,    // Đang sử dụng
+        INACTIVE,  // Tạm ngưng
+        ARCHIVED   // Lưu trữ (không hiện trong danh sách chính)
     }
     
     /**
@@ -79,6 +97,10 @@ public class UserVocabList {
         return status == Status.ACTIVE;
     }
     
+    public int getTotalVocabCount() {
+        return getDictVocabListCount() + getCustomVocabListCount();
+    }
+    
     public int getDictVocabListCount() {
         return dictVocabLists != null ? dictVocabLists.size() : 0;
     }
@@ -86,5 +108,4 @@ public class UserVocabList {
     public int getCustomVocabListCount() {
         return customVocabLists != null ? customVocabLists.size() : 0;
     }
-    
 }

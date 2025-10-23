@@ -86,4 +86,10 @@ public interface MediaService {
      * Convert entity to DTO
      */
     MediaResponseDto convertToDto(Media media);
+    
+    /**
+     * Cleanup orphaned files (files in uploads folder but not in database)
+     * Returns number of files deleted
+     */
+    int cleanupOrphanedFiles() throws IOException;
 }
