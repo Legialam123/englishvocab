@@ -24,6 +24,11 @@ public interface UserVocabListRepository extends JpaRepository<UserVocabList, In
      * Find all lists belonging to a user (all statuses)
      */
     List<UserVocabList> findByUserOrderByCreatedAtDesc(User user);
+    
+    /**
+     * Find all lists belonging to a user ordered by last updated
+     */
+    List<UserVocabList> findByUserOrderByUpdatedAtDesc(User user);
 
     /**
      * Find active lists only

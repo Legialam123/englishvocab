@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +37,7 @@ public class UserVocabListService {
     private final CustomVocabListRepository customVocabListRepository;
     private final VocabularyService vocabularyService;
     private final UserCustomVocabService userCustomVocabService;
+    private final UserVocabProgressRepository progressRepository;
 
     /**
      * Create a new vocabulary list
@@ -338,5 +341,115 @@ public class UserVocabListService {
     @Transactional(readOnly = true)
     public long countUserLists(User user) {
         return listRepository.countByUser(user);
+    }
+    
+    /**
+     * Get dashboard statistics for a user
+     */
+    @Transactional(readOnly = true)
+    public DashboardStatsDTO getDashboardStats(User user) {
+        // Total vocabulary the user has actually learned (from progress table)
+        long totalVocab = progressRepository.countByUser(user);
+        long totalLists = countUserLists(user);
+        
+        // Calculate study streak (consecutive days with learning activity)
+        int studyStreak = calculateStudyStreak(user);
+        
+        // Calculate mastered count (vocabulary with MASTERED status)
+        long masteredCount = calculateUniqueMasteredVocab(user);
+        
+        return DashboardStatsDTO.builder()
+                .totalVocabCount(totalVocab)
+                .totalListCount(totalLists)
+                .studyStreak(studyStreak)
+                .masteredVocabCount(masteredCount)
+                .build();
+    }
+    
+    /**
+     * Calculate study streak - consecutive days with learning activity
+     * Based on lastReviewed date in UserVocabProgress
+     */
+    @Transactional(readOnly = true)
+    public int calculateStudyStreak(User user) {
+        // Get recent activity (last 365 days)
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusDays(365);
+        List<UserVocabProgress> recentProgress = progressRepository.findRecentActivity(user, oneYearAgo);
+        
+        if (recentProgress.isEmpty()) {
+            return 0;
+        }
+        
+        // Collect unique dates with activity
+        java.util.Set<LocalDate> activeDates = new java.util.HashSet<>();
+        for (UserVocabProgress progress : recentProgress) {
+            if (progress.getLastReviewed() != null) {
+                activeDates.add(progress.getLastReviewed().toLocalDate());
+            }
+        }
+        
+        // Calculate consecutive days from today backwards
+        LocalDate today = LocalDate.now();
+        int streak = 0;
+        
+        // Check if user studied today or yesterday (grace period)
+        if (!activeDates.contains(today) && !activeDates.contains(today.minusDays(1))) {
+            return 0; // Streak broken
+        }
+        
+        // Count consecutive days
+        LocalDate checkDate = today;
+        while (activeDates.contains(checkDate)) {
+            streak++;
+            checkDate = checkDate.minusDays(1);
+            
+            // Limit check to prevent infinite loop
+            if (streak > 365) break;
+        }
+        
+        return streak;
+    }
+    
+    /**
+     * Calculate mastered vocabulary count
+     * Based on UserVocabProgress with status = MASTERED
+     */
+    @Transactional(readOnly = true)
+    public long calculateUniqueMasteredVocab(User user) {
+        // Count vocabulary with MASTERED status in progress table
+        return progressRepository.countByUserAndStatus(user, UserVocabProgress.Status.MASTERED);
+    }
+    
+    /**
+     * Get recent lists (top N most recently updated)
+     */
+    @Transactional(readOnly = true)
+    public List<VocabListSummaryDTO> getRecentLists(User user, int limit) {
+        List<UserVocabList> lists = listRepository.findByUserOrderByUpdatedAtDesc(user);
+        
+        return lists.stream()
+                .limit(limit)
+                .map(list -> {
+                    long systemCount = dictVocabListRepository.countByUserVocabList(list);
+                    long customCount = customVocabListRepository.countByUserVocabList(list);
+                    return VocabListSummaryDTO.from(list, systemCount, customCount);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get recently learned vocabulary from UserVocabProgress
+     * This shows vocabulary that user has actually studied, not just added to lists
+     */
+    @Transactional(readOnly = true)
+    public List<UserVocabProgress> getRecentlyLearnedVocabulary(User user, int limit) {
+        // Get recent progress ordered by last reviewed date
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusDays(365);
+        List<UserVocabProgress> recentProgress = progressRepository.findRecentActivity(user, oneYearAgo);
+        
+        // Return top N most recently reviewed
+        return recentProgress.stream()
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }

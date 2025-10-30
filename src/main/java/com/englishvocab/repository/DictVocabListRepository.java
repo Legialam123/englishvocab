@@ -1,5 +1,6 @@
 package com.englishvocab.repository;
 
+import com.englishvocab.entity.Dictionary;
 import com.englishvocab.entity.DictVocabList;
 import com.englishvocab.entity.UserVocabList;
 import com.englishvocab.entity.Vocab;
@@ -64,4 +65,11 @@ public interface DictVocabListRepository extends JpaRepository<DictVocabList, In
      * Check if any list contains this vocab
      */
     boolean existsByVocab(Vocab vocab);
+    
+    /**
+     * Count distinct users who have added vocab from a specific dictionary to their lists
+     */
+    @Query("SELECT COUNT(DISTINCT dvl.userVocabList.user.id) FROM DictVocabList dvl " +
+           "WHERE dvl.vocab.dictionary = :dictionary")
+    long countDistinctUsersByDictionary(@Param("dictionary") Dictionary dictionary);
 }

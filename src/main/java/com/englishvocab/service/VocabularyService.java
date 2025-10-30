@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -329,6 +330,31 @@ public class VocabularyService {
     }
     
     /**
+     * Get vocabularies by dictionary and topics (with optional level filter)
+     */
+    public List<Vocab> getVocabulariesByDictionaryAndTopics(com.englishvocab.entity.Dictionary dictionary, 
+                                                            List<Integer> topicIds, String level, Integer limit) {
+        List<Vocab> allVocabs;
+        
+        if (level != null && !level.isEmpty()) {
+            // With level filter
+            Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+            allVocabs = vocabRepository.findByDictionaryAndTopicsIdInAndLevel(dictionary, topicIds, vocabLevel);
+        } else {
+            // Without level filter
+            allVocabs = vocabRepository.findByDictionaryAndTopicsIdIn(dictionary, topicIds);
+        }
+        
+        // Sort by word alphabetically
+        allVocabs.sort(Comparator.comparing(Vocab::getWord));
+        
+        // Limit results
+        return allVocabs.stream()
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * Thống kê từ vựng
      */
     public VocabStats getStatistics() {
@@ -631,6 +657,29 @@ public class VocabularyService {
         for (Topics topic : topics) {
             // Count vocabulary for this topic in this dictionary
             long count = vocabTopicsRepository.countByTopicIdAndVocabDictionary(topic.getTopicId(), dictionary);
+            topicCounts.put(topic.getTopicId(), count);
+        }
+        
+        return topicCounts;
+    }
+    
+    /**
+     * Get vocabulary counts by topics and level for dictionary
+     * Returns a map with format: topicId -> count for specific level
+     */
+    public Map<Integer, Long> getVocabCountByTopicsAndLevelForDictionary(Integer dictionaryId, String level) {
+        Dictionary dictionary = dictionaryRepository.findById(dictionaryId)
+                .orElseThrow(() -> new RuntimeException("Dictionary not found: " + dictionaryId));
+        
+        Vocab.Level vocabLevel = Vocab.Level.valueOf(level.toUpperCase());
+        Map<Integer, Long> topicCounts = new HashMap<>();
+        
+        // Get all active topics
+        List<Topics> topics = topicsRepository.findByStatus(Topics.Status.ACTIVE);
+        
+        for (Topics topic : topics) {
+            // Count vocabulary for this topic in this dictionary with level filter
+            long count = vocabRepository.countByDictionaryAndTopicsIdInAndLevel(dictionary, List.of(topic.getTopicId()), vocabLevel);
             topicCounts.put(topic.getTopicId(), count);
         }
         

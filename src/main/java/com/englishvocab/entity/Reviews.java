@@ -14,25 +14,25 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "quizzes")
+@Table(name = "reviews")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-public class Quizzes {
+public class Reviews {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "quiz_id")
-    Integer quizId;
+    @Column(name = "review_id")
+    Integer reviewId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dictionary_id", nullable = false)
-    Dictionary dictionary;
+    @JoinColumn(name = "dictionary_id")
+    Dictionary dictionary; // Nullable for general review
     
     @Column(nullable = false, length = 100)
-    @NotBlank(message = "Tiêu đề quiz không được để trống")
+    @NotBlank(message = "Tiêu đề review không được để trống")
     @Size(max = 100, message = "Tiêu đề không được vượt quá 100 ký tự")
     String title;
     
@@ -50,19 +50,31 @@ public class Quizzes {
     @Column(name = "pass_score")
     Integer passScore; // Minimum score to pass (percentage)
     
+    @Column(name = "review_type")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    ReviewType reviewType = ReviewType.VOCABULARY_REVIEW;
+    
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
     
     // Relationships
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<QuizItems> quizItems;
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<ReviewItems> reviewItems;
     
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<QuizAttempts> quizAttempts;
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<ReviewAttempts> reviewAttempts;
     
     public enum Status {
         ACTIVE, INACTIVE, DRAFT
+    }
+    
+    public enum ReviewType {
+        VOCABULARY_REVIEW,  // Ôn tập từ vựng
+        QUIZ,               // Quiz thông thường
+        EXAM,               // Thi cử
+        PRACTICE            // Luyện tập
     }
     
     /**
@@ -70,6 +82,10 @@ public class Quizzes {
      */
     public boolean isActive() {
         return status == Status.ACTIVE;
+    }
+    
+    public boolean isVocabularyReview() {
+        return reviewType == ReviewType.VOCABULARY_REVIEW;
     }
     
     public String getFormattedTimeLimit() {
@@ -87,5 +103,14 @@ public class Quizzes {
     
     public String getDisplayInfo() {
         return title + " (" + (numItems != null ? numItems : 0) + " câu hỏi)";
+    }
+    
+    public String getReviewTypeDisplayName() {
+        return switch (reviewType) {
+            case VOCABULARY_REVIEW -> "Ôn tập từ vựng";
+            case QUIZ -> "Quiz";
+            case EXAM -> "Thi cử";
+            case PRACTICE -> "Luyện tập";
+        };
     }
 }

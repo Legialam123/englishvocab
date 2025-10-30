@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ôn Tập Thông Minh - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .review-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .stats-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: transparent;
+        }
+
+        .stats-card.overdue {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .stats-card.today {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .stats-card.difficult {
+            border-left: 4px solid #6b7280;
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .review-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .review-card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .review-card p {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .btn-review {
+            background: linear-gradient(135deg, var(--primary-color), #6366f1);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-review:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+
+        .btn-review:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .review-info {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .review-info h5 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .review-info ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .review-info li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .review-info li:last-child {
+            border-bottom: none;
+        }
+
+        .review-info i {
+            color: var(--primary-color);
+            margin-right: 0.5rem;
+            width: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .alert-custom {
+            border: none;
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/dashboard" style="color: var(--primary-color);">
+                <i class="fas fa-book me-2"></i>English Vocab
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/learn/review">
+                            <i class="fas fa-redo me-1"></i>Ôn tập
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/vocabulary">
+                            <i class="fas fa-book me-1"></i>Từ vựng
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/vocabulary/lists">
+                            <i class="fas fa-list-ul me-1"></i>Danh sách của tôi
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/vocabulary/dictionaries">
+                            <i class="fas fa-book-open me-1"></i>Từ điển
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>Trần Văn Minh - Học sinh
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/user/profile">Profile</a></li>
+                            <li><a class="dropdown-item" href="/logout">Đăng xuất</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Review Header -->
+    <div class="review-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-3">
+                        <i class="fas fa-redo me-3"></i>Ôn Tập Thông Minh
+                    </h1>
+                    <p class="lead mb-0">Hệ thống ôn tập từ vựng dựa trên thuật toán Leitner Box</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-white-50">
+                        <small th:if="${lastReviewDate != null}">
+                            Lần cuối ôn: <span th:text="${lastReviewDate}">2 ngày trước</span>
+                        </small>
+                        <small th:if="${lastReviewDate == null}">Chưa có lịch sử ôn tập</small><br>
+                        <small>Chuỗi ôn tập: 🔥 <span th:text="${studyStreak}">0</span> ngày</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stats-card overdue">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number text-danger" th:text="${stats.overdueCount}">0</div>
+                            <div class="stats-label">Quá hạn</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card today">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-clock text-warning" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number text-warning" th:text="${stats.todayCount}">0</div>
+                            <div class="stats-label">Hôm nay</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card difficult">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-skull text-dark" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number text-dark" th:text="${stats.difficultCount}">0</div>
+                            <div class="stats-label">Từ khó</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Card -->
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="review-card">
+                    <h2>📚 Ôn Tập Từ Vựng</h2>
+                    
+                    <!-- Smart Review Status -->
+                    <div th:if="${reviewStatus == 'urgent'}">
+                        <p class="lead text-primary">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span th:text="${reviewMessage}">Có 15 từ cần ôn tập ngay</span>
+                        </p>
+                        <p class="text-muted">Thời gian dự kiến: <span th:text="${estimatedTime}">12-18 phút</span></p>
+                    </div>
+                    
+                    <div th:if="${reviewStatus == 'recent'}">
+                        <p class="lead text-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span th:text="${reviewMessage}">Chưa có từ cần ôn tập. Ôn tập từ đã học để củng cố kiến thức</span>
+                        </p>
+                        <p class="text-muted">Thời gian dự kiến: <span th:text="${estimatedTime}">8-12 phút</span></p>
+                    </div>
+                    
+                    <div th:if="${reviewStatus == 'no_words'}">
+                        <p class="lead text-success">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <span th:text="${reviewMessage}">Chưa có từ nào để ôn tập. Hãy thêm từ vào danh sách để bắt đầu học</span>
+                        </p>
+                    </div>
+                    
+                    <div th:if="${reviewStatus == 'error'}">
+                        <p class="lead text-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span th:text="${reviewMessage}">Có lỗi xảy ra khi tải dữ liệu ôn tập</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Review Info -->
+                    <div class="review-info" th:if="${reviewStatus != 'no_words'}">
+                        <h5><i class="fas fa-info-circle me-2"></i>Thông tin ôn tập</h5>
+                        <ul>
+                            <li><i class="fas fa-check-circle"></i>3 chế độ: Trắc nghiệm, Đúng/Sai, Điền từ</li>
+                            <li><i class="fas fa-check-circle"></i><span th:text="${#lists.size(reviewWords)}">15</span> từ vựng được chọn thông minh</li>
+                            <li><i class="fas fa-check-circle"></i>Cập nhật tiến độ học tập tự động</li>
+                            <li><i class="fas fa-check-circle"></i>Hệ thống Leitner Box tối ưu</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div th:if="${reviewStatus == 'urgent' || reviewStatus == 'recent'}">
+                        <form th:action="@{/learn/review/start}" method="post">
+                            <button type="submit" th:class="'btn ' + ${reviewButtonClass} + ' btn-lg'">
+                                <i class="fas fa-play me-2"></i>
+                                <span th:text="${reviewButtonText}">Bắt đầu ôn tập</span>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div th:if="${reviewStatus == 'no_words'}">
+                        <a href="/vocabulary" class="btn btn-success btn-lg">
+                            <i class="fas fa-plus me-2"></i>
+                            <span th:text="${reviewButtonText}">THÊM TỪ MỚI</span>
+                        </a>
+                    </div>
+                    
+                    <div th:if="${reviewStatus == 'error'}">
+                        <a href="/learn/review" class="btn btn-warning btn-lg">
+                            <i class="fas fa-redo me-2"></i>
+                            <span th:text="${reviewButtonText}">THỬ LẠI</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row" th:if="${reviewStatus == 'urgent' || reviewStatus == 'recent'}">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Hoạt động gần đây</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <i class="fas fa-calendar-day text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">Lần cuối ôn tập</div>
+                                        <small class="text-muted" th:if="${lastReviewResult != null}">
+                                            <span th:text="${lastReviewDate}">2 ngày trước</span> - 
+                                            <span th:text="${lastReviewResult.totalCorrect}">12</span>/<span th:text="${lastReviewResult.totalQuestions}">15</span> từ đúng 
+                                            (<span th:text="${#numbers.formatDecimal(lastReviewResult.percentageScore, 0, 0)}">80</span>%)
+                                        </small>
+                                        <small class="text-muted" th:if="${lastReviewResult == null}">Chưa có lịch sử ôn tập</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <i class="fas fa-fire text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">Chuỗi ôn tập</div>
+                                        <small class="text-muted"><span th:text="${studyStreak}">0</span> ngày liên tiếp 🔥</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

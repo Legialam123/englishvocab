@@ -372,7 +372,7 @@
                     <!-- Summary -->
                     <div class="border-top pt-3">
                         <div class="d-flex justify-content-between mb-2">
-                            <small class="text-muted">Ước tính từ vựng:</small>
+                            <small class="text-muted">Số lượng từ vựng:</small>
                             <small class="fw-bold" id="estimatedWords">0</small>
                         </div>
                         <div class="d-flex justify-content-between mb-3">
@@ -411,7 +411,7 @@
                                 <p><strong>Số chủ đề:</strong> <span id="modalTopicCount">0</span> chủ đề</p>
                             </div>
                             <div class="col-6">
-                                <p><strong>Ước tính từ vựng:</strong> <span id="modalWordCount">0</span> từ</p>
+                                <p><strong>Số lượng từ vựng:</strong> <span id="modalWordCount">0</span> từ</p>
                                 <p><strong>Thời gian dự kiến:</strong> <span id="modalDuration">0</span> phút</p>
                             </div>
                         </div>
@@ -443,13 +443,16 @@
         const currentUserId = /*[[${currentUserId}]]*/ 'user';
         let selectedTopics = new Set();
         
-        // Build topic data from backend - use array approach
+        // Build topic data from backend with counts for ALL levels
         const topicsArray = [
             /*[# th:each="topic : ${topics}"]*/
             {
                 id: /*[[${topic.topicId}]]*/ 0,
                 name: /*[[''+${topic.name}]]*/ '',
-                words: /*[[${topicVocabCounts != null and topicVocabCounts.containsKey(topic.topicId)} ? ${topicVocabCounts.get(topic.topicId)} : 0]]*/ 0
+                words: /*[[${topicVocabCounts != null and topicVocabCounts.containsKey(topic.topicId)} ? ${topicVocabCounts.get(topic.topicId)} : 0]]*/ 0,
+                wordsBeginner: /*[[${topicVocabCountsBeginner != null and topicVocabCountsBeginner.containsKey(topic.topicId)} ? ${topicVocabCountsBeginner.get(topic.topicId)} : 0]]*/ 0,
+                wordsIntermediate: /*[[${topicVocabCountsIntermediate != null and topicVocabCountsIntermediate.containsKey(topic.topicId)} ? ${topicVocabCountsIntermediate.get(topic.topicId)} : 0]]*/ 0,
+                wordsAdvanced: /*[[${topicVocabCountsAdvanced != null and topicVocabCountsAdvanced.containsKey(topic.topicId)} ? ${topicVocabCountsAdvanced.get(topic.topicId)} : 0]]*/ 0
             },
             /*[/]*/
         ];
@@ -462,8 +465,8 @@
             }
         });
         
-        // Debug: Check topic data
-        console.log('=== DEBUG: Topic Data ===');
+        // Debug: Check topic data with level counts
+        console.log('=== DEBUG: Topic Data with Level Counts ===');
         console.log('topicData object:', topicData);
         console.log('Number of topics:', Object.keys(topicData).length);
         Object.keys(topicData).forEach(key => {
@@ -505,7 +508,7 @@
         }
         
         /**
-         * Update selected topics panel
+         * Update selected topics panel with real-time word count based on filters
          */
         function updateSelectedTopicsPanel() {
             const selectedCount = document.getElementById('selectedCount');
@@ -526,17 +529,38 @@
                 let totalWords = 0;
                 let hasEmptyTopics = false;
                 const sessionSize = parseInt(document.getElementById('sessionSize').value);
+                const level = document.getElementById('difficultyLevel').value;
                 
-                console.log('=== DEBUG: Calculating estimates ===');
+                console.log('=== DEBUG: Calculating estimates with filters ===');
                 console.log('sessionSize:', sessionSize);
+                console.log('level filter:', level);
                 console.log('selectedTopics:', Array.from(selectedTopics));
                 
                 selectedTopics.forEach(topicId => {
                     const topic = topicData[topicId];
                     console.log(`Topic ${topicId}:`, topic);
                     if (topic) {
-                        const words = topic.words; // Get total words from this topic
-                        console.log(`  - topic.words: ${topic.words}`);
+                        // Get REAL word count based on level filter from database
+                        let words = topic.words; // Default: all words
+                        
+                        if (level && level !== '') {
+                            // Use actual count from database
+                            switch(level) {
+                                case 'BEGINNER':
+                                    words = topic.wordsBeginner || 0;
+                                    break;
+                                case 'INTERMEDIATE':
+                                    words = topic.wordsIntermediate || 0;
+                                    break;
+                                case 'ADVANCED':
+                                    words = topic.wordsAdvanced || 0;
+                                    break;
+                                default:
+                                    words = topic.words; // All levels
+                            }
+                        }
+                        
+                        console.log(`  - level: ${level || 'ALL'}, words: ${words} (total: ${topic.words}, B:${topic.wordsBeginner}, I:${topic.wordsIntermediate}, A:${topic.wordsAdvanced})`);
                         totalWords += words;
                         
                         // Add badge with word count and warning for empty topics
@@ -565,7 +589,7 @@
                 if (totalWords === 0) {
                     html += `<div class="alert alert-danger mt-2 mb-0 py-2 px-3" style="font-size: 0.85rem;">
                         <i class="bi bi-x-circle-fill me-1"></i>
-                        <strong>Lỗi:</strong> Không có từ vựng nào để học. Vui lòng chọn chủ đề khác!
+                        <strong>Lỗi:</strong> Không có từ vựng nào để học !
                     </div>`;
                 }
                 
@@ -616,18 +640,35 @@
                 return;
             }
             
-            // Calculate total words
+            // Calculate total words with level filter
             let totalWords = 0;
             let emptyTopics = [];
             const sessionSize = parseInt(document.getElementById('sessionSize').value);
+            const level = document.getElementById('difficultyLevel').value;
             
             selectedTopics.forEach(topicId => {
                 const topic = topicData[topicId];
                 if (topic) {
-                    totalWords += topic.words;
+                    // Get word count based on level filter (same logic as updateSelectedTopicsPanel)
+                    let words = topic.words;
+                    if (level && level !== '') {
+                        switch(level) {
+                            case 'BEGINNER':
+                                words = topic.wordsBeginner || 0;
+                                break;
+                            case 'INTERMEDIATE':
+                                words = topic.wordsIntermediate || 0;
+                                break;
+                            case 'ADVANCED':
+                                words = topic.wordsAdvanced || 0;
+                                break;
+                        }
+                    }
                     
-                    // Track empty topics
-                    if (topic.words === 0) {
+                    totalWords += words;
+                    
+                    // Track empty topics (after filtering)
+                    if (words === 0) {
                         emptyTopics.push(topic.name);
                     }
                 }
@@ -707,8 +748,11 @@
                 formData.append('topicIds', topicId);
             });
             
-            // Add settings
-            formData.append('difficultyLevel', document.getElementById('difficultyLevel').value);
+            // Add settings (level filter)
+            const level = document.getElementById('difficultyLevel').value;
+            if (level && level !== '') {
+                formData.append('level', level);
+            }
             
             // Submit to start session
             const headers = {};

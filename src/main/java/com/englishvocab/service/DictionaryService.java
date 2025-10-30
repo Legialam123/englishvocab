@@ -1,7 +1,10 @@
 package com.englishvocab.service;
 
+import com.englishvocab.dto.DictionaryStatsDTO;
 import com.englishvocab.entity.Dictionary;
 import com.englishvocab.repository.DictionaryRepository;
+import com.englishvocab.repository.DictVocabListRepository;
+import com.englishvocab.repository.VocabRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,8 @@ import java.util.Optional;
 public class DictionaryService {
     
     private final DictionaryRepository dictionaryRepository;
+    private final VocabRepository vocabRepository;
+    private final DictVocabListRepository dictVocabListRepository;
     
     /**
      * Lấy tất cả từ điển
@@ -196,6 +202,27 @@ public class DictionaryService {
         if (dictionary.getDescription() != null && dictionary.getDescription().length() > 150) {
             throw new RuntimeException("Mô tả không được vượt quá 150 ký tự");
         }
+    }
+    
+    /**
+     * Get dictionaries with statistics (vocab count and learner count)
+     */
+    @Transactional(readOnly = true)
+    public List<DictionaryStatsDTO> getActiveDictionariesWithStats() {
+        List<Dictionary> dictionaries = findActiveDictionaries();
+        
+        return dictionaries.stream()
+                .map(dict -> {
+                    // Count total vocabulary in this dictionary
+                    long vocabCount = vocabRepository.countByDictionary(dict);
+                    
+                    // Count unique users learning from this dictionary
+                    // (users who have added vocab from this dict to their lists)
+                    long learnerCount = dictVocabListRepository.countDistinctUsersByDictionary(dict);
+                    
+                    return DictionaryStatsDTO.from(dict, vocabCount, learnerCount);
+                })
+                .collect(Collectors.toList());
     }
     
     /**

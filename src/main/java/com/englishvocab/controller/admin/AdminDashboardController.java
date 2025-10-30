@@ -1,7 +1,5 @@
 package com.englishvocab.controller.admin;
 
-import com.englishvocab.entity.Quizzes;
-import com.englishvocab.repository.QuizzesRepository;
 import com.englishvocab.repository.UserVocabProgressRepository;
 import com.englishvocab.service.DictionaryService;
 import com.englishvocab.service.TopicsService;
@@ -24,7 +22,6 @@ public class AdminDashboardController {
     private final DictionaryService dictionaryService;
     private final VocabularyService vocabularyService;
     private final TopicsService topicsService;
-    private final QuizzesRepository quizzesRepository;
     private final UserVocabProgressRepository userVocabProgressRepository;
 
     @GetMapping("/dashboard")
@@ -34,8 +31,6 @@ public class AdminDashboardController {
         VocabularyService.VocabStats vocabStats = vocabularyService.getStatistics();
         TopicsService.TopicStats topicStats = topicsService.getStatistics();
 
-        long totalQuizzes = quizzesRepository.count();
-        long activeQuizzes = quizzesRepository.countByStatus(Quizzes.Status.ACTIVE);
         long totalProgressRecords = userVocabProgressRepository.count();
 
         int dictionaryActivePercent = percentage(
@@ -49,8 +44,6 @@ public class AdminDashboardController {
         model.addAttribute("dictionaryStats", dictionaryStats);
         model.addAttribute("vocabStats", vocabStats);
         model.addAttribute("topicStats", topicStats);
-        model.addAttribute("totalQuizzes", totalQuizzes);
-        model.addAttribute("activeQuizzes", activeQuizzes);
         model.addAttribute("totalProgressRecords", totalProgressRecords);
         model.addAttribute("dictionaryActivePercent", dictionaryActivePercent);
         model.addAttribute("recentUsers", userService.getRecentUsers(5));

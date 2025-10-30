@@ -12,26 +12,29 @@ import lombok.experimental.FieldDefaults;
 import java.util.List;
 
 @Entity
-@Table(name = "quiz_items")
+@Table(name = "review_items")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-public class QuizItems {
+public class ReviewItems {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "quiz_item_id")
-    Integer quizItemId;
+    @Column(name = "review_item_id")
+    Integer reviewItemId;
+    
+    @Column(name = "session_order")
+    Integer sessionOrder; // Order in the review session
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_vocab_id")
     UserCustomVocab customVocab;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id", nullable = false)
-    Quizzes quiz;
+    @JoinColumn(name = "review_id", nullable = false)
+    Reviews review;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vocab_id")
@@ -66,15 +69,16 @@ public class QuizItems {
     Difficulty difficulty = Difficulty.MEDIUM;
     
     // Relationships
-    @OneToMany(mappedBy = "quizItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<QuizItemResults> results;
+    @OneToMany(mappedBy = "reviewItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<ReviewItemResults> results;
     
     public enum Type {
         MULTIPLE_CHOICE,    // Trắc nghiệm
-        FILL_IN_BLANK,     // Điền vào chỗ trống
-        TRUE_FALSE,        // Đúng/Sai
-        MATCHING,          // Ghép đôi
-        PRONUNCIATION      // Phát âm
+        FILL_IN_BLANK,      // Điền vào chỗ trống
+        TRUE_FALSE,         // Đúng/Sai
+        MATCHING,           // Ghép đôi
+        PRONUNCIATION,      // Phát âm
+        TYPING              // Đánh máy (cho review)
     }
     
     public enum Difficulty {
@@ -88,6 +92,18 @@ public class QuizItems {
         return type == Type.MULTIPLE_CHOICE;
     }
     
+    public boolean isTrueFalse() {
+        return type == Type.TRUE_FALSE;
+    }
+    
+    public boolean isFillInBlank() {
+        return type == Type.FILL_IN_BLANK;
+    }
+    
+    public boolean isTyping() {
+        return type == Type.TYPING;
+    }
+    
     public String getTypeDisplayName() {
         return switch (type) {
             case MULTIPLE_CHOICE -> "Trắc nghiệm";
@@ -95,6 +111,7 @@ public class QuizItems {
             case TRUE_FALSE -> "Đúng/Sai";
             case MATCHING -> "Ghép đôi";
             case PRONUNCIATION -> "Phát âm";
+            case TYPING -> "Đánh máy";
         };
     }
     
@@ -113,5 +130,20 @@ public class QuizItems {
             return customVocab.getDisplayWord();
         }
         return "N/A";
+    }
+    
+    /**
+     * Get options as array for multiple choice
+     */
+    public String[] getOptionsArray() {
+        if (option == null || option.isEmpty()) return new String[0];
+        return option.split("\\|");
+    }
+    
+    /**
+     * Set options from array for multiple choice
+     */
+    public void setOptionsArray(String[] options) {
+        this.option = String.join("|", options);
     }
 }

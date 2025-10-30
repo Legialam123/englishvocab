@@ -188,12 +188,13 @@ public class AdminVocabularyController {
             Vocab vocab = vocabularyService.findByIdOrThrow(id);
             model.addAttribute("vocab", vocab);
             model.addAttribute("pageTitle", "Chỉnh sửa từ vựng: " + vocab.getWord());
-            model.addAttribute("levelOptions", Vocab.Level.values());
+            model.addAttribute("levelOptions", Vocab.Level.values());   
             
             List<Dictionary> dictionaries = dictionaryService.findActiveDictionaries();
             model.addAttribute("dictionaries", dictionaries);
-            
+
             return "admin/vocabulary/edit";
+            
             
         } catch (RuntimeException e) {
             log.error("Không tìm thấy từ vựng với ID: {}", id);

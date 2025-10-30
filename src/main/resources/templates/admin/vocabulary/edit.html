@@ -174,7 +174,7 @@
                     
                     <div class="mb-3">
                         <strong>Số nghĩa hiện có:</strong>
-                        <span class="badge bg-info" th:text="${vocab.senses?.size() ?: 0}">0</span>
+                        <span class="badge bg-info" th:text="${vocab.senses != null ? #lists.size(vocab.senses) : 0}">0</span>
                     </div>
                     
                     <div class="alert alert-warning small">

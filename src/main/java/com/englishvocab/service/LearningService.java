@@ -43,7 +43,7 @@ public class LearningService {
     public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                         String learningMode, List<Integer> vocabularyIds, 
                                         Integer maxVocabularies) {
-        return createSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null);
+        return createSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null, null);
     }
     
     /**
@@ -52,6 +52,15 @@ public class LearningService {
     public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                         String learningMode, List<Integer> vocabularyIds, 
                                         Integer maxVocabularies, String level, String startLetter) {
+        return createSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, level, startLetter, null);
+    }
+    
+    /**
+     * Tạo learning session mới với auto-expire sau 30 phút (với tất cả filters)
+     */
+    public LearningSession createSession(User user, com.englishvocab.entity.Dictionary dictionary, 
+                                        String learningMode, List<Integer> vocabularyIds, 
+                                        Integer maxVocabularies, String level, String startLetter, List<Integer> topicIds) {
         LearningSession.LearningMode requestedMode = parseLearningMode(learningMode);
 
         if (hasActiveSession(user)) {
@@ -89,13 +98,13 @@ public class LearningService {
             sessionRepository.saveAll(activeSessions);
         }
 
-        // Select vocabularies theo priority with level and startLetter filters
+        // Select vocabularies theo priority with all filters
         List<Vocab> vocabularies = selectVocabulariesForSession(
-            user, dictionary, learningMode, vocabularyIds, maxVocabularies, level, startLetter);
+            user, dictionary, learningMode, vocabularyIds, maxVocabularies, level, startLetter, topicIds);
 
         if (vocabularies.isEmpty()) {
-            log.warn("No vocabularies found for user {} dictionary {} mode {} with requestedIds {} level {} startLetter {}",
-                    user.getEmail(), dictionary.getDictionaryId(), requestedMode, vocabularyIds, level, startLetter);
+            log.warn("No vocabularies found for user {} dictionary {} mode {} with requestedIds {} level {} startLetter {} topicIds {}",
+                    user.getEmail(), dictionary.getDictionaryId(), requestedMode, vocabularyIds, level, startLetter, topicIds);
             throw new RuntimeException("Không tìm thấy từ vựng phù hợp!");
         }
 
@@ -152,15 +161,15 @@ public class LearningService {
     private List<Vocab> selectVocabulariesForSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                                      String learningMode, List<Integer> vocabularyIds, 
                                                      Integer maxVocabularies) {
-        return selectVocabulariesForSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null);
+        return selectVocabulariesForSession(user, dictionary, learningMode, vocabularyIds, maxVocabularies, null, null, null);
     }
     
     /**
-     * Select vocabularies với priority: Review > New > Random (with level and startLetter filters)
+     * Select vocabularies với priority: Review > New > Random (with all filters)
      */
     private List<Vocab> selectVocabulariesForSession(User user, com.englishvocab.entity.Dictionary dictionary, 
                                                      String learningMode, List<Integer> vocabularyIds, 
-                                                     Integer maxVocabularies, String level, String startLetter) {
+                                                     Integer maxVocabularies, String level, String startLetter, List<Integer> topicIds) {
         List<Vocab> selected = new ArrayList<>();
 
         switch (learningMode.toLowerCase()) {
@@ -201,6 +210,17 @@ public class LearningService {
                 }
                 break;
 
+            case "topics":
+                // Topics-based learning with optional level filter
+                if (topicIds != null && !topicIds.isEmpty()) {
+                    selected = vocabularyService.getVocabulariesByDictionaryAndTopics(
+                        dictionary, topicIds, level, maxVocabularies);
+                } else {
+                    log.warn("Topics mode requested but no topicIds provided, falling back to random");
+                    selected = vocabularyService.getRandomVocabularies(dictionary, maxVocabularies);
+                }
+                break;
+
             case "random":
             default:
                 // Random
@@ -208,13 +228,16 @@ public class LearningService {
                 break;
         }
 
-        // For alphabetical mode with filters, don't fill with random words
+        // For alphabetical and topics modes with filters, don't fill with random words
         // Just use what we got from the filter
-        boolean hasFilters = (level != null && !level.isEmpty()) || (startLetter != null && !startLetter.isEmpty());
+        boolean hasFilters = (level != null && !level.isEmpty()) || 
+                            (startLetter != null && !startLetter.isEmpty()) ||
+                            (topicIds != null && !topicIds.isEmpty());
         boolean isAlphabetical = "alphabetical".equalsIgnoreCase(learningMode);
+        boolean isTopics = "topics".equalsIgnoreCase(learningMode);
         
-        // Only fill with random if not alphabetical mode or no filters
-        if (!isAlphabetical && selected.size() < maxVocabularies) {
+        // Only fill with random if not alphabetical/topics mode or no filters
+        if (!isAlphabetical && !isTopics && selected.size() < maxVocabularies) {
             List<Vocab> additional = vocabularyService.getRandomVocabularies(
                 dictionary, maxVocabularies - selected.size());
             selected.addAll(additional);

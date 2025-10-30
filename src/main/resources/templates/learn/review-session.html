@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ôn Tập - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .review-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .question-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .progress-bar-custom {
+            width: 200px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #6366f1);
+            transition: width 0.3s ease;
+        }
+
+        .question-type {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .word-display {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .word-main {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .word-pronunciation {
+            font-size: 1.25rem;
+            color: #64748b;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .word-pos {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .options-container {
+            margin: 2rem 0;
+        }
+
+        .option-btn {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: white;
+            color: var(--text-color);
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary-color);
+            background: #f8fafc;
+        }
+
+        .option-btn.selected {
+            border-color: var(--primary-color);
+            background: #eef2ff;
+            color: var(--primary-color);
+        }
+
+        .option-btn.correct {
+            border-color: var(--success-color);
+            background: #f0fdf4;
+            color: var(--success-color);
+        }
+
+        .option-btn.incorrect {
+            border-color: var(--danger-color);
+            background: #fef2f2;
+            color: var(--danger-color);
+        }
+
+        .true-false-container {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .true-false-btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 2rem;
+            border: 3px solid #e2e8f0;
+            border-radius: 1rem;
+            background: white;
+            color: var(--text-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .true-false-btn:hover {
+            border-color: var(--primary-color);
+            background: #f8fafc;
+        }
+
+        .true-false-btn.selected {
+            border-color: var(--primary-color);
+            background: #eef2ff;
+            color: var(--primary-color);
+        }
+
+        .true-false-btn.correct {
+            border-color: var(--success-color);
+            background: #f0fdf4;
+            color: var(--success-color);
+        }
+
+        .true-false-btn.incorrect {
+            border-color: var(--danger-color);
+            background: #fef2f2;
+            color: var(--danger-color);
+        }
+
+        .typing-container {
+            margin: 2rem 0;
+        }
+
+        .typing-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .typing-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .typing-input.correct {
+            border-color: var(--success-color);
+            background: #f0fdf4;
+        }
+
+        .typing-input.incorrect {
+            border-color: var(--danger-color);
+            background: #fef2f2;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--primary-color), #6366f1);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .question-statement {
+            font-size: 1.5rem;
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .pronunciation-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-left: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pronunciation-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .hint-text {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Review Header -->
+    <div class="review-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-0">
+                        <i class="fas fa-redo me-2"></i>Ôn Tập Từ Vựng
+                    </h4>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="progress-info">
+                        <span>Từ <span th:text="${questionIndex + 1}">1</span>/<span th:text="${totalQuestions}">15</span></span>
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill" th:style="'width: ' + ${(questionIndex + 1) * 100 / totalQuestions} + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="question-card">
+                    <!-- Question Header -->
+                    <div class="question-header">
+                        <div class="question-type" th:text="${question.typeDisplayName}">Trắc nghiệm</div>
+                        <div class="ms-auto">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="skipQuestion()">
+                                <i class="fas fa-forward me-1"></i>Bỏ qua
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Multiple Choice Question -->
+                    <div th:if="${question.type.name() == 'MULTIPLE_CHOICE'}">
+                        <div class="word-display">
+                            <div class="word-main" th:text="${question.prompt}">ACCOMMODATE</div>
+                            <button class="pronunciation-btn" th:attr="data-word=${question.prompt}" onclick="playPronunciation(this)">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="options-container">
+                            <h5 class="text-center mb-4">Chọn nghĩa đúng:</h5>
+                            <div th:each="option, iterStat : ${question.optionsArray}" class="mb-3">
+                                <button class="option-btn" th:onclick="'selectOption(' + ${iterStat.index} + ')'" 
+                                        th:data-option="${iterStat.index}" 
+                                        th:text="${'ABCD'.charAt(iterStat.index) + '. ' + option}">
+                                    A. Cung cấp chỗ ở, điều chỉnh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- True/False Question -->
+                    <div th:if="${question.type.name() == 'TRUE_FALSE'}">
+                        <div class="question-statement" th:text="${question.prompt}">
+                            "Happy" có nghĩa là "hạnh phúc"
+                        </div>
+                        
+                        <div class="true-false-container">
+                            <button class="true-false-btn" onclick="selectTrueFalse('TRUE')" data-answer="TRUE">
+                                <i class="fas fa-check-circle me-2"></i>ĐÚNG
+                            </button>
+                            <button class="true-false-btn" onclick="selectTrueFalse('FALSE')" data-answer="FALSE">
+                                <i class="fas fa-times-circle me-2"></i>SAI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Fill in Blank Question -->
+                    <div th:if="${question.type.name() == 'FILL_IN_BLANK'}">
+                        <div class="word-display">
+                            <div class="word-pronunciation" th:text="${question.prompt}">Nghe: /əˈkɒmədeɪt/ - Nghĩa: cung cấp chỗ ở, điều chỉnh</div>
+                            <button class="pronunciation-btn" th:attr="data-word=${question.answer}" onclick="playPronunciation(this)">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="typing-container">
+                            <h5 class="text-center mb-4">Gõ từ tiếng Anh:</h5>
+                            <input type="text" class="typing-input" id="typingInput" 
+                                   placeholder="Nhập từ tiếng Anh..." autocomplete="off">
+                            <div class="hint-text" th:if="${#strings.contains(question.prompt, ' - ')}">
+                                <span th:text="${#strings.split(question.prompt, ' - ')[1]}">cung cấp chỗ ở, điều chỉnh</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center mt-4">
+                        <button class="submit-btn" id="submitBtn" onclick="submitAnswer()" disabled>
+                            <i class="fas fa-check me-2"></i>Xác nhận
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script th:inline="javascript">
+        let selectedAnswer = null;
+        
+        // Get values from Thymeleaf with proper fallbacks
+        let currentQuestionType = 'MULTIPLE_CHOICE';
+        let attemptId = 1;
+        let questionId = 1;
+        let questionIndex = 0;
+        let totalQuestions = 15;
+        let reviewId = 1;
+        
+        // Get question data from Thymeleaf
+        const questionData = {
+            id: /*[[${question.reviewItemId}]]*/ null,
+            type: /*[[${question.type.name()}]]*/ 'MULTIPLE_CHOICE',
+            prompt: /*[[${question.prompt}]]*/ '',
+            option: /*[[${question.option}]]*/ '',
+            answer: /*[[${question.answer}]]*/ '',
+            word: /*[[${question.vocab.word}]]*/ ''
+        };
+        
+        // Get values from Thymeleaf with fallbacks
+        try {
+            currentQuestionType = questionData.type || 'MULTIPLE_CHOICE';
+            attemptId = /*[[${attemptId}]]*/ 1;
+            questionId = questionData.id || 1;
+            questionIndex = /*[[${questionIndex}]]*/ 0;
+            totalQuestions = /*[[${totalQuestions}]]*/ 15;
+            reviewId = /*[[${review.reviewId}]]*/ 1;
+        } catch (e) {
+            console.warn('Error getting Thymeleaf values:', e);
+        }
+        
+        // Override with URL params if available
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reviewId')) reviewId = parseInt(urlParams.get('reviewId'));
+        if (urlParams.get('attemptId')) attemptId = parseInt(urlParams.get('attemptId'));
+        if (urlParams.get('questionIndex')) questionIndex = parseInt(urlParams.get('questionIndex'));
+        
+        // Use actual review_item_id from questionData, not questionIndex + 1
+        if (questionData.id && questionData.id !== null) {
+            questionId = questionData.id;
+        } else {
+            console.error('No valid question ID found! This will cause issues.');
+            questionId = questionIndex + 1; // Fallback only
+        }
+        
+        // Validate question data
+        if (!questionData.id) {
+            console.warn('Question ID not found, using fallback:', questionId);
+        }
+        if (currentQuestionType === 'MULTIPLE_CHOICE' && !questionData.option) {
+            console.warn('No options found for multiple choice question');
+        }
+
+        // Multiple Choice
+        function selectOption(optionIndex) {
+            selectedAnswer = optionIndex.toString();
+            
+            // Update UI
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-option="${optionIndex}"]`).classList.add('selected');
+            
+            enableSubmit();
+        }
+
+        // True/False
+        function selectTrueFalse(answer) {
+            selectedAnswer = answer;
+            
+            // Update UI
+            document.querySelectorAll('.true-false-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-answer="${answer}"]`).classList.add('selected');
+            
+            enableSubmit();
+        }
+
+        // Typing - Only add listener if element exists
+        const typingInput = document.getElementById('typingInput');
+        if (typingInput) {
+            typingInput.addEventListener('input', function() {
+                selectedAnswer = this.value.trim();
+                enableSubmit();
+            });
+        }
+
+        function enableSubmit() {
+            const btn = document.getElementById('submitBtn');
+            if (btn) btn.disabled = false;
+        }
+
+        function submitAnswer() {
+            // Ensure selectedAnswer is synced for typing questions
+            if (currentQuestionType === 'FILL_IN_BLANK' && typingInput) {
+                selectedAnswer = typingInput.value.trim();
+            }
+            if (!selectedAnswer) return;
+
+            // Disable submit button
+            document.getElementById('submitBtn').disabled = true;
+
+            // Send answer to server
+            fetch('/learn/review/answer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `attemptId=${attemptId}&itemId=${questionId}&answer=${encodeURIComponent(selectedAnswer)}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Response not ok: ' + response.status);
+                }
+            })
+            .then(result => {
+                // Show detailed feedback
+                showDetailedAnswerFeedback(result);
+                
+                // Move to next question after showing feedback
+                const nextIndex = questionIndex + 1;
+                
+                // Add delay to see feedback
+                setTimeout(() => {
+                    if (nextIndex < totalQuestions) {
+                        window.location.href = `/learn/review/session?reviewId=${reviewId}&attemptId=${attemptId}&questionIndex=${nextIndex}`;
+                    } else {
+                        window.location.href = `/learn/review/results?attemptId=${attemptId}`;
+                    }
+                }, 3000); // 3 second delay to see feedback
+                
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại!');
+                document.getElementById('submitBtn').disabled = false;
+            });
+        }
+
+        function skipQuestion() {
+            if (confirm('Bạn có chắc muốn bỏ qua câu hỏi này?')) {
+                submitAnswer();
+            }
+        }
+
+        function playPronunciation(button) {
+            const word = button.getAttribute('data-word');
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        
+        function showDetailedAnswerFeedback(result) {
+            // Create feedback overlay
+            const feedbackOverlay = document.createElement('div');
+            feedbackOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+            
+            const feedbackCard = document.createElement('div');
+            feedbackCard.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 1rem;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                max-width: 500px;
+                width: 90%;
+            `;
+            
+            // Determine feedback content based on result
+            const isCorrect = result.correct;
+            const icon = isCorrect ? '✅' : '❌';
+            const titleColor = isCorrect ? '#10b981' : '#ef4444';
+            const title = isCorrect ? 'Chính xác!' : 'Sai rồi!';
+            
+            // Get correct answer display based on question type
+            let correctAnswerDisplay = '';
+            let userAnswerDisplay = result.userAnswer;
+            
+            switch(result.questionType) {
+                case 'MULTIPLE_CHOICE':
+                    if (result.correctOptionIndex !== undefined && result.correctOptionText) {
+                        const letter = String.fromCharCode(65 + result.correctOptionIndex); // A, B, C, D
+                        correctAnswerDisplay = `${letter}. ${result.correctOptionText}`;
+                    } else {
+                        correctAnswerDisplay = result.correctAnswer || 'N/A';
+                    }
+                    // Convert user answer index to letter and get the actual option text
+                    if (!isNaN(result.userAnswer)) {
+                        const userIndex = parseInt(result.userAnswer);
+                        const userLetter = String.fromCharCode(65 + userIndex);
+                        // Try to get the actual option text from the question data
+                        const optionElements = document.querySelectorAll('.option-btn');
+                        let optionText = '';
+                        if (optionElements[userIndex]) {
+                            optionText = optionElements[userIndex].textContent.trim();
+                            // Remove any existing letter prefix (A., B., C., D.)
+                            optionText = optionText.replace(/^[A-D]\.\s*/, '');
+                        }
+                        userAnswerDisplay = optionText ? `${userLetter}. ${optionText}` : `${userLetter}. (${result.userAnswer})`;
+                    }
+                    break;
+                    
+                case 'TRUE_FALSE':
+                    correctAnswerDisplay = result.correctTrueFalse === 'TRUE' ? 'ĐÚNG' : 'SAI';
+                    userAnswerDisplay = result.userAnswer === 'TRUE' ? 'ĐÚNG' : 'SAI';
+                    break;
+                    
+                case 'FILL_IN_BLANK':
+                    correctAnswerDisplay = result.correctWordAnswer || result.correctAnswer || 'N/A';
+                    userAnswerDisplay = result.userAnswer;
+                    break;
+                    
+                default:
+                    correctAnswerDisplay = result.correctAnswer || 'N/A';
+            }
+            
+            feedbackCard.innerHTML = `
+                <div style="font-size: 4rem; margin-bottom: 1rem;">${icon}</div>
+                <h3 style="color: ${titleColor}; margin-bottom: 1rem;">${title}</h3>
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                    <div style="font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Từ: ${result.word}</div>
+                    <div style="color: #64748b; margin-bottom: 0.5rem;">${result.meaning}</div>
+                    <div style="color: #64748b; font-size: 0.9rem;">Loại câu hỏi: ${result.questionType}</div>
+                </div>
+                <div style="background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid ${titleColor};">
+                    <div style="font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Đáp án của bạn: ${userAnswerDisplay}</div>
+                    <div style="font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Đáp án đúng: ${correctAnswerDisplay}</div>
+                    <div style="color: #64748b; font-size: 0.9rem;">${result.explanation}</div>
+                </div>
+                <p style="color: #64748b; font-size: 0.9rem;">Đang chuyển đến câu hỏi tiếp theo...</p>
+            `;
+            
+            feedbackOverlay.appendChild(feedbackCard);
+            document.body.appendChild(feedbackOverlay);
+            
+            // Remove feedback after 3 seconds
+            setTimeout(() => {
+                if (feedbackOverlay.parentNode) {
+                    feedbackOverlay.parentNode.removeChild(feedbackOverlay);
+                }
+            }, 3000);
+        }
+
+
+        // Auto-focus typing input
+        document.addEventListener('DOMContentLoaded', function() {
+            const typingInput = document.getElementById('typingInput');
+            if (typingInput) {
+                typingInput.focus();
+            }
+        });
+
+        // Handle Enter key for typing
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && currentQuestionType === 'FILL_IN_BLANK') {
+                submitAnswer();
+            }
+        });
+    </script>
+</body>
+</html>

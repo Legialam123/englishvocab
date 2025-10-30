@@ -78,4 +78,17 @@ public class VocabWithProgressDTO {
         
         return baseProficiency;
     }
+    
+    // Convenience methods for review system
+    public String getWord() {
+        return vocab != null ? vocab.getWord() : "";
+    }
+    
+    public String getPrimaryMeaning() {
+        return vocab != null ? vocab.getPrimaryMeaning() : "";
+    }
+    
+    public String getIpa() {
+        return vocab != null ? vocab.getIpa() : "";
+    }
 }

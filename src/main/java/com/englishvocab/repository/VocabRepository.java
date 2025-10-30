@@ -26,6 +26,12 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
     Page<Vocab> findByDictionary(Dictionary dictionary, Pageable pageable);
     
     /**
+     * Get random meanings from database excluding a specific meaning
+     */
+    @Query(value = "SELECT s.meaning_vi FROM vocab v JOIN senses s ON v.vocab_id = s.vocab_id WHERE s.meaning_vi != :excludeMeaning ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<String> findRandomMeaningsExcluding(@Param("excludeMeaning") String excludeMeaning, @Param("limit") int limit);
+    
+    /**
      * Tìm từ vựng theo dictionary, sắp xếp theo alphabet A-Z
      */
     List<Vocab> findByDictionaryOrderByWordAsc(Dictionary dictionary);
@@ -161,4 +167,22 @@ public interface VocabRepository extends JpaRepository<Vocab, Integer> {
      */
     @Query("SELECT LOWER(SUBSTRING(v.word, 1, 1)) AS prefix, COUNT(v) FROM Vocab v WHERE v.dictionary = :dictionary GROUP BY LOWER(SUBSTRING(v.word, 1, 1))")
     List<Object[]> countByDictionaryGroupedByFirstLetter(@Param("dictionary") Dictionary dictionary);
+    
+    /**
+     * Tìm từ vựng theo dictionary và topics
+     */
+    @Query("SELECT DISTINCT v FROM Vocab v JOIN v.vocabTopics vt WHERE v.dictionary = :dictionary AND vt.topic.topicId IN :topicIds ORDER BY v.word ASC")
+    List<Vocab> findByDictionaryAndTopicsIdIn(@Param("dictionary") Dictionary dictionary, @Param("topicIds") List<Integer> topicIds);
+    
+    /**
+     * Tìm từ vựng theo dictionary, topics và level
+     */
+    @Query("SELECT DISTINCT v FROM Vocab v JOIN v.vocabTopics vt WHERE v.dictionary = :dictionary AND vt.topic.topicId IN :topicIds AND v.level = :level ORDER BY v.word ASC")
+    List<Vocab> findByDictionaryAndTopicsIdInAndLevel(@Param("dictionary") Dictionary dictionary, @Param("topicIds") List<Integer> topicIds, @Param("level") Vocab.Level level);
+    
+    /**
+     * Đếm từ vựng theo dictionary, topics và level
+     */
+    @Query("SELECT COUNT(DISTINCT v) FROM Vocab v JOIN v.vocabTopics vt WHERE v.dictionary = :dictionary AND vt.topic.topicId IN :topicIds AND v.level = :level")
+    long countByDictionaryAndTopicsIdInAndLevel(@Param("dictionary") Dictionary dictionary, @Param("topicIds") List<Integer> topicIds, @Param("level") Vocab.Level level);
 }

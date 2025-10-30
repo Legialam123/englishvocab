@@ -37,6 +37,7 @@ public class SecurityConfig {
         "/auth/login",
         "/auth/register",
         "/auth/api/**",
+        "/learn/**",
         "/css/**",
         "/js/**",
         "/images/**",
@@ -83,7 +84,7 @@ public class SecurityConfig {
         http
             // Tắt CSRF cho các API (nếu cần)
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/auth/api/**", "/api/**")
+                .ignoringRequestMatchers("/auth/api/**", "/api/**", "/learn/**")
             )
 
             // Cấu hình authorization

@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -19,6 +20,7 @@ import java.util.List;
 @Entity
 @Table(name = "dictionaries")
 @Data
+@ToString(exclude = {"vocabularies"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

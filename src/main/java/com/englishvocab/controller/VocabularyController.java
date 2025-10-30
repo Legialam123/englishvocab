@@ -52,7 +52,7 @@ public class VocabularyController {
     @GetMapping
     public String index(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "12") int size,
             @RequestParam(required = false) String filter,
             Authentication authentication,
             Model model) {
@@ -61,11 +61,16 @@ public class VocabularyController {
             User currentUser = getCurrentUser(authentication);
             Pageable pageable = PageRequest.of(page, size);
             
-            // Lấy từ vựng đã học của user
+            // Lấy từ vựng đã học của user (with pagination)
             Page<UserVocabProgress> learnedWords = userProgressService.findUserProgress(currentUser, pageable);
             
-            // Lấy từ vựng cá nhân của user
-            List<UserCustomVocab> customWords = userCustomVocabService.findByUser(currentUser);
+            // Lấy từ vựng cá nhân của user (with pagination - limit 12 per page)
+            List<UserCustomVocab> allCustomWords = userCustomVocabService.findByUser(currentUser);
+            int customPage = 0; // For now, show first page only
+            int customSize = 12;
+            int fromIndex = Math.min(customPage * customSize, allCustomWords.size());
+            int toIndex = Math.min(fromIndex + customSize, allCustomWords.size());
+            List<UserCustomVocab> customWords = allCustomWords.subList(fromIndex, toIndex);
             
             // Lấy danh sách vocabulary lists gần đây (top 6)
             List<UserVocabList> recentLists = userVocabListService.getActiveLists(currentUser)
@@ -113,16 +118,13 @@ public class VocabularyController {
         try {
             User currentUser = getCurrentUser(authentication);
             
-            // Lấy từ điển active
-            List<Dictionary> activeDictionaries = dictionaryService.findActiveDictionaries();
-            
-            // Statistics cho từng từ điển
-            // TODO: Implement dictionary progress statistics
+            // Lấy từ điển active với statistics
+            var dictionariesWithStats = dictionaryService.getActiveDictionariesWithStats();
             
             model.addAttribute("currentUser", currentUser);
-            model.addAttribute("dictionaries", activeDictionaries);
+            model.addAttribute("dictionaries", dictionariesWithStats);
             
-            log.info("User {} browsing dictionaries", currentUser.getUsername());
+            log.info("User {} browsing {} dictionaries", currentUser.getUsername(), dictionariesWithStats.size());
             
             return "vocabulary/dictionaries";
             

@@ -211,9 +211,10 @@
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             border: none;
             color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 0.75rem;
+            padding: 0.6rem 1.4rem; /* smaller button */
+            border-radius: 0.65rem;
             font-weight: 600;
+            font-size: 0.95rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
@@ -226,16 +227,16 @@
 
         .empty-state {
             text-align: center;
-            padding: 4rem 2rem;
+            padding: 3rem 1.5rem; /* reduce overall height */
             background: white;
             border-radius: 0.75rem;
             border: 2px dashed var(--border-color);
         }
 
         .empty-state i {
-            font-size: 5rem;
+            font-size: 3rem; /* smaller icon size */
             color: #cbd5e1;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .empty-state h3 {

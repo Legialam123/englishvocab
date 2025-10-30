@@ -94,8 +94,11 @@ public interface UserVocabProgressRepository extends JpaRepository<UserVocabProg
     List<UserVocabProgress> findByUserAndDictionary(@Param("user") User user, @Param("dictionaryId") Integer dictionaryId);
     
     /**
-     * Daily study streak calculation
+     * Daily study streak calculation (with eager fetch)
      */
-    @Query("SELECT uvp FROM UserVocabProgress uvp WHERE uvp.user = :user AND uvp.lastReviewed >= :startDate ORDER BY uvp.lastReviewed DESC")
+    @Query("SELECT uvp FROM UserVocabProgress uvp " +
+           "LEFT JOIN FETCH uvp.vocab v " +
+           "WHERE uvp.user = :user AND uvp.lastReviewed >= :startDate " +
+           "ORDER BY uvp.lastReviewed DESC")
     List<UserVocabProgress> findRecentActivity(@Param("user") User user, @Param("startDate") LocalDateTime startDate);
 }

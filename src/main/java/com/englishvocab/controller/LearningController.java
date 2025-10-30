@@ -18,6 +18,14 @@ import com.englishvocab.service.LearningService;
 import com.englishvocab.service.TopicsService;
 import com.englishvocab.service.UserProgressService;
 import com.englishvocab.service.VocabularyService;
+import com.englishvocab.service.UserVocabListService;
+import com.englishvocab.service.ReviewService;
+import com.englishvocab.dto.ReviewAnswerResult;
+import com.englishvocab.dto.ReviewStatsDTO;
+import com.englishvocab.dto.ReviewResultDTO;
+import com.englishvocab.entity.Reviews;
+import com.englishvocab.entity.ReviewAttempts;
+import com.englishvocab.entity.ReviewItems;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,14 +38,16 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -64,6 +74,8 @@ public class LearningController {
     private final VocabularyService vocabularyService;
     private final LearningService learningService;
     private final UserRepository userRepository;
+    private final UserVocabListService userVocabListService;
+    private final ReviewService reviewService;
 
     /**
      * 📝 ALPHABETICAL LEARNING MODE
@@ -224,9 +236,18 @@ public class LearningController {
             List<Topics> topics = topicsService.findActiveTopics();
             model.addAttribute("topics", topics);
             
-            // Load vocabulary counts per topic for this dictionary
+            // Load vocabulary counts per topic for this dictionary (ALL levels)
             Map<Integer, Long> topicVocabCounts = vocabularyService.getVocabCountByTopicsForDictionary(dictionaryId);
             model.addAttribute("topicVocabCounts", topicVocabCounts);
+            
+            // Load vocabulary counts per topic by level
+            Map<Integer, Long> topicVocabCountsBeginner = vocabularyService.getVocabCountByTopicsAndLevelForDictionary(dictionaryId, "BEGINNER");
+            Map<Integer, Long> topicVocabCountsIntermediate = vocabularyService.getVocabCountByTopicsAndLevelForDictionary(dictionaryId, "INTERMEDIATE");
+            Map<Integer, Long> topicVocabCountsAdvanced = vocabularyService.getVocabCountByTopicsAndLevelForDictionary(dictionaryId, "ADVANCED");
+            
+            model.addAttribute("topicVocabCountsBeginner", topicVocabCountsBeginner);
+            model.addAttribute("topicVocabCountsIntermediate", topicVocabCountsIntermediate);
+            model.addAttribute("topicVocabCountsAdvanced", topicVocabCountsAdvanced);
 
             model.addAttribute("pageTitle", "Học từ vựng: " + dictionary.getName() + " (Chủ đề)");
             model.addAttribute("learningMode", "topics");
@@ -278,6 +299,9 @@ public class LearningController {
             // Load available topics for filtering
             List<Topics> availableTopics = topicsService.findActiveTopics();
             model.addAttribute("availableTopics", availableTopics);
+            
+            // Load user lists for saving vocabulary
+            model.addAttribute("userLists", userVocabListService.getListSummaries(user));
             
             // Tạo DTO với progress information cho mỗi vocab
             List<VocabWithProgressDTO> vocabsWithProgress = vocabularies.getContent().stream()
@@ -398,12 +422,12 @@ public class LearningController {
             // Get dictionary
             Dictionary dictionary = dictionaryService.findByIdOrThrow(dictionaryId);
 
-            // Create learning session (cached in Redis) with level and startLetter filters
+            // Create learning session (cached in Redis) with all filters
             LearningSession session = learningService.createSession(
-                user, dictionary, learningMode, selectedVocabIds, sessionSize, level, startLetter);
+                user, dictionary, learningMode, selectedVocabIds, sessionSize, level, startLetter, topicIds);
 
-            log.info("User {} started learning session {} for dictionary {} in {} mode with level={} startLetter={}", 
-                    userEmail, session.getSessionUuid(), dictionary.getName(), learningMode, level, startLetter);
+            log.info("User {} started learning session {} for dictionary {} in {} mode with level={} startLetter={} topicIds={}", 
+                    userEmail, session.getSessionUuid(), dictionary.getName(), learningMode, level, startLetter, topicIds);
 
             // Redirect to flashcard session
             return "redirect:/learn/session/flashcards?sessionId=" + session.getSessionUuid();
@@ -655,6 +679,308 @@ public class LearningController {
             return authentication != null ? getCurrentUserId(authentication) : "anonymous";
         } catch (RuntimeException ex) {
             return "unknown";
+        }
+    }
+    
+    // ==================== REVIEW SYSTEM ====================
+    
+    /**
+     * 📚 REVIEW DASHBOARD
+     * Trang dashboard ôn tập từ vựng
+     */
+    @GetMapping("/review")
+    public String reviewDashboard(Authentication authentication, Model model) {
+        try {
+            log.info("Loading review dashboard for user: {}", authentication.getName());
+            
+            User user = getCurrentUser(authentication);
+            log.info("Found user: {} with ID: {}", user.getEmail(), user.getId());
+            
+            log.info("Getting review stats...");
+            ReviewStatsDTO stats;
+            try {
+                stats = reviewService.getReviewStats(user);
+                log.info("Review stats: {}", stats);
+            } catch (Exception e) {
+                log.error("Error getting review stats", e);
+                // Create default stats
+                stats = ReviewStatsDTO.builder()
+                    .overdueCount(0)
+                    .todayCount(0)
+                    .difficultCount(0)
+                    .totalReviewCount(0)
+                    .build();
+                log.info("Using default stats: {}", stats);
+            }
+            
+            // Calculate estimated time based on review count
+            String estimatedTime = "12-18 phút";
+            if (stats.getTotalReviewCount() <= 5) {
+                estimatedTime = "5-8 phút";
+            } else if (stats.getTotalReviewCount() <= 10) {
+                estimatedTime = "8-12 phút";
+            } else if (stats.getTotalReviewCount() <= 15) {
+                estimatedTime = "12-18 phút";
+            } else {
+                estimatedTime = "18-25 phút";
+            }
+            
+            // Get study streak
+            int studyStreak = 0;
+            try {
+                studyStreak = userVocabListService.calculateStudyStreak(user);
+            } catch (Exception e) {
+                log.error("Error calculating study streak", e);
+            }
+            
+            // Get last review date and result
+            String lastReviewDate = null;
+            ReviewResultDTO lastReviewResult = null;
+            try {
+                lastReviewDate = reviewService.getLastReviewDate(user);
+                lastReviewResult = reviewService.getLastReviewResult(user);
+            } catch (Exception e) {
+                log.error("Error getting last review data", e);
+            }
+            
+            model.addAttribute("stats", stats);
+            
+            // Get review words with smart logic
+            List<VocabWithProgressDTO> reviewWords = new ArrayList<>();
+            String reviewStatus = "no_words";
+            String reviewMessage = "";
+            String reviewButtonText = "";
+            String reviewButtonClass = "";
+            
+            try {
+                // 1. Try urgent words first
+                List<VocabWithProgressDTO> urgentWords = reviewService.getUrgentReviewWords(user, 15);
+                if (!urgentWords.isEmpty()) {
+                    reviewWords = urgentWords;
+                    reviewStatus = "urgent";
+                    reviewMessage = "Có " + urgentWords.size() + " từ cần ôn tập ngay";
+                    reviewButtonText = "BẮT ĐẦU ÔN TẬP";
+                    reviewButtonClass = "btn-primary";
+                } else {
+                    // 2. Try recently learned words
+                    List<VocabWithProgressDTO> recentWords = reviewService.getRecentLearnedWords(user, 15);
+                    if (!recentWords.isEmpty()) {
+                        reviewWords = recentWords;
+                        reviewStatus = "recent";
+                        reviewMessage = "Chưa có từ cần ôn tập. Ôn tập từ đã học để củng cố kiến thức";
+                        reviewButtonText = "🔄 ÔN TẬP TỪ ĐÃ HỌC";
+                        reviewButtonClass = "btn-info";
+                    } else {
+                        // 3. No words available
+                        reviewStatus = "no_words";
+                        reviewMessage = "Chưa có từ nào để ôn tập. Hãy thêm từ vào danh sách để bắt đầu học";
+                        reviewButtonText = "📖 THÊM TỪ MỚI";
+                        reviewButtonClass = "btn-success";
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error getting review words", e);
+                reviewStatus = "error";
+                reviewMessage = "Có lỗi xảy ra khi tải dữ liệu ôn tập";
+                reviewButtonText = "🔄 THỬ LẠI";
+                reviewButtonClass = "btn-warning";
+            }
+            
+            model.addAttribute("reviewWords", reviewWords);
+            model.addAttribute("reviewStatus", reviewStatus);
+            model.addAttribute("reviewMessage", reviewMessage);
+            model.addAttribute("reviewButtonText", reviewButtonText);
+            model.addAttribute("reviewButtonClass", reviewButtonClass);
+            model.addAttribute("estimatedTime", estimatedTime);
+            model.addAttribute("studyStreak", studyStreak);
+            model.addAttribute("lastReviewDate", lastReviewDate);
+            model.addAttribute("lastReviewResult", lastReviewResult);
+            
+            return "learn/review-dashboard";
+            
+        } catch (Exception e) {
+            log.error("Error loading review dashboard", e);
+            return "redirect:/dashboard";
+        }
+    }
+    
+    /**
+     * 🚀 START REVIEW SESSION
+     * Bắt đầu phiên ôn tập
+     */
+    @PostMapping("/review/start")
+    public String startReview(Authentication authentication) {
+        try {
+            log.info("Starting review session for user: {}", authentication.getName());
+            
+            User user = getCurrentUser(authentication);
+            log.info("Found user: {} with ID: {}", user.getEmail(), user.getId());
+            
+            List<VocabWithProgressDTO> words = reviewService.getReviewWords(user, 15);
+            log.info("Found {} words for review", words.size());
+            
+            if (words.isEmpty()) {
+                log.warn("No words available for review for user {}", user.getEmail());
+                return "redirect:/learn/review?status=no_words&message=Chưa có từ nào để ôn tập. Hãy học từ vựng mới để bắt đầu ôn tập";
+            }
+            
+            log.info("Creating vocabulary review with {} words", words.size());
+            Reviews review = reviewService.createVocabularyReview(user, words);
+            log.info("Created review with ID: {}", review.getReviewId());
+            
+            log.info("Starting review attempt");
+            ReviewAttempts attempt = reviewService.startReviewAttempt(user, review);
+            log.info("Created attempt with ID: {}", attempt.getReviewAttemptId());
+            
+            return "redirect:/learn/review/session?reviewId=" + review.getReviewId() + "&attemptId=" + attempt.getReviewAttemptId();
+            
+        } catch (Exception e) {
+            log.error("Error starting review session for user: {}", authentication.getName(), e);
+            return "redirect:/learn/review?error=start_failed";
+        }
+    }
+    
+    /**
+     * 📝 REVIEW SESSION
+     * Phiên ôn tập với 3 chế độ
+     */
+    @GetMapping("/review/session")
+    public String reviewSession(@RequestParam Integer reviewId,
+                               @RequestParam Integer attemptId,
+                               @RequestParam(defaultValue = "0") int questionIndex,
+                               Model model) {
+        try {
+            Reviews review = reviewService.getReviewById(reviewId);
+            List<ReviewItems> questions = reviewService.getReviewQuestions(reviewId);
+            
+            if (questionIndex >= questions.size()) {
+                return "redirect:/learn/review/results?attemptId=" + attemptId;
+            }
+            
+            ReviewItems currentQuestion = questions.get(questionIndex);
+            
+            // Debug logging
+            log.info("Loading question {} of {} for reviewId: {}", questionIndex + 1, questions.size(), reviewId);
+            log.info("Current question: id={}, type={}, word={}", 
+                currentQuestion.getReviewItemId(), currentQuestion.getType(),
+                currentQuestion.getVocab() != null ? currentQuestion.getVocab().getWord() : "NULL");
+            
+            model.addAttribute("review", review);
+            model.addAttribute("attemptId", attemptId);
+            model.addAttribute("question", currentQuestion);
+            model.addAttribute("questionIndex", questionIndex);
+            model.addAttribute("totalQuestions", questions.size());
+            
+            return "learn/review-session";
+            
+        } catch (Exception e) {
+            log.error("Error loading review session", e);
+            return "redirect:/learn/review?error=session_failed";
+        }
+    }
+    
+    /**
+     * ✅ SUBMIT REVIEW ANSWER
+     * Xử lý đáp án ôn tập
+     */
+    @PostMapping("/review/answer")
+    @ResponseBody
+    public ResponseEntity<?> submitAnswer(@RequestParam Integer attemptId,
+                                        @RequestParam Integer itemId,
+                                        @RequestParam String answer) {
+        try {
+            // Process answer and get result details
+            ReviewAnswerResult result = reviewService.processAnswerWithResult(attemptId, itemId, answer);
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Error processing review answer - attemptId: {}, itemId: {}, answer: {}", attemptId, itemId, answer, e);
+            
+            // Return JSON error instead of plain text
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Error processing answer: " + e.getMessage());
+            errorResponse.put("error", e.getClass().getSimpleName());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+    
+    /**
+     * 🎉 REVIEW RESULTS
+     * Kết quả ôn tập
+     */
+    @GetMapping("/review/results")
+    public String reviewResults(@RequestParam Integer attemptId, Model model) {
+        try {
+            ReviewResultDTO results = reviewService.calculateReviewResults(attemptId);
+            model.addAttribute("results", results);
+            
+            return "learn/review-results";
+            
+        } catch (Exception e) {
+            log.error("Error loading review results", e);
+            return "redirect:/learn/review?error=results_failed";
+        }
+    }
+    
+    /**
+     * Helper method to get current user
+     */
+    private User getCurrentUser(Authentication authentication) {
+        String email = getCurrentUserId(authentication);
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+    
+    /**
+     * 🔍 DEBUG: Check user progress data
+     */
+    @GetMapping("/debug/progress")
+    @ResponseBody
+    public ResponseEntity<?> debugUserProgress(Authentication authentication) {
+        try {
+            User user = getCurrentUser(authentication);
+            List<UserVocabProgress> allProgress = reviewService.getUserProgress(user);
+            
+            Map<String, Object> debugInfo = new HashMap<>();
+            debugInfo.put("userEmail", user.getEmail());
+            debugInfo.put("totalProgressRecords", allProgress.size());
+            
+            List<Map<String, Object>> progressDetails = new ArrayList<>();
+            Set<String> uniqueWords = new HashSet<>();
+            Set<Integer> uniqueVocabIds = new HashSet<>();
+            
+            for (UserVocabProgress progress : allProgress) {
+                Map<String, Object> detail = new HashMap<>();
+                if (progress.getVocab() != null) {
+                    String word = progress.getVocab().getWord();
+                    Integer vocabId = progress.getVocab().getVocabId();
+                    
+                    detail.put("vocabId", vocabId);
+                    detail.put("word", word);
+                    detail.put("box", progress.getBox());
+                    detail.put("nextReviewAt", progress.getNextReviewAt());
+                    
+                    uniqueWords.add(word);
+                    uniqueVocabIds.add(vocabId);
+                } else {
+                    detail.put("vocabId", "NULL");
+                    detail.put("word", "NULL");
+                }
+                progressDetails.add(detail);
+            }
+            
+            debugInfo.put("progressDetails", progressDetails);
+            debugInfo.put("uniqueWords", uniqueWords);
+            debugInfo.put("uniqueVocabIds", uniqueVocabIds);
+            debugInfo.put("uniqueWordCount", uniqueWords.size());
+            debugInfo.put("uniqueVocabIdCount", uniqueVocabIds.size());
+            
+            return ResponseEntity.ok(debugInfo);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

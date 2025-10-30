@@ -87,6 +87,70 @@ public class VocabListApiController {
     }
 
     /**
+     * Add multiple system vocabularies to multiple lists
+     */
+    @PostMapping("/add-vocabs")
+    public ResponseEntity<Map<String, Object>> addMultipleVocabsToLists(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            User currentUser = getCurrentUser(authentication);
+            
+            @SuppressWarnings("unchecked")
+            java.util.List<Integer> listIds = (java.util.List<Integer>) request.get("listIds");
+            @SuppressWarnings("unchecked")
+            java.util.List<Integer> vocabIds = (java.util.List<Integer>) request.get("vocabIds");
+            
+            log.info("User {} adding {} vocabs to {} lists", 
+                    currentUser.getUsername(), vocabIds.size(), listIds.size());
+            
+            if (vocabIds == null || vocabIds.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Danh sách từ vựng không được để trống");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            if (listIds == null || listIds.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Vui lòng chọn ít nhất một danh sách");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Add each vocab to all selected lists
+            int totalAdded = 0;
+            for (Integer vocabId : vocabIds) {
+                int successCount = userVocabListService.addSystemVocabToLists(
+                        currentUser.getId(), 
+                        vocabId, 
+                        listIds
+                );
+                totalAdded += successCount;
+            }
+            
+            response.put("success", true);
+            response.put("message", String.format("Đã thêm %d từ vào %d danh sách", vocabIds.size(), listIds.size()));
+            response.put("totalAdded", totalAdded);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error: {}", e.getMessage());
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+            
+        } catch (Exception e) {
+            log.error("Error adding vocabs to lists", e);
+            response.put("success", false);
+            response.put("message", "Có lỗi xảy ra: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
      * Remove system vocabulary from a list
      */
     @DeleteMapping("/{listId}/system-vocab/{vocabId}")

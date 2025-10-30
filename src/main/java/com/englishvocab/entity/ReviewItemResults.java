@@ -11,26 +11,26 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "quiz_item_results")
+@Table(name = "review_item_results")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-public class QuizItemResults {
+public class ReviewItemResults {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "quiz_item_result_id")
-    Integer quizItemResultId;
+    @Column(name = "review_item_result_id")
+    Integer reviewItemResultId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_item_id", nullable = false)
-    QuizItems quizItem;
+    @JoinColumn(name = "review_item_id", nullable = false)
+    ReviewItems reviewItem;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_attempt_id", nullable = false)
-    QuizAttempts quizAttempt;
+    @JoinColumn(name = "review_attempt_id", nullable = false)
+    ReviewAttempts reviewAttempt;
     
     @Column(name = "is_correct", nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
@@ -39,6 +39,12 @@ public class QuizItemResults {
     @Column(nullable = false, columnDefinition = "integer default 0")
     @Builder.Default
     Integer score = 0;
+    
+    @Column(name = "user_answer", length = 200)
+    String userAnswer; // User's answer
+    
+    @Column(name = "time_taken_sec")
+    Integer timeTakenSec; // Time taken to answer this question
     
     @CreationTimestamp
     @Column(name = "answered_at", updatable = false)
@@ -57,5 +63,22 @@ public class QuizItemResults {
     
     public String getResultCssClass() {
         return isCorrect ? "text-success" : "text-danger";
+    }
+    
+    public String getFormattedTimeTaken() {
+        if (timeTakenSec == null) return "N/A";
+        
+        int minutes = timeTakenSec / 60;
+        int seconds = timeTakenSec % 60;
+        
+        if (minutes > 0) {
+            return minutes + ":" + String.format("%02d", seconds);
+        } else {
+            return "0:" + String.format("%02d", seconds);
+        }
+    }
+    
+    public boolean isVocabularyReview() {
+        return reviewAttempt != null && reviewAttempt.isReviewAttempt();
     }
 }

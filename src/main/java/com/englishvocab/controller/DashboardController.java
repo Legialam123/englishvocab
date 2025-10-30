@@ -1,17 +1,30 @@
 package com.englishvocab.controller;
 
+import com.englishvocab.dto.DashboardStatsDTO;
+import com.englishvocab.dto.VocabListSummaryDTO;
 import com.englishvocab.entity.User;
 import com.englishvocab.security.CustomUserPrincipal;
+import com.englishvocab.service.DictionaryService;
+import com.englishvocab.service.MediaService;
+import com.englishvocab.service.UserVocabListService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.util.List;
+
 
 @Controller
 @Slf4j
+@RequiredArgsConstructor
 public class DashboardController {
+    
+    private final UserVocabListService userVocabListService;
+    private final DictionaryService dictionaryService;
+    private final MediaService mediaService;
     
     /**
      * Trang chủ - Dashboard  
@@ -24,16 +37,35 @@ public class DashboardController {
             log.info("Dashboard accessed by user: {} ({})", currentUser.getUsername(), currentUser.getRole());
             model.addAttribute("currentUser", currentUser);
             
+            // Add avatar URL
+            String avatarUrl = mediaService.getUserAvatarUrl(currentUser.getId());
+            model.addAttribute("avatarUrl", avatarUrl);
+            
             // Add role-specific data to model
-            if (currentUser.getRole() == User.Role.ADMIN) {
-                // Admin can view dashboard but with admin-specific content
-                log.info("Admin user viewing dashboard");
-                model.addAttribute("isAdmin", true);
-                // Could add admin stats here if needed
-            } else {
-                log.info("Regular user accessing dashboard");
-                model.addAttribute("isAdmin", false);
+            boolean isAdmin = currentUser.getRole() == User.Role.ADMIN;
+            model.addAttribute("isAdmin", isAdmin);
+            
+            // Get dashboard statistics
+            DashboardStatsDTO stats = userVocabListService.getDashboardStats(currentUser);
+            model.addAttribute("stats", stats);
+            
+            // Get popular dictionaries with stats (top 6 active dictionaries)
+            var popularDictionaries = dictionaryService.getActiveDictionariesWithStats();
+            if (popularDictionaries.size() > 6) {
+                popularDictionaries = popularDictionaries.subList(0, 6);
             }
+            model.addAttribute("dictionaries", popularDictionaries);
+            
+            // Get recent lists (top 5)
+            List<VocabListSummaryDTO> recentLists = userVocabListService.getRecentLists(currentUser, 5);
+            model.addAttribute("recentLists", recentLists);
+            
+            // Get recently learned vocabulary from progress (top 12)
+            var recentlyLearned = userVocabListService.getRecentlyLearnedVocabulary(currentUser, 12);
+            model.addAttribute("recentlyLearned", recentlyLearned);
+            
+            log.info("Dashboard data loaded: {} lists, {} dictionaries, {} recently learned", 
+                    recentLists.size(), popularDictionaries.size(), recentlyLearned.size());
         } else {
             log.warn("Dashboard accessed but currentUser is null");
         }

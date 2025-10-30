@@ -325,32 +325,8 @@
                     <div class="dictionary-stats">
                         <div class="stat-item">
                             <i class="fas fa-list-ul"></i>
-                            <span>1,200 từ</span>
+                            <span th:text="${dictionary.totalVocabCount} + ' từ vựng'">0 từ vựng</span>
                         </div>
-                        <div class="stat-item">
-                            <i class="fas fa-users"></i>
-                            <span>2,500 học viên</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-star"></i>
-                            <span>4.8/5</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Level Badges -->
-                    <div class="dictionary-level">
-                        <span class="level-badge level-beginner" th:if="${dictionary.name.toLowerCase().contains('basic') or dictionary.name.toLowerCase().contains('beginner')}">
-                            <i class="fas fa-seedling me-1"></i>Cơ bản
-                        </span>
-                        <span class="level-badge level-intermediate" th:if="${dictionary.name.toLowerCase().contains('intermediate')}">
-                            <i class="fas fa-mountain me-1"></i>Trung cấp  
-                        </span>
-                        <span class="level-badge level-advanced" th:if="${dictionary.name.toLowerCase().contains('advanced') or dictionary.name.toLowerCase().contains('expert')}">
-                            <i class="fas fa-rocket me-1"></i>Nâng cao
-                        </span>
-                        <span class="level-badge level-beginner" th:unless="${dictionary.name.toLowerCase().contains('basic') or dictionary.name.toLowerCase().contains('beginner') or dictionary.name.toLowerCase().contains('intermediate') or dictionary.name.toLowerCase().contains('advanced') or dictionary.name.toLowerCase().contains('expert')}">
-                            <i class="fas fa-book me-1"></i>Tổng hợp
-                        </span>
                     </div>
                     
                     <!-- Actions -->

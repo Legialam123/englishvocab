@@ -12,26 +12,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "quiz_attempts")
+@Table(name = "review_attempts")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-public class QuizAttempts {
+public class ReviewAttempts {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "quiz_attempt_id")
-    Integer quizAttemptId;
+    @Column(name = "review_attempt_id")
+    Integer reviewAttemptId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id", nullable = false)
-    Quizzes quiz;
+    @JoinColumn(name = "review_id", nullable = false)
+    Reviews review;
     
     @Column(name = "started_at")
     LocalDateTime startedAt;
@@ -50,15 +50,31 @@ public class QuizAttempts {
     @Builder.Default
     Integer maxScore = 100; // Maximum possible score
     
+    @Column(name = "attempt_type")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    AttemptType attemptType = AttemptType.REVIEW;
+    
     // Relationships
-    @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<QuizItemResults> itemResults;
+    @OneToMany(mappedBy = "reviewAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<ReviewItemResults> itemResults;
+    
+    public enum AttemptType {
+        REVIEW,     // Ôn tập từ vựng
+        QUIZ,       // Quiz thông thường
+        EXAM,       // Thi cử
+        PRACTICE    // Luyện tập
+    }
     
     /**
      * Convenience methods
      */
     public boolean isCompleted() {
         return submittedAt != null;
+    }
+    
+    public boolean isReviewAttempt() {
+        return attemptType == AttemptType.REVIEW;
     }
     
     public double getPercentageScore() {
@@ -84,13 +100,22 @@ public class QuizAttempts {
     }
     
     public boolean isPassed() {
-        if (quiz == null || quiz.getPassScore() == null) return true;
-        return getPercentageScore() >= quiz.getPassScore();
+        if (review == null || review.getPassScore() == null) return true;
+        return getPercentageScore() >= review.getPassScore();
     }
     
     public String getResultStatus() {
         if (!isCompleted()) return "Đang làm";
         return isPassed() ? "Đậu" : "Rớt";
+    }
+    
+    public String getAttemptTypeDisplayName() {
+        return switch (attemptType) {
+            case REVIEW -> "Ôn tập";
+            case QUIZ -> "Quiz";
+            case EXAM -> "Thi cử";
+            case PRACTICE -> "Luyện tập";
+        };
     }
     
     @CreationTimestamp

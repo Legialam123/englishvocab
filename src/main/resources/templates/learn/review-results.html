@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết Quả Ôn Tập - English Vocab</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/global.css}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f8fafc;
+            --text-color: #334155;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .results-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .score-display {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            position: relative;
+            background: conic-gradient(var(--success-color) 0deg, var(--success-color) var(--score-angle, 0deg), #e2e8f0 var(--score-angle, 0deg), #e2e8f0 360deg);
+        }
+
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .score-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .score-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .words-section {
+            margin: 2rem 0;
+        }
+
+        .words-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .word-item {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .word-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .word-item.mastered {
+            border-left: 4px solid var(--success-color);
+            background: #f0fdf4;
+        }
+
+        .word-item.need-review {
+            border-left: 4px solid var(--warning-color);
+            background: #fffbeb;
+        }
+
+        .word-text {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .word-meaning {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .word-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+        }
+
+        .word-status.mastered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .word-status.need-review {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary-action {
+            background: linear-gradient(135deg, var(--primary-color), #6366f1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+
+        .btn-secondary-action {
+            background: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-secondary-action:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-outline-action {
+            background: transparent;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-outline-action:hover {
+            background: #f8fafc;
+            color: var(--text-color);
+        }
+
+        .celebration {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .celebration-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .celebration-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .celebration-subtext {
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        .progress-section {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .progress-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .progress-item:last-child {
+            border-bottom: none;
+        }
+
+        .progress-label {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .progress-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Results Header -->
+    <div class="results-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-3">
+                        <i class="fas fa-trophy me-3"></i>Kết Quả Ôn Tập
+                    </h1>
+                    <p class="lead mb-0">Chúc mừng bạn đã hoàn thành phiên ôn tập!</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-white-50">
+                        <small>Thời gian: <span th:text="${results.formattedDuration}">14 phút 32 giây</span></small><br>
+                        <small>Hoàn thành: <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy HH:mm')}">17/01/2024 14:30</span></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Score Display -->
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="results-card">
+                    <div class="score-display">
+                        <div class="score-circle" th:style="'--score-angle: ' + ${results.totalCorrect * 360 / results.totalQuestions} + 'deg'">
+                            <div class="score-content">
+                                <div class="score-number" th:text="${results.totalCorrect}">12</div>
+                                <div class="score-label">trên <span th:text="${results.totalQuestions}">15</span></div>
+                            </div>
+                        </div>
+                        <h3 th:text="${results.formattedScore}">12/15 (80.0%)</h3>
+                        <p class="text-muted">Tỷ lệ đúng: <span th:text="${#numbers.formatDecimal(results.percentageScore, 1, 1)}">80.0</span>%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="results-card">
+                    <h4 class="mb-4"><i class="fas fa-chart-bar me-2"></i>Thống Kê Chi Tiết</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" th:text="${results.totalCorrect}">12</div>
+                            <div class="stat-label">Đúng</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" th:text="${results.totalQuestions - results.totalCorrect}">3</div>
+                            <div class="stat-label">Sai</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" th:text="${results.masteredWords.size()}">8</div>
+                            <div class="stat-label">Đã Thành Thạo</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" th:text="${results.needReviewWords.size()}">3</div>
+                            <div class="stat-label">Cần Ôn Lại</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Celebration Message -->
+        <div class="row" th:if="${results.percentageScore >= 80}">
+            <div class="col-md-12">
+                <div class="celebration">
+                    <div class="celebration-icon">🎉</div>
+                    <div class="celebration-text">Tuyệt vời!</div>
+                    <div class="celebration-subtext">Bạn đã đạt kết quả xuất sắc trong phiên ôn tập này!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" th:if="${results.percentageScore >= 60 and results.percentageScore < 80}">
+            <div class="col-md-12">
+                <div class="celebration">
+                    <div class="celebration-icon">👍</div>
+                    <div class="celebration-text">Tốt lắm!</div>
+                    <div class="celebration-subtext">Bạn đã làm khá tốt, hãy tiếp tục cố gắng!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" th:if="${results.percentageScore < 60}">
+            <div class="col-md-12">
+                <div class="celebration">
+                    <div class="celebration-icon">💪</div>
+                    <div class="celebration-text">Đừng nản lòng!</div>
+                    <div class="celebration-subtext">Hãy ôn tập thêm để cải thiện kết quả!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mastered Words -->
+        <div class="row" th:if="${!results.masteredWords.isEmpty()}">
+            <div class="col-md-12">
+                <div class="results-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-check-circle text-success me-2"></i>Đã Thành Thạo
+                        <span class="badge bg-success ms-2" th:text="${results.masteredWords.size()}">8</span>
+                    </h4>
+                    <div class="words-list">
+                        <div class="word-item mastered" th:each="word : ${results.masteredWords}">
+                            <div class="word-text" th:text="${word}">accommodate</div>
+                            <div class="word-meaning">Cung cấp chỗ ở, điều chỉnh</div>
+                            <div class="word-status mastered">Đã nhớ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Need Review Words -->
+        <div class="row" th:if="${!results.needReviewWords.isEmpty()}">
+            <div class="col-md-12">
+                <div class="results-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Cần Ôn Lại
+                        <span class="badge bg-warning ms-2" th:text="${results.needReviewWords.size()}">3</span>
+                    </h4>
+                    <div class="words-list">
+                        <div class="word-item need-review" th:each="word : ${results.needReviewWords}">
+                            <div class="word-text" th:text="${word}">difficult</div>
+                            <div class="word-meaning">Khó khăn, phức tạp</div>
+                            <div class="word-status need-review">Cần ôn</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Summary -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="progress-section">
+                    <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>Tóm Tắt Tiến Bộ</h5>
+                    <div class="progress-item">
+                        <span class="progress-label">Từ đã thành thạo</span>
+                        <span class="progress-value" th:text="${results.masteredWords.size()} + ' từ'">8 từ</span>
+                    </div>
+                    <div class="progress-item">
+                        <span class="progress-label">Từ cần ôn lại</span>
+                        <span class="progress-value" th:text="${results.needReviewWords.size()} + ' từ'">3 từ</span>
+                    </div>
+                    <div class="progress-item">
+                        <span class="progress-label">Tỷ lệ thành công</span>
+                        <span class="progress-value" th:text="${#numbers.formatDecimal(results.percentageScore, 1, 1)} + '%'">80.0%</span>
+                    </div>
+                    <div class="progress-item">
+                        <span class="progress-label">Thời gian hoàn thành</span>
+                        <span class="progress-value" th:text="${results.formattedDuration}">14 phút 32 giây</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="action-buttons">
+                    <a href="/learn/review" class="btn-action btn-primary-action">
+                        <i class="fas fa-redo me-2"></i>Ôn Tập Lại
+                    </a>
+                    <a href="/vocabulary" class="btn-action btn-secondary-action">
+                        <i class="fas fa-book me-2"></i>Học Từ Mới
+                    </a>
+                    <a href="/dashboard" class="btn-action btn-outline-action">
+                        <i class="fas fa-home me-2"></i>Về Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Add some animation to the score circle
+        document.addEventListener('DOMContentLoaded', function() {
+            const scoreCircle = document.querySelector('.score-circle');
+            if (scoreCircle) {
+                scoreCircle.style.animation = 'scoreAnimation 2s ease-out';
+            }
+        });
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes scoreAnimation {
+                from {
+                    transform: scale(0.8);
+                    opacity: 0;
+                }
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

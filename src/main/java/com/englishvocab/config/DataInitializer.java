@@ -22,6 +22,7 @@ public class DataInitializer implements CommandLineRunner {
     private final VocabRepository vocabRepository;
     private final SensesRepository sensesRepository;
     private final VocabTopicsRepository vocabTopicsRepository;
+    private final UserVocabProgressRepository userVocabProgressRepository;
     private final PasswordEncoder passwordEncoder;
     
     @Override
@@ -32,6 +33,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeDictionaries();
         initializeTopics();
         initializeVocabulary();
+        initializeUserProgress();
         
         log.info("🎉 Data Initialization Complete! System ready for use.");
     }
@@ -401,5 +403,54 @@ public class DataInitializer implements CommandLineRunner {
         }
         
         log.info("✅ Created {} Elementary vocabulary words", elementaryWords.length);
+    }
+    
+    private void initializeUserProgress() {
+        log.info("📊 Initializing sample user progress...");
+        
+        // Check if progress already exists
+        if (userVocabProgressRepository.count() > 0) {
+            log.info("User progress already exists, skipping progress initialization.");
+            return;
+        }
+        
+        // Get sample user
+        User sampleUser = userRepository.findByEmail("student@example.com")
+            .orElse(null);
+            
+        if (sampleUser == null) {
+            log.warn("Sample user not found, skipping progress initialization.");
+            return;
+        }
+        
+        // Get some vocabulary words
+        List<Vocab> vocabWords = vocabRepository.findAll().stream()
+            .limit(20)
+            .collect(java.util.stream.Collectors.toList());
+            
+        if (vocabWords.isEmpty()) {
+            log.warn("No vocabulary words found, skipping progress initialization.");
+            return;
+        }
+        
+        // Create progress records for sample user
+        for (int i = 0; i < vocabWords.size(); i++) {
+            Vocab vocab = vocabWords.get(i);
+            
+            UserVocabProgress progress = UserVocabProgress.builder()
+                .user(sampleUser)
+                .vocab(vocab)
+                .box(1) // Start with box 1
+                .streak(0) // No consecutive correct answers yet
+                .wrongCount(0)
+                .status(UserVocabProgress.Status.LEARNING)
+                .lastReviewed(java.time.LocalDateTime.now().minusDays(i % 3)) // Some reviewed recently
+                .nextReviewAt(java.time.LocalDateTime.now().plusDays(i % 2)) // Some due today/tomorrow
+                .build();
+                
+            userVocabProgressRepository.save(progress);
+        }
+        
+        log.info("✅ Created {} progress records for sample user", vocabWords.size());
     }
 }

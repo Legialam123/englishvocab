@@ -96,6 +96,25 @@
             margin-bottom: 2rem;
         }
         
+        .list-checkbox-item {
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .list-checkbox-item:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+        
+        .list-checkbox-item input[type="checkbox"]:checked {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        
         .selected-panel {
             background: white;
             border-radius: 10px;
@@ -204,11 +223,6 @@
             padding: 3rem 1rem;
             color: #6c757d;
         }
-        
-        .saved-sets-dropdown {
-            max-height: 200px;
-            overflow-y: auto;
-        }
 
         /* Pagination Styles */
         .pagination {
@@ -316,34 +330,15 @@
                             <label class="form-label small">Trạng thái học tập</label>
                             <select class="form-select form-select-sm" id="statusFilter" onchange="filterVocabulary()">
                                 <option value="">Tất cả</option>
-                                <option value="new">Chưa học</option>
-                                <option value="learning">Đang học</option>
-                                <option value="mastered">Đã thành thạo</option>
+                                <option value="NEW">Chưa học</option>
+                                <option value="LEARNING">Đang học</option>
+                                <option value="MASTERED">Đã thành thạo</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button" 
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-bookmarks"></i> Bộ từ đã lưu
-                                </button>
-                                <ul class="dropdown-menu saved-sets-dropdown w-100">
-                                    <li><h6 class="dropdown-header">Bộ từ của bạn</h6></li>
-                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('favorites')">
-                                        <i class="bi bi-heart text-danger"></i> Từ yêu thích (15)
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('difficult')">
-                                        <i class="bi bi-exclamation-triangle text-warning"></i> Từ khó nhớ (8)
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="loadSavedSet('review')">
-                                        <i class="bi bi-arrow-clockwise text-info"></i> Cần ôn tập (12)
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="saveCurrentSet()">
-                                        <i class="bi bi-plus-circle text-success"></i> Lưu bộ từ hiện tại
-                                    </a></li>
-                                </ul>
-                            </div>
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearAllFilters()" style="margin-top: 1.5rem;">
+                                <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -366,7 +361,7 @@
                                     Beginner
                                 </button>
                                 <button class="btn btn-outline-warning" onclick="selectByLevel('INTERMEDIATE')">
-                                    Inter
+                                    Intermediate
                                 </button>
                                 <button class="btn btn-outline-danger" onclick="selectByLevel('ADVANCED')">
                                     Advanced
@@ -514,34 +509,6 @@
             <!-- Selected Panel -->
             <div class="col-md-4">
                 <div class="selected-panel">
-                    <!-- Learning Options -->
-                    <h6 class="mb-3">
-                        <i class="bi bi-sliders text-primary"></i> Tùy chọn học tập
-                    </h6>
-                    <div class="row">
-                        <div class="col-6">
-                            <label class="form-label small">Số từ vựng</label>
-                            <select class="form-select form-select-sm" id="sessionSize">
-                                <option value="10">10 từ</option>
-                                <option value="20" selected>20 từ</option>
-                                <option value="30">30 từ</option>
-                                <option value="50">50 từ</option>
-                                <option value="100">100 từ</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">Độ khó</label>
-                            <select class="form-select form-select-sm" id="difficultyLevelOption">
-                                <option value="">Tất cả</option>
-                                <option value="BEGINNER">Beginner</option>
-                                <option value="INTERMEDIATE">Intermediate</option>
-                                <option value="ADVANCED">Advanced</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-3">
-                    
                     <h6 class="mb-3">
                         <i class="bi bi-heart text-danger"></i> 
                         Từ đã chọn 
@@ -556,7 +523,7 @@
                     <div class="border-top pt-3">
                         <div class="row text-center mb-3">
                             <div class="col-4">
-                                <div class="text-primary fw-bold h6" id="newWordsCount">0</div>
+                                <div class="text-secondary fw-bold h6" id="newWordsCount">0</div>
                                 <small class="text-muted">Chưa học</small>
                             </div>
                             <div class="col-4">
@@ -579,9 +546,9 @@
                         <i class="bi bi-play-circle me-2"></i>Bắt đầu học
                     </button>
                     
-                    <!-- Save Set Button -->
-                    <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="saveCurrentSet()">
-                        <i class="bi bi-bookmark-plus"></i> Lưu bộ từ này
+                    <!-- Save to List Button -->
+                    <button class="btn btn-outline-primary btn-sm w-100 mt-2" id="saveToListBtn" disabled onclick="showSaveToListModal()">
+                        <i class="bi bi-folder-plus"></i> Lưu vào danh sách
                     </button>
                 </div>
             </div>
@@ -621,11 +588,11 @@
                         <div class="row">
                             <div class="col-6">
                                 <p><strong>Từ điển:</strong> <span th:text="${dictionary.name}">Dictionary Name</span></p>
-                                <p><strong>Thứ tự học:</strong> <span id="modalLearningOrder">Theo chọn</span></p>
+                                <p><strong>Chưa học:</strong> <span id="modalNewCount" class="text-secondary">0</span> từ</p>
                             </div>
                             <div class="col-6">
                                 <p><strong>Thời gian dự kiến:</strong> <span id="modalEstimatedTime">0</span> phút</p>
-                                <p><strong>Ưu tiên từ khó:</strong> <span id="modalPrioritizeDifficult">Có</span></p>
+                                <p><strong>Đang học/Thành thạo:</strong> <span id="modalProgressCount" class="text-warning">0</span>/<span id="modalMasteredCount" class="text-success">0</span></p>
                             </div>
                         </div>
                         
@@ -643,6 +610,41 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Save to List Modal -->
+        <div class="modal fade" id="saveToListModal" tabindex="-1" aria-labelledby="saveToListModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saveToListModalLabel">
+                            <i class="bi bi-folder-plus"></i> Lưu từ vựng vào danh sách
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Bạn đã chọn <span id="saveModalSelectedCount">0</span> từ vựng</strong></p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Chọn danh sách:</label>
+                            <div id="userListsContainer" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Danh sách sẽ được load bằng JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <small><strong>Lưu ý:</strong> Các từ vựng đã chọn sẽ được thêm vào danh sách bạn chọn.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmSaveToList()" id="confirmSaveBtn" disabled>
+                            <i class="bi bi-check-circle"></i> Xác nhận lưu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -653,6 +655,7 @@
         // Global variables
         const dictionaryId = /*[[${dictionary.dictionaryId}]]*/ 1;
         const currentUserId = /*[[${currentUserId}]]*/ 'admin';
+        const userLists = /*[[${userLists}]]*/ [];
         let selectedVocabs = new Map();
         let allVocabs = [];
         
@@ -720,7 +723,7 @@
                 estimatedTime.textContent = '0 phút';
             } else {
                 let html = '';
-                let newWords = 0, learningWords = 0, masteredWords = 0;
+                let newWords = 0, learningWords = 0, reviewingWords = 0, masteredWords = 0;
                 
                 selectedVocabs.forEach((vocab, id) => {
                     html += `<div class="d-flex justify-content-between align-items-center mb-1">
@@ -730,19 +733,22 @@
                         </button>
                     </div>`;
                     
-                    if (vocab.status === 'new') newWords++;
-                    else if (vocab.status === 'learning') learningWords++;
-                    else masteredWords++;
+                    // Count by actual status from backend
+                    if (vocab.status === 'NEW') newWords++;
+                    else if (vocab.status === 'LEARNING') learningWords++;
+                    else if (vocab.status === 'REVIEWING') reviewingWords++;
+                    else if (vocab.status === 'MASTERED') masteredWords++;
                 });
                 
                 selectedList.innerHTML = html;
                 startBtn.disabled = false;
                 newCount.textContent = newWords;
-                learningCount.textContent = learningWords;
+                learningCount.textContent = (learningWords + reviewingWords); // Combined
                 masteredCount.textContent = masteredWords;
                 
-                const time = Math.ceil(selectedVocabs.size * 0.5) + '-' + Math.ceil(selectedVocabs.size * 0.75);
-                estimatedTime.textContent = time + ' phút';
+                // Fixed time: 1 từ = 1 phút
+                const time = selectedVocabs.size === 1 ? '1 phút' : `1-${selectedVocabs.size} phút`;
+                estimatedTime.textContent = time;
             }
         }
         
@@ -846,6 +852,16 @@
         }
         
         /**
+         * Clear all filters
+         */
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('levelFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            filterVocabulary();
+        }
+        
+        /**
          * Preview vocabulary
          */
         function previewVocab(button) {
@@ -884,14 +900,21 @@
         function startCustomLearning() {
             if (selectedVocabs.size === 0) return;
             
+            // Calculate statistics
+            let newWords = 0, learningWords = 0, masteredWords = 0;
+            selectedVocabs.forEach((vocab, id) => {
+                if (vocab.status === 'NEW') newWords++;
+                else if (vocab.status === 'LEARNING' || vocab.status === 'REVIEWING') learningWords++;
+                else if (vocab.status === 'MASTERED') masteredWords++;
+            });
+            
             // Update modal content
             document.getElementById('modalSelectedCount').textContent = selectedVocabs.size;
-            document.getElementById('modalLearningOrder').textContent = 
-                document.getElementById('learningOrder').options[document.getElementById('learningOrder').selectedIndex].text;
             document.getElementById('modalEstimatedTime').textContent = 
-                document.getElementById('estimatedTime').textContent;
-            document.getElementById('modalPrioritizeDifficult').textContent = 
-                document.getElementById('prioritizeDifficult').checked ? 'Có' : 'Không';
+                selectedVocabs.size === 1 ? '1' : `1-${selectedVocabs.size}`;
+            document.getElementById('modalNewCount').textContent = newWords;
+            document.getElementById('modalProgressCount').textContent = learningWords;
+            document.getElementById('modalMasteredCount').textContent = masteredWords;
             
             let modalList = '';
             let counter = 1;
@@ -922,15 +945,12 @@
             const formData = new FormData();
             formData.append('dictionaryId', dictionaryId);
             formData.append('learningMode', 'custom');
-            formData.append('sessionSize', document.getElementById('sessionSize').value);
+            formData.append('sessionSize', selectedVocabs.size); // Use actual selected count
             
             // Add selected vocab IDs
             selectedVocabs.forEach((vocab, id) => {
                 formData.append('selectedVocabIds', id);
             });
-            
-            // Add settings
-            formData.append('difficultyLevel', document.getElementById('difficultyLevelOption').value);
             
             // Submit to start session
             const headers = {};
@@ -965,28 +985,132 @@
         }
         
         /**
-         * Load saved vocabulary set
+         * Show save to list modal
          */
-        function loadSavedSet(setType) {
-            // TODO: Implement saved sets functionality
-            alert(`Chức năng load bộ từ "${setType}" sẽ được implement!`);
-        }
-        
-        /**
-         * Save current vocabulary set
-         */
-        function saveCurrentSet() {
+        function showSaveToListModal() {
             if (selectedVocabs.size === 0) {
                 alert('Vui lòng chọn ít nhất một từ vựng để lưu!');
                 return;
             }
             
-            const setName = prompt('Nhập tên cho bộ từ này:');
-            if (setName && setName.trim()) {
-                // TODO: Implement save functionality
-                alert(`Đã lưu bộ từ "${setName.trim()}" với ${selectedVocabs.size} từ vựng!`);
+            // Load user lists into modal
+            loadUserLists();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('saveToListModal'));
+            modal.show();
+        }
+        
+        /**
+         * Load user lists into modal
+         */
+        function loadUserLists() {
+            const container = document.getElementById('userListsContainer');
+            
+            if (!userLists || userLists.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Bạn chưa có danh sách nào. Hãy tạo danh sách mới trước!
+                    </div>
+                    <a href="/vocabulary/lists/create" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-circle me-2"></i>Tạo danh sách mới
+                    </a>
+                `;
+                document.getElementById('confirmSaveBtn').disabled = true;
+                return;
+            }
+            
+            let html = '';
+            userLists.forEach(list => {
+                html += `
+                    <div class="form-check list-checkbox-item" onclick="toggleListCheckbox(${list.listId})">
+                        <input class="form-check-input" type="checkbox" value="${list.listId}" 
+                               id="list${list.listId}" onchange="updateSaveButton()">
+                        <label class="form-check-label w-100" for="list${list.listId}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${list.name}</strong>
+                                    <div class="text-muted small">${list.vocabCount || 0} từ</div>
+                                </div>
+                                ${list.isPublic ? '<span class="badge bg-success">Công khai</span>' : '<span class="badge bg-secondary">Riêng tư</span>'}
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            document.getElementById('confirmSaveBtn').disabled = false;
+        }
+        
+        /**
+         * Toggle list checkbox
+         */
+        function toggleListCheckbox(listId) {
+            const checkbox = document.getElementById(`list${listId}`);
+            checkbox.checked = !checkbox.checked;
+            updateSaveButton();
+        }
+        
+        /**
+         * Update save button state
+         */
+        function updateSaveButton() {
+            const checkedBoxes = document.querySelectorAll('#userListsContainer input[type="checkbox"]:checked');
+            document.getElementById('confirmSaveBtn').disabled = checkedBoxes.length === 0;
+        }
+        
+        /**
+         * Confirm save to list
+         */
+        async function confirmSaveToList() {
+            const checkedBoxes = document.querySelectorAll('#userListsContainer input[type="checkbox"]:checked');
+            
+            if (checkedBoxes.length === 0) {
+                alert('Vui lòng chọn ít nhất một danh sách!');
+                return;
+            }
+            
+            const listIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+            const vocabIds = Array.from(selectedVocabs.keys()).map(id => parseInt(id));
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            try {
+                const response = await fetch('/api/vocab-lists/add-vocabs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({
+                        listIds: listIds,
+                        vocabIds: vocabIds
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Đã lưu ${vocabIds.length} từ vào ${listIds.length} danh sách thành công!`);
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('saveToListModal'));
+                    modal.hide();
+                    
+                    // Reset checkboxes
+                    checkedBoxes.forEach(cb => cb.checked = false);
+                } else {
+                    const error = await response.text();
+                    alert('Có lỗi xảy ra: ' + error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi lưu từ vào danh sách. Vui lòng thử lại!');
             }
         }
-    </script>
+        </script>
 </body>
 </html>
